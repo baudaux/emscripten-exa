@@ -954,8 +954,11 @@ class libc(MuslInternalLibrary,
         'getentropy.c',
         'getauxval.c',
         # 'process' exclusion
-        'fork.c', 'vfork.c', 'posix_spawn.c', 'posix_spawnp.c', 'execve.c', 'waitid.c', 'system.c',
-        '_Fork.c',
+        # Modified by Benoit Baudaux 20/11/2022
+        #'fork.c',
+        'vfork.c', 'posix_spawn.c', 'posix_spawnp.c', 'waitid.c', 'system.c',
+      #'execve.c', 
+        #'_Fork.c',
     ]
 
     ignore += LIBC_SOCKETS

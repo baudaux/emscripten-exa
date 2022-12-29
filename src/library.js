@@ -1709,12 +1709,20 @@ mergeInto(LibraryManager.library, {
   $readSockaddr__deps: ['$Sockets', '$inetNtop4', '$inetNtop6', 'ntohs'],
   $readSockaddr: function (sa, salen) {
     // family / port offsets are common to both sockaddr_in and sockaddr_in6
-    var family = {{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_family, 'i16') }}};
-    var port = _ntohs({{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_port, 'u16') }}});
-    var addr;
+      var family = {{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_family, 'i16') }}};
+      var port = -1;
+      var addr;
 
-    switch (family) {
+      switch (family) {
+	  /* Modified by Benoit Baudaux 26/12/2022 */
+      case {{{ cDefine('AF_UNIX') }}}:
+	  if (salen !== {{{ C_STRUCTS.sockaddr_un.__size__ }}}) {
+              return { errno: {{{ cDefine('EINVAL') }}} };
+          }
+	  addr = UTF8ToString(sa+2);
+        break;
       case {{{ cDefine('AF_INET') }}}:
+	  port = _ntohs({{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_port, 'u16') }}});
         if (salen !== {{{ C_STRUCTS.sockaddr_in.__size__ }}}) {
           return { errno: {{{ cDefine('EINVAL') }}} };
         }
@@ -1722,6 +1730,7 @@ mergeInto(LibraryManager.library, {
         addr = inetNtop4(addr);
         break;
       case {{{ cDefine('AF_INET6') }}}:
+	  port = _ntohs({{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_port, 'u16') }}});
         if (salen !== {{{ C_STRUCTS.sockaddr_in6.__size__ }}}) {
           return { errno: {{{ cDefine('EINVAL') }}} };
         }

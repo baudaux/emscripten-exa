@@ -60,7 +60,10 @@ mergeInto(LibraryManager.library, {
           throw new FS.ErrnoError({{{ cDefine('ENXIO') }}});
         }
         var bytesRead = 0;
-        for (var i = 0; i < length; i++) {
+
+        // Modified by Benoit Baudaux 08/11/2022
+
+        /*for (var i = 0; i < length; i++) {
           var result;
           try {
             result = stream.tty.ops.get_char(stream.tty);
@@ -77,14 +80,56 @@ mergeInto(LibraryManager.library, {
         if (bytesRead) {
           stream.node.timestamp = Date.now();
         }
-        return bytesRead;
+        return bytesRead;*/
+
+        const get_char_callback = function(result) {
+
+          if (!(result === null || result === undefined)) {
+
+            buffer[offset+bytesRead] = result;
+
+            bytesRead++;
+
+            if (bytesRead < length) {
+
+              stream.tty.ops.get_char(stream.tty, get_char_callback, 0);
+              return;
+            }
+          }
+
+          if (bytesRead) {
+            stream.node.timestamp = Date.now();
+          }
+
+          // result is null, no more char to read
+          
+          stream.read_callback(bytesRead,length);
+        }
+
+        if (length > 0) {
+
+          stream.tty.ops.get_char(stream.tty, get_char_callback, 1);
+        }
+        else {
+
+          stream.read_callback(0,0);
+        }
+
+        return -7777; // stream.read_callback is called once finished
+
       },
       write: function(stream, buffer, offset, length, pos) {
         if (!stream.tty || !stream.tty.ops.put_char) {
           throw new FS.ErrnoError({{{ cDefine('ENXIO') }}});
         }
         try {
+
+          //console.log("write:"+length);
+
           for (var i = 0; i < length; i++) {
+
+            //console.log("put_char:"+buffer[offset+i]);
+
             stream.tty.ops.put_char(stream.tty, buffer[offset+i]);
           }
         } catch (e) {
@@ -94,6 +139,20 @@ mergeInto(LibraryManager.library, {
           stream.node.timestamp = Date.now();
         }
         return i;
+      },
+      // Modified by Benoit Baudaux 8/11/2022
+      ioctl: function(stream, cmd, arg) {
+
+        stream.tty.asynsify_wakeup = stream.asynsify_wakeup;
+
+        const ret = stream.tty.ops.ioctl(stream.tty, cmd, arg);
+        
+        if (ret == 0) {
+
+          stream.asynsify_wakeup_consumed = true;
+        }
+
+        return ret;
       }
     },
     default_tty_ops: {
@@ -101,7 +160,7 @@ mergeInto(LibraryManager.library, {
       // a.) the next character represented as an integer
       // b.) undefined to signal that no data is currently available
       // c.) null to signal an EOF
-      get_char: function(tty) {
+      get_char: function(tty, callback, blocking) {
         if (!tty.input.length) {
           var result = null;
 #if ENVIRONMENT_MAY_BE_NODE
@@ -127,7 +186,25 @@ mergeInto(LibraryManager.library, {
             }
           } else
 #endif
+          // Modified by Benoit Baudaux 07/11/2022
+
           if (typeof window != 'undefined' &&
+            typeof window.get_tty_input == 'function') {
+
+              window.get_tty_input(function(result) {
+
+                if (result !== null) {
+                  tty.input = intArrayFromString(result, true);
+                  callback(tty.input.shift());
+                }
+                else {
+                  callback(null);
+                }
+              }, blocking);
+
+              return 0;
+          }
+          else if (typeof window != 'undefined' &&
             typeof window.prompt == 'function') {
             // Browser.
             result = window.prompt('Input: ');  // returns null on cancel
@@ -141,19 +218,29 @@ mergeInto(LibraryManager.library, {
               result += '\n';
             }
           }
+
           if (!result) {
             return null;
           }
           tty.input = intArrayFromString(result, true);
         }
-        return tty.input.shift();
+        callback(tty.input.shift());
       },
       put_char: function(tty, val) {
-        if (val === null || val === {{{ charCode('\n') }}}) {
+
+        // Modified by Benoit Baudaux 08/11/2022
+        /*if (val === null || val === {{{ charCode('\n') }}}) {
           out(UTF8ArrayToString(tty.output, 0));
           tty.output = [];
         } else {
           if (val != 0) tty.output.push(val); // val == 0 would cut text output off in the middle.
+        }*/
+
+        if (val) {
+
+          tty.output.push(val);
+          out(UTF8ArrayToString(tty.output, 0));
+          tty.output = [];
         }
       },
       fsync: function(tty) {
@@ -161,15 +248,125 @@ mergeInto(LibraryManager.library, {
           out(UTF8ArrayToString(tty.output, 0));
           tty.output = [];
         }
+      },
+      // Modified by Benoit Baudaux 8/11/2022
+      ioctl: function(tty, cmd, arg) {
+
+        let msg = {
+
+          type: 2   // ioctl
+        };
+
+        switch(cmd) {
+
+          case {{{ cDefine('TCGETS') }}}: {
+
+            msg.op = 0;
+            break;
+          }
+          case {{{ cDefine('TCSETS') }}}:
+          case {{{ cDefine('TCSETSW') }}}:
+          case {{{ cDefine('TCSETSF') }}}: {
+
+            msg.op = 1;
+
+            msg.termios = {
+
+              c_iflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_iflag, '*') }}},
+              c_oflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_oflag, '*') }}},
+              c_cflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_cflag, '*') }}},
+              c_lflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_lflag, '*') }}},
+            };
+
+            break;
+          }
+          case {{{ cDefine('TIOCGWINSZ') }}}: {
+
+            console.log("tty.ioctl: TIOCGWINSZ");
+
+            msg.op = 2;
+
+            break;
+          }
+
+          default: return -{{{ cDefine('EINVAL') }}};
+        }
+
+        if (window.tty_ioctl) {
+        
+          window.tty_ioctl(msg, function(e) {
+
+            if (e.type == 2) {    // IOCTL
+
+              switch(e.op) {
+
+                case 0:       // TCGETS
+
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_iflag, 'e.termios.c_iflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_oflag, 'e.termios.c_oflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_cflag, 'e.termios.c_cflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_lflag, 'e.termios.c_lflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.__c_ispeed, 'e.termios.c_ispeed', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.__c_ospeed, 'e.termios.c_ospeed', 'i32') }}};
+
+                  break;
+
+                case 1:       // TCSETS
+
+                  break;
+
+                case 2:       // TIOCGWINSZ
+
+                  {{{ makeSetValue('arg', C_STRUCTS.winsize.ws_row, 'e.winsize.ws_row', 'u16') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.winsize.ws_col, 'e.winsize.ws_col', 'u16') }}};
+
+                  break;
+
+                default:
+
+                  break;
+              }
+
+              tty.asynsify_wakeup(e.res);
+            }
+            else {
+
+              tty.asynsify_wakeup(-1);
+            }
+            
+          });
+        }
+        else {
+
+          tty.asynsify_wakeup(-1);
+        }
+
+        return 0;
+
       }
     },
     default_tty1_ops: {
       put_char: function(tty, val) {
-        if (val === null || val === {{{ charCode('\n') }}}) {
+
+        // Modified by Benoit Baudaux 08/11/2022
+        /*if (val === null || val === {{{ charCode('\n') }}}) {
+
+          // Modified by Benoit Baudaux 08/11/2022
+      
+          if (val === {{{ charCode('\n') }}})
+            tty.output.push(val);
+
           err(UTF8ArrayToString(tty.output, 0));
           tty.output = [];
         } else {
           if (val != 0) tty.output.push(val);
+        }*/
+
+        if (val) {
+
+          tty.output.push(val);
+          out(UTF8ArrayToString(tty.output, 0));
+          tty.output = [];
         }
       },
       fsync: function(tty) {
@@ -177,6 +374,99 @@ mergeInto(LibraryManager.library, {
           err(UTF8ArrayToString(tty.output, 0));
           tty.output = [];
         }
+      },
+      // Modified by Benoit Baudaux 8/11/2022
+      ioctl: function(tty, cmd, arg) {
+
+        let msg = {
+
+          type: 2   // ioctl
+        };
+
+        switch(cmd) {
+
+          case {{{ cDefine('TCGETS') }}}: {
+
+            msg.op = 0;
+            break;
+          }
+          case {{{ cDefine('TCSETS') }}}:
+          case {{{ cDefine('TCSETSW') }}}:
+          case {{{ cDefine('TCSETSF') }}}: {
+
+            msg.op = 1;
+
+            msg.termios = {
+
+              c_iflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_iflag, '*') }}},
+              c_oflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_oflag, '*') }}},
+              c_cflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_cflag, '*') }}},
+              c_lflag: {{{ makeGetValue('arg', C_STRUCTS.termios.c_lflag, '*') }}},
+            };
+
+            break;
+          }
+          case {{{ cDefine('TIOCGWINSZ') }}}: {
+
+            msg.op = 2;
+
+            break;
+          }
+
+          default: return -{{{ cDefine('EINVAL') }}};
+        }
+
+        if (window.tty_ioctl) {
+        
+          window.tty_ioctl(msg, function(e) {
+
+            if (e.type == 2) {    // IOCTL
+
+              switch(e.op) {
+
+                case 0:       // TCGETS
+
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_iflag, 'e.termios.c_iflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_oflag, 'e.termios.c_oflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_cflag, 'e.termios.c_cflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.c_lflag, 'e.termios.c_lflag', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.__c_ispeed, 'e.termios.c_ispeed', 'i32') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.termios.__c_ospeed, 'e.termios.c_ospeed', 'i32') }}};
+
+                  break;
+
+                case 1:       // TCSETS
+
+                  break;
+
+                case 2:       // TIOCGWINSZ
+
+                  {{{ makeSetValue('arg', C_STRUCTS.winsize.ws_row, 'e.winsize.ws_row', 'u16') }}};
+                  {{{ makeSetValue('arg', C_STRUCTS.winsize.ws_col, 'e.winsize.ws_col', 'u16') }}};
+
+                  break;
+
+                default:
+
+                  break;
+              }
+
+              tty.asynsify_wakeup(e.res);
+            }
+            else {
+
+              tty.asynsify_wakeup(-1);
+            }
+            
+          });
+        }
+        else {
+
+          tty.asynsify_wakeup(-1);
+        }
+
+        return 0;
+
       }
     }
   }

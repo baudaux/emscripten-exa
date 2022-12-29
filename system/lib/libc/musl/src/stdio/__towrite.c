@@ -1,5 +1,9 @@
 #include "stdio_impl.h"
 
+#ifdef __BB_DEBUG
+#include <emscripten.h>
+#endif
+
 int __towrite(FILE *f)
 {
 	f->mode |= f->mode-1;
@@ -13,6 +17,11 @@ int __towrite(FILE *f)
 	/* Activate write through the buffer. */
 	f->wpos = f->wbase = f->buf;
 	f->wend = f->buf + f->buf_size;
+
+#ifdef __BB_DEBUG
+	// BB
+	emscripten_log(EM_LOG_CONSOLE,"<-- __towrite (0)");
+#endif
 
 	return 0;
 }

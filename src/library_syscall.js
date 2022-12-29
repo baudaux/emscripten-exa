@@ -213,53 +213,93 @@ var SyscallsLibrary = {
     return 0;
 #else
     var stream = SYSCALLS.getStreamFromFD(fd);
-    switch (op) {
-      case {{{ cDefine('TCGETA') }}}:
-      case {{{ cDefine('TCGETS') }}}: {
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-#if SYSCALL_DEBUG
-        dbg('warning: not filling tio struct');
-#endif
-        return 0;
+
+    var ret = Asyncify.handleSleep(function(wakeUp) {
+
+      stream.asynsify_wakeup = wakeUp;
+      stream.asynsify_wakeup_consumed = false;
+
+      function _ioctl() {
+
+        switch (op) {
+          case {{{ cDefine('TCGETA') }}}: {
+            return 0;
+          }
+          case {{{ cDefine('TCGETS') }}}: {
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+    #if SYSCALL_DEBUG
+            dbg('warning: not filling tio struct');
+    #endif
+            // Modified be Benoit Baudaux 9/11/2022
+            //return 0;
+
+            var argp = SYSCALLS.get();
+            return FS.ioctl(stream, op, argp);
+          }
+          case {{{ cDefine('TCSETA') }}}:
+          case {{{ cDefine('TCSETAW') }}}:
+          case {{{ cDefine('TCSETAF') }}}: {
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+
+            return 0; // no-op, not actually adjusting terminal settings
+          }
+          case {{{ cDefine('TCSETS') }}}:
+          case {{{ cDefine('TCSETSW') }}}:
+          case {{{ cDefine('TCSETSF') }}}: {
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+
+            // Modified be Benoit Baudaux 9/11/2022
+            //return 0; // no-op, not actually adjusting terminal settings
+
+            var argp = SYSCALLS.get();
+            return FS.ioctl(stream, op, argp);
+          }
+          case {{{ cDefine('TIOCGPGRP') }}}: {
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+            var argp = SYSCALLS.get();
+            {{{ makeSetValue('argp', 0, 0, 'i32') }}};
+            return 0;
+          }
+          case {{{ cDefine('TIOCSPGRP') }}}: {
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+            return -{{{ cDefine('EINVAL') }}}; // not supported
+          }
+          case {{{ cDefine('FIONREAD') }}}: {
+            var argp = SYSCALLS.get();
+            return FS.ioctl(stream, op, argp);
+          }
+          case {{{ cDefine('TIOCGWINSZ') }}}: {
+            // TODO: in theory we should write to the winsize struct that gets
+            // passed in, but for now musl doesn't read anything on it
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+
+            // Modified be Benoit Baudaux 10/11/2022
+            //return 0;
+
+            var argp = SYSCALLS.get();
+            return FS.ioctl(stream, op, argp);
+          }
+          case {{{ cDefine('TIOCSWINSZ') }}}: {
+            // TODO: technically, this ioctl call should change the window size.
+            // but, since emscripten doesn't have any concept of a terminal window
+            // yet, we'll just silently throw it away as we do TIOCGWINSZ
+            if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
+            return 0;
+          }
+          default: return -{{{ cDefine('EINVAL') }}}; // not supported
+        }
       }
-      case {{{ cDefine('TCSETA') }}}:
-      case {{{ cDefine('TCSETAW') }}}:
-      case {{{ cDefine('TCSETAF') }}}:
-      case {{{ cDefine('TCSETS') }}}:
-      case {{{ cDefine('TCSETSW') }}}:
-      case {{{ cDefine('TCSETSF') }}}: {
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-        return 0; // no-op, not actually adjusting terminal settings
-      }
-      case {{{ cDefine('TIOCGPGRP') }}}: {
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-        var argp = SYSCALLS.get();
-        {{{ makeSetValue('argp', 0, 0, 'i32') }}};
-        return 0;
-      }
-      case {{{ cDefine('TIOCSPGRP') }}}: {
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-        return -{{{ cDefine('EINVAL') }}}; // not supported
-      }
-      case {{{ cDefine('FIONREAD') }}}: {
-        var argp = SYSCALLS.get();
-        return FS.ioctl(stream, op, argp);
-      }
-      case {{{ cDefine('TIOCGWINSZ') }}}: {
-        // TODO: in theory we should write to the winsize struct that gets
-        // passed in, but for now musl doesn't read anything on it
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-        return 0;
-      }
-      case {{{ cDefine('TIOCSWINSZ') }}}: {
-        // TODO: technically, this ioctl call should change the window size.
-        // but, since emscripten doesn't have any concept of a terminal window
-        // yet, we'll just silently throw it away as we do TIOCGWINSZ
-        if (!stream.tty) return -{{{ cDefine('ENOTTY') }}};
-        return 0;
-      }
-      default: return -{{{ cDefine('EINVAL') }}}; // not supported
-    }
+
+      var r = _ioctl();
+
+      if (!stream.asynsify_wakeup_consumed)
+        wakeUp(r);
+
+      //return 0;
+    });
+
+    return ret;
+
 #endif // SYSCALLS_REQUIRE_FILESYSTEM
   },
   __syscall_symlink__sig: 'ipp',
@@ -292,21 +332,27 @@ var SyscallsLibrary = {
   $getSocketAddress__docs: '/** @param {boolean=} allowNull */',
   $getSocketAddress: function(addrp, addrlen, allowNull) {
     if (allowNull && addrp === 0) return null;
-    var info = readSockaddr(addrp, addrlen);
-    if (info.errno) throw new FS.ErrnoError(info.errno);
-    info.addr = DNS.lookup_addr(info.addr) || info.addr;
+      var info = readSockaddr(addrp, addrlen);
+      if (info.errno) throw new FS.ErrnoError(info.errno);
+      /* Modified by Benoit Baudaux 26/12/2022 */
+      if (info.family != {{{ cDefine('AF_UNIX') }}} )
+	  info.addr = DNS.lookup_addr(info.addr) || info.addr;
 #if SYSCALL_DEBUG
     dbg('    (socketaddress: "' + [info.addr, info.port] + '")');
 #endif
     return info;
   },
-  __syscall_socket__deps: ['$SOCKFS'],
-  __syscall_socket: function(domain, type, protocol) {
-    var sock = SOCKFS.createSocket(domain, type, protocol);
+    /* Modified by Benoit Baudaux 26/12/2022 */
+    __syscall_socket__deps: ['$SOCKFS'],
+    __syscall_socket: function(domain, type, protocol) {
+
+	var sock = SOCKFS.createSocket(domain, type, protocol);
 #if ASSERTIONS
-    assert(sock.stream.fd < 64); // XXX ? select() assumes socket fd values are in 0..63
+    //assert(sock.stream.fd < 64); // XXX ? select() assumes socket fd values are in 0..63
 #endif
-    return sock.stream.fd;
+	//return sock.stream.fd;
+
+	return sock.fd;
   },
   __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
   __syscall_getsockname: function(fd, addr, addrlen) {
@@ -358,11 +404,21 @@ var SyscallsLibrary = {
   },
   __syscall_bind__deps: ['$getSocketFromFD', '$getSocketAddress'],
   __syscall_bind__sig: 'iipi',
-  __syscall_bind: function(fd, addr, addrlen) {
-    var sock = getSocketFromFD(fd);
-    var info = getSocketAddress(addr, addrlen);
-    sock.sock_ops.bind(sock, info.addr, info.port);
-    return 0;
+    __syscall_bind: function(fd, addr, addrlen) {
+
+	var sock = getSocketFromFD(fd);
+	var info = getSocketAddress(addr, addrlen);
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    sock.wakeUp = wakeUp;
+
+	    /* Modified by Benoit Baudaux 26/12/2022 */
+	    sock.sock_ops.bind(sock, info.addr, info.port);
+	    /*return 0;*/
+	});
+	
+	return ret;
   },
   __syscall_listen__deps: ['$getSocketFromFD'],
   __syscall_listen: function(fd, backlog) {
@@ -371,9 +427,10 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_recvfrom__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
-  __syscall_recvfrom: function(fd, buf, len, flags, addr, addrlen) {
+    __syscall_recvfrom: function(fd, buf, len, flags, addr, addrlen) {
+	/* Modified by Benoit Baudaux 26/12/2022 */
     var sock = getSocketFromFD(fd);
-    var msg = sock.sock_ops.recvmsg(sock, len);
+    /*var msg = sock.sock_ops.recvmsg(sock, len);
     if (!msg) return 0; // socket is closed
     if (addr) {
       var errno = writeSockaddr(addr, sock.family, DNS.lookup_name(msg.addr), msg.port, addrlen);
@@ -382,19 +439,36 @@ var SyscallsLibrary = {
 #endif
     }
     HEAPU8.set(msg.buffer, buf);
-    return msg.buffer.byteLength;
+
+    return msg.buffer.byteLength;*/
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    sock.wakeUp = wakeUp;
+
+	    sock.sock_ops.recvfrom(sock, buf, len, flags, addr, addrlen);
+	});
+	
+	return ret;
   },
   __syscall_sendto__deps: ['$getSocketFromFD', '$getSocketAddress'],
   __syscall_sendto__sig: 'iipiipi',
-  __syscall_sendto: function(fd, message, length, flags, addr, addr_len) {
-    var sock = getSocketFromFD(fd);
-    var dest = getSocketAddress(addr, addr_len, true);
-    if (!dest) {
+    __syscall_sendto: function(fd, message, length, flags, addr, addr_len) {
+
+	var sock = getSocketFromFD(fd);
+	
+      var dest = getSocketAddress(addr, addr_len, true);
+      /* Modified by Benoit Baudaux 26/12/2022 */
+    /*if (!dest) {
       // send, no address provided
       return FS.write(sock.stream, {{{ heapAndOffset('HEAP8', 'message') }}}, length);
     }
     // sendto an address
-    return sock.sock_ops.sendmsg(sock, {{{ heapAndOffset('HEAP8', 'message') }}}, length, dest.addr, dest.port);
+    return sock.sock_ops.sendmsg(sock, {{{ heapAndOffset('HEAP8', 'message') }}}, length, dest.addr, dest.port);*/
+
+      let uint8 = Module.HEAPU8.slice(message,message+length);
+      
+      return sock.sock_ops.sendto(sock, uint8, length, flags, dest.addr, dest.port);
   },
   __syscall_getsockopt__deps: ['$getSocketFromFD'],
   __syscall_getsockopt: function(fd, level, optname, optval, optlen) {
@@ -1000,6 +1074,84 @@ var SyscallsLibrary = {
     if (suggest) FS.close(suggest);
     return FS.createStream(old, suggestFD, suggestFD + 1).fd;
   },
+    // Modified by Benoit Baudaux 20/11/2020
+    __syscall_fork: function() {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (!Module.child_pid) {
+
+		// Reserve 1 for resmgr, so start at 2
+		
+		Module.child_pid = 2;
+	    }
+	    else {
+
+		Module.child_pid += 1;
+	    }
+
+	    let channel = 'channel.1.'+Module.child_pid+'.fork';
+
+	    if (!Module[channel]) {
+
+		Module[channel] = new BroadcastChannel('channel.1.'+Module.child_pid+'.fork');
+
+		Module[channel].onmessage = (function(_ch,_pid) {
+
+		    return ((messageEvent) => {
+
+			if (messageEvent.data == "continue_fork") {
+
+			    //console.log("continue_fork");
+
+			    if (Module[_ch]) {
+
+				Module[_ch].postMessage(Module.HEAPU8);
+
+				Asyncify.stackTop = stackSave();
+				Asyncify.stackBase = _emscripten_stack_get_base();
+				Asyncify.stackEnd = _emscripten_stack_get_end();
+				
+				Module[_ch].postMessage(JSON.stringify(Asyncify));
+			    }
+			}
+			else if (messageEvent.data == "end_fork") {
+
+			    Module[_ch] = null;
+
+			    wakeUp(_pid);
+			}
+
+		    });
+		})(channel,Module.child_pid);
+
+		let msg = {
+
+                    type: 3,   // fork
+		    pid: Module.child_pid
+		};
+
+		window.parent.postMessage(msg);
+	    }
+	});
+
+	return ret;
+    },
+    // Modified by Benoit Baudaux 22/12/2020
+    __syscall_execve__sig: 'ippp',
+    __syscall_execve: function(pathname, argv, envp) {
+
+	// Use Asyncify for not returning from execve
+	
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    // Remove name property of window for process to be loaded fully with no fork mechanism
+	    window.name = "";
+
+	    //TODO: use argv and envp
+	    window.frameElement.src = SYSCALLS.getStr(pathname)+"/exa/exa.html";
+	});
+    }
 };
 
 function wrapSyscallFunction(x, library, isWasi) {

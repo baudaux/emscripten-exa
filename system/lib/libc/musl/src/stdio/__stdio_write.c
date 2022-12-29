@@ -1,15 +1,25 @@
 #include "stdio_impl.h"
 #include <sys/uio.h>
 
+#include <emscripten.h>
+
 size_t __stdio_write(FILE *f, const unsigned char *buf, size_t len)
 {
 	struct iovec iovs[2] = {
 		{ .iov_base = f->wbase, .iov_len = f->wpos-f->wbase },
 		{ .iov_base = (void *)buf, .iov_len = len }
 	};
+
 	struct iovec *iov = iovs;
 	size_t rem = iov[0].iov_len + iov[1].iov_len;
 	int iovcnt = 2;
+
+#ifdef __BB_DEBUG
+	// BB
+	emscripten_log(EM_LOG_CONSOLE,"__stdio_write: %d;%d;%d",iov[0].iov_len,iov[1].iov_len,buf[0]);
+#endif
+	
+	
 	ssize_t cnt;
 	for (;;) {
 #if __EMSCRIPTEN__

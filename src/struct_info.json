@@ -247,6 +247,15 @@
         ]
     },
     {
+        "file": "sys/un.h",
+        "structs": {
+	    "sockaddr_un": [
+		"sun_family",
+                "sun_path"
+	    ]
+        }
+    },
+    {
         "file": "bits/fcntl.h",
         "defines": [
             "O_CREAT",
@@ -283,6 +292,7 @@
             "SOCK_STREAM",
             "SOCK_CLOEXEC",
             "SOCK_NONBLOCK",
+	    "AF_UNIX",
             "AF_INET",
             "AF_UNSPEC",
             "AF_INET6",
@@ -478,6 +488,32 @@
             "RTLD_GLOBAL",
             "RTLD_NODELETE"
         ]
+    },
+    {
+        "file": "termios.h",
+        "structs": {
+            "termios": [
+                "c_iflag",
+                "c_oflag",
+                "c_cflag",
+                "c_lflag",
+                "c_line",
+                "c_cc",
+                "__c_ispeed",
+                "__c_ospeed"
+            ]
+        }
+    },
+    {
+        "file": "alltypes.h",
+        "structs": {
+            "winsize": [
+                "ws_row",
+                "ws_col",
+                "ws_xpixel",
+                "ws_ypixel"
+            ]
+        }
     },
     // ===========================================
     // SDL

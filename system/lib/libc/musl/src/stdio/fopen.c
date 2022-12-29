@@ -21,6 +21,7 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
 	fd = sys_open(filename, flags, 0666);
 	if (fd < 0) return 0;
 #ifndef __EMSCRIPTEN__ // CLOEXEC makes no sense for a single process
+// BB: TODO
 	if (flags & O_CLOEXEC)
 		__syscall(SYS_fcntl, fd, F_SETFD, FD_CLOEXEC);
 #endif

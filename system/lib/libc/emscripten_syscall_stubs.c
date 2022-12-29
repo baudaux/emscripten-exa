@@ -24,10 +24,10 @@
 #include <emscripten/console.h>
 #include <emscripten/version.h>
 
-static int g_pid = 42;
-static int g_pgid = 42;
+static int g_pid = 0; //42;   Modified by Benoit Baudaux 10/11/2022
+static int g_pgid = 0; //42;
 static int g_ppid = 1;
-static int g_sid = 42;
+static int g_sid = 0; //42;
 static mode_t g_umask = S_IRWXU | S_IRWXG | S_IRWXO;
 
 #ifdef NDEBUG

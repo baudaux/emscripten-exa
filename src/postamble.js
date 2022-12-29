@@ -97,6 +97,106 @@ var mainArgs = undefined;
 #endif
 
 dependenciesFulfilled = function runCaller() {
+
+    // Added by Benoit Baudaux 02/12/2020
+    if (window.name == "child") {
+
+	let channel = 'channel.1.'+window.frameElement.getAttribute('pid')+'.fork';
+
+	if (!Module[channel]) {
+
+	    Module[channel] = new BroadcastChannel('channel.1.'+window.frameElement.getAttribute('pid')+'.fork');
+
+	    Module[channel].onmessage = (function(_ch) {
+
+		return ((messageEvent) => {
+
+		    if (messageEvent.data.length > 1024) {
+
+			stackCheckInit();
+			
+			preRun();
+			
+			Module['calledRun'] = true;
+			
+			initRuntime();
+			
+			preMain();
+
+			Module.HEAPU8.set(messageEvent.data);
+		    }
+		    else {
+
+			var a = JSON.parse(messageEvent.data);
+			
+			Asyncify.callStackId = a.callStackId;
+			Asyncify.callStackIdToName = a.callStackIdToName;
+			Asyncify.callStackNameToId = a.callStackNameToId;
+			Asyncify.currData = a.currData;
+			Asyncify.handleSleepReturnValue = 0;// 0 is return from fork in child process
+			Asyncify.state = a.state;
+			Asyncify.exportCallStack = a.exportCallStack;
+			
+			_emscripten_stack_set_limits(a.stackBase,a.stackEnd);
+			stackRestore(a.stackTop);
+
+			Module[_ch].postMessage("end_fork");
+
+			Module[_ch] = null;
+			
+			// Start child
+			
+			Asyncify.state = Asyncify.State.Rewinding;
+			
+			runAndAbortIfError(() => Module['_asyncify_start_rewind'](Asyncify.currData));
+			
+			var asyncWasmReturnValue, isError = false;
+			try {
+                            asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);
+                            
+			} catch (err) {
+			    
+                            console.log(err);
+                            debugger;
+                            
+                            asyncWasmReturnValue = err;
+                            isError = true;
+			}
+			// Track whether the return value was handled by any promise handlers.
+			var handled = false;
+			if (!Asyncify.currData) {
+                            // All asynchronous execution has finished.
+                            // `asyncWasmReturnValue` now contains the final
+                            // return value of the exported async WASM function.
+                            //
+                            // Note: `asyncWasmReturnValue` is distinct from
+                            // `Asyncify.handleSleepReturnValue`.
+                            // `Asyncify.handleSleepReturnValue` contains the return
+                            // value of the last C function to have executed
+                            // `Asyncify.handleSleep()`, where as `asyncWasmReturnValue`
+                            // contains the return value of the exported WASM function
+                            // that may have called C functions that
+                            // call `Asyncify.handleSleep()`.
+                            var asyncPromiseHandlers = Asyncify.asyncPromiseHandlers;
+                            if (asyncPromiseHandlers) {
+				Asyncify.asyncPromiseHandlers = null;
+				(isError ? asyncPromiseHandlers.reject : asyncPromiseHandlers.resolve)(asyncWasmReturnValue);
+				handled = true;
+                            }
+			}
+		    }
+		});
+	    })(channel);
+
+	//console.log("Sending continue_fork on "+window.frameElement.getAttribute('pid'));
+
+	    Module[channel].postMessage("continue_fork");
+              
+            return;
+	}
+    }
+					
+    
   // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
   if (!calledRun) run();
   if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
@@ -135,7 +235,8 @@ function callMain(args) {
   mainArgs = [thisProgram].concat(args)
 #elif MAIN_READS_PARAMS
   args = args || [];
-  args.unshift(thisProgram);
+  // Modified By Benoit Baudaux 14/11/2022
+  //args.unshift(thisProgram);
 
   var argc = args.length;
   var argv = stackAlloc((argc + 1) * {{{ Runtime.POINTER_SIZE }}});

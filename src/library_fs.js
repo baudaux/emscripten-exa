@@ -1210,7 +1210,9 @@ FS.staticInit();` +
       } else if (!stream.seekable) {
         throw new FS.ErrnoError({{{ cDefine('ESPIPE') }}});
       }
+
       var bytesWritten = stream.stream_ops.write(stream, buffer, offset, length, position, canOwn);
+      
       if (!seeking) stream.position += bytesWritten;
 #if FS_DEBUG
       if (stream.path && FS.trackingDelegate['onWriteToFile']) {

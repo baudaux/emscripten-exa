@@ -152,7 +152,8 @@ int chroot(const char *path) {
   return -1;
 }
 
-int execve(const char *pathname, char *const argv[],
+// Modified by Benoit Baudaux 22/12/2022: removing stubs
+/*int execve(const char *pathname, char *const argv[],
            char *const envp[]) {
   // int execve(const char *pathname, char *const argv[],
   //            char *const envp[]);
@@ -160,20 +161,21 @@ int execve(const char *pathname, char *const argv[],
   // We don't support executing external code.
   errno = ENOEXEC;
   return -1;
-}
+  }*/
 
-pid_t fork(void) {
+// Modified by Benoit Baudaux 20/11/2022: removing stubs
+/*pid_t fork(void) {
   // pid_t fork(void);
   // http://pubs.opengroup.org/onlinepubs/000095399/functions/fork.html
   // We don't support multiple processes.
   errno = ENOSYS;
   return -1;
-}
+  }
 
 pid_t vfork(void) {
   errno = ENOSYS;
   return -1;
-}
+}*/
 
 int posix_spawn(pid_t *pid, const char *path,
                        const posix_spawn_file_actions_t *file_actions,

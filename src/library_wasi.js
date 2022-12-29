@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2019 The Emscripten Authors
@@ -198,16 +199,71 @@ var WasiLibrary = {
   $doReadv__docs: '/** @param {number=} offset */',
   $doReadv: function(stream, iov, iovcnt, offset) {
     var ret = 0;
-    for (var i = 0; i < iovcnt; i++) {
-      var ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
-      var len = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
-      iov += {{{ C_STRUCTS.iovec.__size__ }}};
-      var curr = FS.read(stream, {{{ heapAndOffset('HEAP8', 'ptr') }}}, len, offset);
+
+    var i = 0;
+
+    stream.read_callback = function(bytesRead, prev_len) {
+
+      if (bytesRead < 0) return -1;
+
+      ret += bytesRead;
+
+      if (bytesRead < prev_len) { // nothing more to read
+
+        stream.asynsify_wakeup(ret);
+        return;
+      }
+
+      ++i;
+
+      if (i < iovcnt) {
+
+        let ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
+        let len = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
+        iov += {{{ C_STRUCTS.iovec.__size__ }}};
+
+        FS.read(stream, {{{ heapAndOffset('HEAP8', 'ptr') }}}, len, offset);
+      }
+      else {
+
+        stream.asynsify_wakeup(ret);
+      }
+    }
+
+    var ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
+    var len = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
+    iov += {{{ C_STRUCTS.iovec.__size__ }}};
+
+    var curr = FS.read(stream, {{{ heapAndOffset('HEAP8', 'ptr') }}}, len, offset);
+
+    if (curr == -7777) { // FS.read will call the callback
+
+      stream.asynsify_wakeup_consumed = true;
+    }
+    else {   // FS.read will not call the callback, so same code as before
+
       if (curr < 0) return -1;
       ret += curr;
-      if (curr < len) break; // nothing more to read
-    }
+
+      if (curr < len) 
+        return ret;
+
+      // Start i as 1 since will already performed the first call
+
+      for (var i = 1; i < iovcnt; i++) {
+        var ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
+        var len = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
+        iov += {{{ C_STRUCTS.iovec.__size__ }}};
+        var curr = FS.read(stream, {{{ heapAndOffset('HEAP8', 'ptr') }}}, len, offset);
+        if (curr < 0) return -1;
+        ret += curr;
+        if (curr < len) break; // nothing more to read
+      }
+   }
+  
     return ret;
+
+
   },
   $doWritev__docs: '/** @param {number=} offset */',
   $doWritev: function(stream, iov, iovcnt, offset) {
@@ -330,9 +386,26 @@ var WasiLibrary = {
   fd_read: function(fd, iov, iovcnt, pnum) {
 #if SYSCALLS_REQUIRE_FILESYSTEM
     var stream = SYSCALLS.getStreamFromFD(fd);
-    var num = doReadv(stream, iov, iovcnt);
+
+    // Modified By Benoit Baudaux 08/11/2022
+
+    var num = Asyncify.handleSleep(function(wakeUp) {
+
+      stream.asynsify_wakeup = wakeUp;
+      stream.asynsify_wakeup_consumed = false;
+
+      var n = doReadv(stream, iov, iovcnt);
+
+      if (!stream.asynsify_wakeup_consumed) {
+
+        wakeUp(n);
+      }
+
+      //return 0;
+    });
+
     {{{ makeSetValue('pnum', 0, 'num', SIZE_TYPE) }}};
-    return 0;
+
 #elif ASSERTIONS
     abort('fd_read called without SYSCALLS_REQUIRE_FILESYSTEM');
 #else

@@ -5,6 +5,8 @@
 #include "pthread_impl.h"
 #include "fork_impl.h"
 
+#include <emscripten.h>
+
 static volatile int *const dummy_lockptr = 0;
 
 weak_alias(dummy_lockptr, __at_quick_exit_lockptr);
@@ -52,7 +54,8 @@ pid_t fork(void)
 	int need_locks = libc.need_locks > 0;
 	if (need_locks) {
 		__ldso_atfork(-1);
-		__inhibit_ptc();
+		// BB: TODO
+		//__inhibit_ptc();
 		for (int i=0; i<sizeof atfork_locks/sizeof *atfork_locks; i++)
 			if (*atfork_locks[i]) LOCK(*atfork_locks[i]);
 		__malloc_atfork(-1);
@@ -60,6 +63,7 @@ pid_t fork(void)
 	}
 	pthread_t self=__pthread_self(), next=self->next;
 	pid_t ret = _Fork();
+	
 	int errno_save = errno;
 	if (need_locks) {
 		if (!ret) {
@@ -72,11 +76,14 @@ pid_t fork(void)
 		}
 		__tl_unlock();
 		__malloc_atfork(!ret);
-		for (int i=0; i<sizeof atfork_locks/sizeof *atfork_locks; i++)
-			if (*atfork_locks[i])
-				if (ret) UNLOCK(*atfork_locks[i]);
-				else **atfork_locks[i] = 0;
-		__release_ptc();
+		for (int i=0; i<sizeof atfork_locks/sizeof *atfork_locks; i++) {
+		  if (*atfork_locks[i]) {
+		    if (ret) { UNLOCK(*atfork_locks[i]);}
+		    else {**atfork_locks[i] = 0;}
+		  }
+		}
+		// BB: TODO
+		//__release_ptc();
 		__ldso_atfork(!ret);
 	}
 	__restore_sigs(&set);

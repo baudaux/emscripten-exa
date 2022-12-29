@@ -45,29 +45,46 @@ mergeInto(LibraryManager.library, {
 
       return FS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 511 /* 0777 */, 0);
     },
+      /* Modified by Benoit Baudaux 26/12/2022 */
     createSocket: function(family, type, protocol) {
-      type &= ~{{{ cDefine('SOCK_CLOEXEC') | cDefine('SOCK_NONBLOCK') }}}; // Some applications may pass it; it makes no sense for a single process.
+      /*type &= ~{{{ cDefine('SOCK_CLOEXEC') | cDefine('SOCK_NONBLOCK') }}}; // Some applications may pass it; it makes no sense for a single process.
       var streaming = type == {{{ cDefine('SOCK_STREAM') }}};
       if (streaming && protocol && protocol != {{{ cDefine('IPPROTO_TCP') }}}) {
         throw new FS.ErrnoError({{{ cDefine('EPROTONOSUPPORT') }}}); // if SOCK_STREAM, must be tcp or 0.
-      }
+	}*/
 
-      // create our internal socket structure
-      var sock = {
-        family: family,
-        type: type,
-        protocol: protocol,
-        server: null,
-        error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
-        peers: {},
-        pending: [],
-        recv_queue: [],
+	if (!Module['sockets']) {
+
+	    Module['sockets'] = {};
+	    Module['sockets'].last_socket = 0;
+	}
+
+	Module['sockets'].last_socket += 1;
+
+	// create our internal socket structure
+	var sock = {
+	    fd: Module['sockets'].last_socket,
+            family: family,
+            type: type,
+            protocol: protocol,
+            server: null,
+            error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+            peers: {},
+            pending: [],
+            recv_queue: [],
+	    name: null,
+	    bc: null,
 #if SOCKET_WEBRTC
 #else
-        sock_ops: SOCKFS.websocket_sock_ops
+            //sock_ops: SOCKFS.websocket_sock_ops
+	    // TODO: all types of socket
+	    sock_ops: SOCKFS.unix_dgram_sock_ops
 #endif
-      };
+	};
 
+	Module['sockets'][Module['sockets'].last_socket] = sock;
+
+	/*
       // create the filesystem node to store the socket structure
       var name = SOCKFS.nextname();
       var node = FS.createNode(SOCKFS.root, name, {{{ cDefine('S_IFSOCK') }}}, 0);
@@ -85,16 +102,18 @@ mergeInto(LibraryManager.library, {
 
       // map the new stream to the socket structure (sockets have a 1:1
       // relationship with a stream)
-      sock.stream = stream;
+      sock.stream = stream;*/
 
-      return sock;
+	return sock;
     },
+      /* Modified by Benoit Baudaux 26/12/2022 */
     getSocket: function(fd) {
-      var stream = FS.getStream(fd);
+      /*var stream = FS.getStream(fd);
       if (!stream || !FS.isSocket(stream.node.mode)) {
         return null;
       }
-      return stream.node.sock;
+      return stream.node.sock;*/
+	return Module['sockets'][fd];
     },
     // node and stream ops are backend agnostic
     stream_ops: {
@@ -131,6 +150,159 @@ mergeInto(LibraryManager.library, {
       }
       return 'socket[' + (SOCKFS.nextname.current++) + ']';
     },
+      /* Modified by Benoit Baudaux 26/12/2022 */
+      unix_dgram_sock_ops: {
+
+	  bind: function(sock, addr, port) {
+
+	      let wait_bind = true;
+
+	      sock.name = addr;
+	      
+	      sock.bc = new BroadcastChannel(addr);
+	      
+	      sock.bc.onmessage = (messageEvent) => {
+
+		  //console.log(messageEvent);
+		  
+		  if (wait_bind) {
+
+		      wait_bind = false;
+		      sock.wakeUp(0);
+		  }
+		  else {
+		      sock.recv_queue.push(messageEvent.data);
+		      
+		      if (sock.notif)
+			  sock.notif();
+		  }
+	      };
+
+	      if (sock.name != "/tmp2/resmgr.peer") {
+
+		  let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+
+		  let buf = Module._malloc(256);
+
+		  Module.HEAPU8[buf] = 10; // OPEN
+		  
+		  /*//padding
+		  buf[1] = 0;
+		  buf[2] = 0;
+		  buf[3] = 0;
+		  
+		  // errno
+		  buf[4] = 0;
+		  buf[5] = 0;
+		  buf[6] = 0;
+		  buf[7] = 0;
+
+		  // flags
+		  buf[8] = 0xd;
+		  buf[9] = 0xc;
+		  buf[10] = 0xb;
+		  buf[11] = 0xa;
+
+		   // mode
+		  buf[12] = 0;
+		  buf[13] = 0;*/
+
+		  // pathname
+		  stringToUTF8(sock.name,buf+20,200);
+
+		  let buf2 = Module.HEAPU8.slice(buf,buf+256);
+
+		  Module._free(buf);
+
+		  let msg = {
+
+		      from: sock.name,
+		      buf: buf2,
+		      len: 256
+		  };
+		  
+		  bc.postMessage(msg);
+		  
+	      }
+	      else {
+
+		  wait_bind = false;
+		  sock.wakeUp(0);
+	      }
+	  },
+	  recvfrom_sync: function(sock, buf, len, flags, addr, addrlen) {
+
+	      sock.notif = null;
+
+	      let msg = sock.recv_queue.shift();
+
+	      //console.log(msg);
+
+	      {{{ makeSetValue('addr', C_STRUCTS.sockaddr_un.sun_family, '1', 'i16') }}}; // family: AF_UNIX (1)
+	      stringToUTF8(msg.from, addr + {{{ C_STRUCTS.sockaddr_un.sun_path }}}, 108);
+	      {{{ makeSetValue('addrlen', 0, C_STRUCTS.sockaddr_un.__size__, 'i32') }}};
+
+	      if (msg.len <= len) {
+
+		  Module.HEAPU8.set(msg.buf,buf);
+
+		  sock.wakeUp(msg.len);
+	      }
+	      else {
+
+		  let b = msg.buf.slice(0,len);
+
+		  Module.HEAPU8.set(msg.buf,buf);
+
+		  let b2 = msg.buf.slice(len);
+
+		  msg.buf = b2;
+		  msg.len = msg.len - len;
+
+		  sock.recv_queue.unshift(msg);
+
+		  sock.wakeUp(len);
+	      }
+	  },
+	  recvfrom: function(sock, buf, len, flags, addr, addrlen) {
+
+	      if (sock.recv_queue.length > 0) {
+
+		 sock.notif = null;
+		 sock.sock_ops.recvfrom_sync(sock, buf, len, flags, addr, addrlen); 
+	      }
+	      else {
+
+		  sock.notif = (function(_sock, _buf, _len, _flags, _addr, _addrlen) {
+
+		      return function() {
+
+			  return sock.sock_ops.recvfrom_sync(_sock, _buf, _len, _flags, _addr, _addrlen);
+		      };
+		      
+		  })(sock, buf, len, flags, addr, addrlen);
+	      }
+	      
+	      return 0;
+	  },
+	  sendto: function(sock, buf, len, flags, addr, port) {
+
+	      //console.log("sockfs: sendto "+addr);
+
+	      let bc = new BroadcastChannel(addr);
+
+	      let msg = {
+
+		  from: sock.name,
+		  buf: buf,
+		  len: len
+	      };
+	      
+	      bc.postMessage(msg);
+
+	      return 0;
+	  }
+      },
     // backend-specific stream ops
     websocket_sock_ops: {
       //
