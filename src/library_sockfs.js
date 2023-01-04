@@ -178,37 +178,31 @@ mergeInto(LibraryManager.library, {
 		  }
 	      };
 
-	      if (sock.name != "/tmp2/resmgr.peer") {
+	      if (window.frameElement.getAttribute('pid') != "1") {
 
 		  let bc = new BroadcastChannel("/tmp2/resmgr.peer");
 
 		  let buf = Module._malloc(256);
 
-		  Module.HEAPU8[buf] = 10; // OPEN
+		  Module.HEAPU8[buf] = 10; // BIND
 		  
 		  /*//padding
 		  buf[1] = 0;
 		  buf[2] = 0;
-		  buf[3] = 0;
-		  
+		  buf[3] = 0;*/
+
 		  // errno
-		  buf[4] = 0;
-		  buf[5] = 0;
-		  buf[6] = 0;
-		  buf[7] = 0;
+		  Module.HEAPU8[buf+4] = 0x0;
+		  Module.HEAPU8[buf+5] = 0x0;
+		  Module.HEAPU8[buf+6] = 0x0;
+		  Module.HEAPU8[buf+7] = 0x0;
+		  
+		  // sa_family
+		  Module.HEAPU8[buf+8] = 0x1; // AF_UNIX
+		  Module.HEAPU8[buf+9] = 0x0;
 
-		  // flags
-		  buf[8] = 0xd;
-		  buf[9] = 0xc;
-		  buf[10] = 0xb;
-		  buf[11] = 0xa;
-
-		   // mode
-		  buf[12] = 0;
-		  buf[13] = 0;*/
-
-		  // pathname
-		  stringToUTF8(sock.name,buf+20,200);
+		  // sun_path
+		  stringToUTF8(sock.name,buf+10,108);
 
 		  let buf2 = Module.HEAPU8.slice(buf,buf+256);
 
