@@ -1003,7 +1003,8 @@ FS.staticInit();` +
         timestamp: Math.max(atime, mtime)
       });
     },
-    open: (path, flags, mode) => {
+      open: (path, flags, mode) => {
+	  
       if (path === "") {
         throw new FS.ErrnoError({{{ cDefine('ENOENT') }}});
       }
@@ -1495,12 +1496,13 @@ FS.staticInit();` +
 
       FS.ensureErrnoError();
 
+	/* Modified by Benoit Baudaux 4/1/2023 */
       // Allow Module.stdin etc. to provide defaults, if none explicitly passed to us here
       Module['stdin'] = input || Module['stdin'];
       Module['stdout'] = output || Module['stdout'];
       Module['stderr'] = error || Module['stderr'];
 
-      FS.createStandardStreams();
+      /*FS.createStandardStreams();*/
     },
     quit: () => {
       FS.init.initialized = false;

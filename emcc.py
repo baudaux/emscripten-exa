@@ -109,6 +109,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_execve',
   '__syscall_recvfrom',
   '__syscall_bind',
+  '__syscall_openat'
 ]
 
 # Target options

@@ -53,17 +53,17 @@ mergeInto(LibraryManager.library, {
         throw new FS.ErrnoError({{{ cDefine('EPROTONOSUPPORT') }}}); // if SOCK_STREAM, must be tcp or 0.
 	}*/
 
-	if (!Module['sockets']) {
+	if (!Module['fd_table']) {
 
-	    Module['sockets'] = {};
-	    Module['sockets'].last_socket = 0;
+	    Module['fd_table'] = {};
+	    Module['fd_table'].last_fd = 2;
 	}
 
-	Module['sockets'].last_socket += 1;
+	Module['fd_table'].last_fd += 1;
 
 	// create our internal socket structure
 	var sock = {
-	    fd: Module['sockets'].last_socket,
+	    fd: Module['fd_table'].last_fd,
             family: family,
             type: type,
             protocol: protocol,
@@ -82,7 +82,7 @@ mergeInto(LibraryManager.library, {
 #endif
 	};
 
-	Module['sockets'][Module['sockets'].last_socket] = sock;
+	Module['fd_table'][Module['fd_table'].last_fd] = sock;
 
 	/*
       // create the filesystem node to store the socket structure
@@ -113,7 +113,7 @@ mergeInto(LibraryManager.library, {
         return null;
       }
       return stream.node.sock;*/
-	return Module['sockets'][fd];
+	return Module['fd_table'][fd];
     },
     // node and stream ops are backend agnostic
     stream_ops: {

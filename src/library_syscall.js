@@ -875,11 +875,101 @@ var SyscallsLibrary = {
     return 0; // your advice is important to us (but we can't use it)
   },
   __syscall_openat__sig: 'iipip',
-  __syscall_openat: function(dirfd, path, flags, varargs) {
-    path = SYSCALLS.getStr(path);
+    __syscall_openat: function(dirfd, path, flags, varargs) {
+
+	/* Modified by Benoit Baudaux 4/1/2023 */
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (window.frameElement.getAttribute('pid') != "1") {
+
+		var mode = varargs ? SYSCALLS.get() : 0;
+
+		let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+
+		let buf = Module._malloc(1256);
+
+		Module.HEAPU8[buf] = 11; // OPEN
+		
+		/*//padding
+		  buf[1] = 0;
+		  buf[2] = 0;
+		  buf[3] = 0;*/
+
+		// errno
+		Module.HEAPU8[buf+4] = 0x0;
+		Module.HEAPU8[buf+5] = 0x0;
+		Module.HEAPU8[buf+6] = 0x0;
+		Module.HEAPU8[buf+7] = 0x0;
+
+		// fd
+		Module.HEAPU8[buf+8] = 0x0;
+		Module.HEAPU8[buf+9] = 0x0;
+		Module.HEAPU8[buf+10] = 0x0;
+		Module.HEAPU8[buf+11] = 0x0;
+
+		// flags
+		Module.HEAPU8[buf+12] = flags & 0xff;
+		Module.HEAPU8[buf+13] = (flags >> 8) & 0xff;
+		Module.HEAPU8[buf+14] = (flags >> 16) & 0xff;
+		Module.HEAPU8[buf+15] = (flags >> 24) & 0xff;
+
+		// pathname
+		stringToUTF8(UTF8ToString(path),buf+130,1024);
+
+		let buf2 = Module.HEAPU8.slice(buf,buf+256);
+
+		Module._free(buf);
+
+		let open_name = "open."+window.frameElement.getAttribute('pid');
+
+		let open_bc = new BroadcastChannel(open_name);
+
+		first_response = true;
+
+		open_bc.onmessage = (messageEvent) => {
+
+		    console.log("open_bc.onmessage");
+		    console.log(messageEvent);
+
+		    if (first_response) { // first response comes from resmgr
+
+			first_response = false;
+
+			let msg2 = messageEvent.data;
+
+			msg2.buf[0] = 11;
+
+			msg2.from = open_name;
+
+			let peer = UTF8ArrayToString(msg2.buf, 22, 108);
+
+			console.log("forward to "+peer);
+			
+			let open_driver_bc = new BroadcastChannel(peer);
+
+			open_driver_bc.postMessage(msg);
+		    }
+		};
+
+		let msg = {
+
+		    from: open_name,
+		    buf: buf2,
+		    len: 1256
+		};
+		
+		bc.postMessage(msg);
+		
+	    }
+	});
+
+	return ret;
+	
+    /*path = SYSCALLS.getStr(path);
     path = SYSCALLS.calculateAt(dirfd, path);
     var mode = varargs ? SYSCALLS.get() : 0;
-    return FS.open(path, flags, mode).fd;
+    return FS.open(path, flags, mode).fd;*/
   },
   __syscall_mkdirat__sig: 'iipi',
   __syscall_mkdirat: function(dirfd, path, mode) {
