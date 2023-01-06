@@ -125,7 +125,11 @@ int __syscall_shutdown(int sockfd, int how, int dummy, int dummy2, int dummy3, i
 int __syscall_fork();
 
 // Modified by Benoit Baudaux 22/12/2022
-int __syscall_execve(intptr_t pathname, intptr_t argv, intptr_t envp);  
+int __syscall_execve(intptr_t pathname, intptr_t argv, intptr_t envp);
+
+// Modified by Benoit Baudaux 5/1/2023
+int __syscall_write(int fd, intptr_t buf, size_t count);
+int __syscall_writev(int fd, intptr_t iov, int iovcnt);
   
 #ifdef __cplusplus
 }

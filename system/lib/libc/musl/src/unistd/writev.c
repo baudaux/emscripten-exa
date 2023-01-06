@@ -1,5 +1,10 @@
 #include <sys/uio.h>
 #include "syscall.h"
+
+/* Modified by Benoit Baudaux 5/1/2023 */
+
+#undef __EMSCRIPTEN__
+
 #if __EMSCRIPTEN__
 #include <wasi/api.h>
 #endif

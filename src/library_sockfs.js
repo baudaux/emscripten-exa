@@ -192,21 +192,19 @@ mergeInto(LibraryManager.library, {
 		  buf[3] = 0;*/
 
 		  // errno
-		  Module.HEAPU8[buf+4] = 0x0;
-		  Module.HEAPU8[buf+5] = 0x0;
-		  Module.HEAPU8[buf+6] = 0x0;
-		  Module.HEAPU8[buf+7] = 0x0;
+		  Module.HEAPU8[buf+8] = 0x0;
+		  Module.HEAPU8[buf+9] = 0x0;
+		  Module.HEAPU8[buf+10] = 0x0;
+		  Module.HEAPU8[buf+11] = 0x0;
 		  
 		  // sa_family
-		  Module.HEAPU8[buf+8] = 0x1; // AF_UNIX
-		  Module.HEAPU8[buf+9] = 0x0;
+		  Module.HEAPU8[buf+12] = 0x1; // AF_UNIX
+		  Module.HEAPU8[buf+13] = 0x0;
 
 		  // sun_path
-		  stringToUTF8(sock.name,buf+10,108);
+		  stringToUTF8(sock.name,buf+14,108);
 
 		  let buf2 = Module.HEAPU8.slice(buf,buf+256);
-
-		  Module._free(buf);
 
 		  let msg = {
 
@@ -216,7 +214,8 @@ mergeInto(LibraryManager.library, {
 		  };
 		  
 		  bc.postMessage(msg);
-		  
+
+		  Module._free(buf);
 	      }
 	      else {
 

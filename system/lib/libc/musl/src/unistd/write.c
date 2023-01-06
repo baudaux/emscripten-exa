@@ -1,6 +1,10 @@
 #include <unistd.h>
 #include "syscall.h"
 
+/* Modified by Benoit Baudaux 5/1/2023 */
+
+#undef __EMSCRIPTEN__
+
 ssize_t write(int fd, const void *buf, size_t count)
 {
 #if __EMSCRIPTEN__

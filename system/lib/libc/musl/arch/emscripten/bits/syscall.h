@@ -101,4 +101,8 @@
 #define SYS_fork                __syscall_fork
 
 // Modified by Benoit Baudaux 22/12/2022
-#define SYS_execve                __syscall_execve
+#define SYS_execve              __syscall_execve
+
+// Modified by Benoit Baudaux 5/1/2023
+#define SYS_write               __syscall_write
+#define SYS_writev              __syscall_writev

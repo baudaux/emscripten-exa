@@ -318,7 +318,8 @@ var WasiLibrary = {
   fd_write__deps: ['$printChar'],
 #endif
   fd_write__sig: 'iippp',
-  fd_write: function(fd, iov, iovcnt, pnum) {
+    fd_write: function(fd, iov, iovcnt, pnum) {
+
 #if SYSCALLS_REQUIRE_FILESYSTEM
     var stream = SYSCALLS.getStreamFromFD(fd);
     var num = doWritev(stream, iov, iovcnt);
@@ -334,7 +335,8 @@ var WasiLibrary = {
       }
       num += len;
     }
-#endif // SYSCALLS_REQUIRE_FILESYSTEM
+    #endif // SYSCALLS_REQUIRE_FILESYSTEM
+	
     {{{ makeSetValue('pnum', 0, 'num', SIZE_TYPE) }}};
     return 0;
   },

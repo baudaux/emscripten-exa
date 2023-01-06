@@ -890,37 +890,43 @@ var SyscallsLibrary = {
 		let buf = Module._malloc(1256);
 
 		Module.HEAPU8[buf] = 11; // OPEN
-		
+
 		/*//padding
 		  buf[1] = 0;
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		// errno
-		Module.HEAPU8[buf+4] = 0x0;
-		Module.HEAPU8[buf+5] = 0x0;
-		Module.HEAPU8[buf+6] = 0x0;
-		Module.HEAPU8[buf+7] = 0x0;
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-		// fd
+		// pid
+		Module.HEAPU8[buf+4] = pid & 0xff;
+		Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
+		Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
+		Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
+
+		// errno
 		Module.HEAPU8[buf+8] = 0x0;
 		Module.HEAPU8[buf+9] = 0x0;
 		Module.HEAPU8[buf+10] = 0x0;
 		Module.HEAPU8[buf+11] = 0x0;
 
+		// fd
+		Module.HEAPU8[buf+12] = 0x0;
+		Module.HEAPU8[buf+13] = 0x0;
+		Module.HEAPU8[buf+14] = 0x0;
+		Module.HEAPU8[buf+15] = 0x0;
+
 		// flags
-		Module.HEAPU8[buf+12] = flags & 0xff;
-		Module.HEAPU8[buf+13] = (flags >> 8) & 0xff;
-		Module.HEAPU8[buf+14] = (flags >> 16) & 0xff;
-		Module.HEAPU8[buf+15] = (flags >> 24) & 0xff;
+		Module.HEAPU8[buf+16] = flags & 0xff;
+		Module.HEAPU8[buf+17] = (flags >> 8) & 0xff;
+		Module.HEAPU8[buf+18] = (flags >> 16) & 0xff;
+		Module.HEAPU8[buf+19] = (flags >> 24) & 0xff;
 
 		// pathname
-		stringToUTF8(UTF8ToString(path),buf+130,1024);
+		stringToUTF8(UTF8ToString(path),buf+134,1024);
 
 		let buf2 = Module.HEAPU8.slice(buf,buf+256);
-
-		Module._free(buf);
-
+		
 		let open_name = "open."+window.frameElement.getAttribute('pid');
 
 		let open_bc = new BroadcastChannel(open_name);
@@ -929,26 +935,80 @@ var SyscallsLibrary = {
 
 		open_bc.onmessage = (messageEvent) => {
 
-		    console.log("open_bc.onmessage");
-		    console.log(messageEvent);
+		    //console.log("open_bc.onmessage");
+		    //console.log(messageEvent);
+
+		    let msg2 = messageEvent.data;
 
 		    if (first_response) { // first response comes from resmgr
 
 			first_response = false;
 
-			let msg2 = messageEvent.data;
-
 			msg2.buf[0] = 11;
 
 			msg2.from = open_name;
 
-			let peer = UTF8ArrayToString(msg2.buf, 22, 108);
+			let peer = UTF8ArrayToString(msg2.buf, 26, 108);
 
 			console.log("forward to "+peer);
 			
 			let open_driver_bc = new BroadcastChannel(peer);
 
-			open_driver_bc.postMessage(msg);
+			open_driver_bc.postMessage(msg2);
+		    }
+		    else {
+
+			if (msg2.buf[0] == (11|0x80)) {
+
+			    if (!msg2.errno) {
+
+				let remote_fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+				let flags = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+				let mode = msg2.buf[20] | (msg2.buf[21] << 8);
+				let major = msg2.buf[22] | (msg2.buf[23] << 8);
+				let minor = msg2.buf[24] | (msg2.buf[25] << 8);
+
+				if (!Module['fd_table']) {
+
+				    Module['fd_table'] = {};
+				    Module['fd_table'].last_fd = 2;
+				}
+
+				Module['fd_table'].last_fd += 1;
+
+				// create our internal socket structure
+				var desc = {
+				    
+				    remote_fd: remote_fd,
+				    flags: flags,
+				    mode: mode,
+				    peer: msg2.from,
+				    major: major,
+				    minor: minor,
+				    
+				    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				    peers: {},
+				    pending: [],
+				    recv_queue: [],
+				    name: null,
+				    bc: null,
+				};
+
+				Module['fd_table'][Module['fd_table'].last_fd] = desc;
+
+				console.log(Module['fd_table']);
+
+				wakeUp(Module['fd_table'].last_fd);
+			    }
+			    else {
+
+				wakeUp(-1);
+			    }
+			}
+			else {
+
+			    wakeUp(-1);
+			}
 		    }
 		};
 
@@ -960,7 +1020,8 @@ var SyscallsLibrary = {
 		};
 		
 		bc.postMessage(msg);
-		
+
+		Module._free(buf);
 	    }
 	});
 
@@ -1241,7 +1302,88 @@ var SyscallsLibrary = {
 	    //TODO: use argv and envp
 	    window.frameElement.src = SYSCALLS.getStr(pathname)+"/exa/exa.html";
 	});
-    }
+    },
+
+    /* Modified by Benoit Baudaux 5/1/2023 */
+    __syscall_write__sig: 'iipi',
+    __syscall_write: function(fd, buf, count) {
+	
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	
+	    let len = count;
+
+	    /*for (var i = 0; i < iovcnt; i++) {
+		len += {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
+		iov += {{{ C_STRUCTS.iovec.__size__ }}};
+	    }*/
+
+	    let buf_size = 20+len;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 13; // WRITE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    // len
+	    buf2[16] = len & 0xff;
+	    buf2[17] = (len >> 8) & 0xff;
+	    buf2[18] = (len >> 16) & 0xff;
+	    buf2[19] = (len >> 24) & 0xff;
+
+	    /*buf_size = 20;
+
+	    for (var i = 0; i < iovcnt; i++) {
+		let ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
+		let l = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
+
+		buf.set(HEAPU8.slice(ptr,ptr+l),buf_size);
+		
+		buf_size += l;
+		
+		iov += {{{ C_STRUCTS.iovec.__size__ }}};
+		}*/
+
+	    buf2.set(HEAPU8.slice(buf,buf+len),20);
+
+	    let write_name = "write."+window.frameElement.getAttribute('pid');
+
+	    let write_bc = new BroadcastChannel(write_name);
+
+	    write_bc.onmessage = (messageEvent) => {
+
+		wakeUp(0);
+	    };
+
+	    let msg = {
+
+		from: write_name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    //let write_driver_bc = new BroadcastChannel(Module['fd_table'][fd].peer);
+	    let write_driver_bc = new BroadcastChannel("/tmp2/tty.peer");
+	    
+	    write_driver_bc.postMessage(msg);
+	});
+    
+    return ret;
+  },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {
