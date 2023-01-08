@@ -96,9 +96,10 @@ int __syscall_getpgid(int pid) {
   return g_pgid;
 }
 
-int __syscall_getpid() {
+/* Modified by Benoit Baudaux 8/1/2023*/
+/*int __syscall_getpid() {
   return g_pid;
-}
+  }*/
 
 int __syscall_getppid() {
   return g_ppid;
@@ -120,6 +121,7 @@ int __syscall_setsid() {
   return 0; // no-op
 }
 
+// TODO BB
 int __syscall_umask(int mask) {
   int old = g_umask;
   g_umask = mask;

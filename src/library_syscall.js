@@ -1383,7 +1383,14 @@ var SyscallsLibrary = {
 	});
     
     return ret;
-  },
+    },
+    /* Modified by Benoit Baudaux 8/1/2023 */
+    __syscall_writev__sig: 'iippp',
+    __syscall_writev: function(fd, iov, iovcnt, pnum) {
+
+	// TODO
+	return 0;
+    },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {

@@ -1064,9 +1064,10 @@ class libc(MuslInternalLibrary,
           'utime.c',
           '__map_file.c',
         ])
+    # Modified by Benoit Baudaux 8/1/2023
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/legacy',
-        filenames=['getpagesize.c', 'err.c'])
+        filenames=['getpagesize.c', 'err.c', 'utmpx.c'])
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/linux',
