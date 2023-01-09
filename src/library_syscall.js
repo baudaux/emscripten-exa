@@ -874,7 +874,7 @@ var SyscallsLibrary = {
   __syscall_fadvise64: function(fd, offset, len, advice) {
     return 0; // your advice is important to us (but we can't use it)
   },
-  __syscall_openat__sig: 'iipip',
+    __syscall_openat__sig: 'iipip',
     __syscall_openat: function(dirfd, path, flags, varargs) {
 
 	/* Modified by Benoit Baudaux 4/1/2023 */
@@ -916,22 +916,31 @@ var SyscallsLibrary = {
 		Module.HEAPU8[buf+14] = 0x0;
 		Module.HEAPU8[buf+15] = 0x0;
 
+		// remote fd
+		Module.HEAPU8[buf+16] = 0x0;
+		Module.HEAPU8[buf+17] = 0x0;
+		Module.HEAPU8[buf+18] = 0x0;
+		Module.HEAPU8[buf+19] = 0x0;
+
 		// flags
-		Module.HEAPU8[buf+16] = flags & 0xff;
-		Module.HEAPU8[buf+17] = (flags >> 8) & 0xff;
-		Module.HEAPU8[buf+18] = (flags >> 16) & 0xff;
-		Module.HEAPU8[buf+19] = (flags >> 24) & 0xff;
+		Module.HEAPU8[buf+20] = flags & 0xff;
+		Module.HEAPU8[buf+21] = (flags >> 8) & 0xff;
+		Module.HEAPU8[buf+22] = (flags >> 16) & 0xff;
+		Module.HEAPU8[buf+23] = (flags >> 24) & 0xff;
+
+		// mode
+		// TODO
 
 		// pathname
-		stringToUTF8(UTF8ToString(path),buf+134,1024);
+		stringToUTF8(UTF8ToString(path), buf+142, 1024);
 
-		let buf2 = Module.HEAPU8.slice(buf,buf+256);
+		let buf2 = Module.HEAPU8.slice(buf, buf+1256);
 		
 		let open_name = "open."+window.frameElement.getAttribute('pid');
 
 		let open_bc = new BroadcastChannel(open_name);
 
-		first_response = true;
+		//first_response = true;
 
 		open_bc.onmessage = (messageEvent) => {
 
@@ -940,7 +949,7 @@ var SyscallsLibrary = {
 
 		    let msg2 = messageEvent.data;
 
-		    if (first_response) { // first response comes from resmgr
+		    /*if (first_response) { // first response comes from resmgr
 
 			first_response = false;
 
@@ -956,33 +965,38 @@ var SyscallsLibrary = {
 
 			open_driver_bc.postMessage(msg2);
 		    }
-		    else {
+		    else {*/
 
 			if (msg2.buf[0] == (11|0x80)) {
 
 			    if (!msg2.errno) {
 
-				let remote_fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
-				let flags = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-				let mode = msg2.buf[20] | (msg2.buf[21] << 8);
-				let major = msg2.buf[22] | (msg2.buf[23] << 8);
-				let minor = msg2.buf[24] | (msg2.buf[25] << 8);
+				let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+				let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+				let flags = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
+				let mode = msg2.buf[24] | (msg2.buf[25] << 8);
+				let type = msg2.buf[26];
+				let major = msg2.buf[30] | (msg2.buf[31] << 8);
+				let minor = msg2.buf[32] | (msg2.buf[33] << 8);
 
 				if (!Module['fd_table']) {
 
 				    Module['fd_table'] = {};
-				    Module['fd_table'].last_fd = 2;
+				    //Module['fd_table'].last_fd = 2;
 				}
 
-				Module['fd_table'].last_fd += 1;
+				//Module['fd_table'].last_fd += 1;
 
 				// create our internal socket structure
 				var desc = {
-				    
+
+				    fd: fd,
 				    remote_fd: remote_fd,
 				    flags: flags,
 				    mode: mode,
-				    peer: msg2.from,
+				    //peer: msg2.from,
+				    peer: UTF8ArrayToString(msg2.buf, 34, 108),
+				    type: type,
 				    major: major,
 				    minor: minor,
 				    
@@ -994,11 +1008,11 @@ var SyscallsLibrary = {
 				    bc: null,
 				};
 
-				Module['fd_table'][Module['fd_table'].last_fd] = desc;
+				Module['fd_table'][fd] = desc;
 
 				console.log(Module['fd_table']);
 
-				wakeUp(Module['fd_table'].last_fd);
+				wakeUp(fd);
 			    }
 			    else {
 
@@ -1009,7 +1023,6 @@ var SyscallsLibrary = {
 
 			    wakeUp(-1);
 			}
-		    }
 		};
 
 		let msg = {
@@ -1027,11 +1040,12 @@ var SyscallsLibrary = {
 
 	return ret;
 	
+	
     /*path = SYSCALLS.getStr(path);
     path = SYSCALLS.calculateAt(dirfd, path);
     var mode = varargs ? SYSCALLS.get() : 0;
     return FS.open(path, flags, mode).fd;*/
-  },
+    },
   __syscall_mkdirat__sig: 'iipi',
   __syscall_mkdirat: function(dirfd, path, mode) {
 #if SYSCALL_DEBUG
@@ -1230,6 +1244,8 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
+	    // TODO: fork from other process than resmgr
+
 	    if (!Module.child_pid) {
 
 		// Reserve 1 for resmgr, so start at 2
@@ -1390,6 +1406,12 @@ var SyscallsLibrary = {
 
 	// TODO
 	return 0;
+    },
+    /* Modified by Benoit Baudaux 9/1/2023 */
+    __syscall_getpid__sig: 'i',
+    __syscall_getpid: function() {
+
+	return parseInt(window.frameElement.getAttribute('pid'));;
     },
 };
 

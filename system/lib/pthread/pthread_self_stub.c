@@ -15,10 +15,11 @@ uintptr_t __get_tp(void) {
 }
 
 // In case the stub syscall is not linked it
-static int dummy_getpid() {
+/* Modified by Benoit Baudaux 9/1/2023 */
+/*static int dummy_getpid() {
   return 42;
 }
-weak_alias(dummy_getpid, __syscall_getpid);
+weak_alias(dummy_getpid, __syscall_getpid);*/
 
 pthread_t emscripten_main_browser_thread_id() {
   return &__main_pthread;
