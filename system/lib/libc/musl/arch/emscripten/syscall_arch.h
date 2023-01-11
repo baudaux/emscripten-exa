@@ -121,15 +121,18 @@ int __syscall_recvfrom(int sockfd, intptr_t msg, size_t len, int flags, intptr_t
 int __syscall_recvmsg(int sockfd, intptr_t msg, int flags, int dummy, int dummy2, int dummy3);
 int __syscall_shutdown(int sockfd, int how, int dummy, int dummy2, int dummy3, int dummy4);
 
-// Modified by Benoit Baudaux 20/11/2022
+  /* Modified by Benoit Baudaux 20/11/2022 */
 int __syscall_fork();
 
-// Modified by Benoit Baudaux 22/12/2022
+  /* Modified by Benoit Baudaux 22/12/2022 */
 int __syscall_execve(intptr_t pathname, intptr_t argv, intptr_t envp);
 
-// Modified by Benoit Baudaux 5/1/2023
+  /* Modified by Benoit Baudaux 5/1/2023 */
 int __syscall_write(int fd, intptr_t buf, size_t count);
 int __syscall_writev(int fd, intptr_t iov, int iovcnt);
+
+/* Modified by Benoit Baudaux 11/1/2023 */
+int __syscall_close(int fd);
   
 #ifdef __cplusplus
 }

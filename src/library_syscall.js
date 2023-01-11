@@ -418,23 +418,15 @@ var SyscallsLibrary = {
 
 		socket_bc.onmessage = (messageEvent) => {
 
-		    console.log(messageEvent);
-
 		    let msg2 = messageEvent.data;
 
 		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    console.log(msg2.buf[0]);
-
 		    if (msg2.buf[0] == (9|0x80)) {
-
-			console.log("Return of socket: errno = "+_errno);
 
 			if (_errno == 0) {
 
 			    let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
-
-			    console.log("fd = "+fd);
 
 			    // create our internal socket structure
 			    var sock = {
@@ -1105,6 +1097,8 @@ var SyscallsLibrary = {
 		    //console.log("open_bc.onmessage");
 		    //console.log(messageEvent);
 
+		    open_bc = null;
+
 		    let msg2 = messageEvent.data;
 
 		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
@@ -1535,7 +1529,9 @@ var SyscallsLibrary = {
 
 	    write_bc.onmessage = (messageEvent) => {
 
-		wakeUp(0);
+		write_bc = null;
+		
+		wakeUp(0); // TODO: size
 	    };
 
 	    let msg = {
@@ -1564,7 +1560,61 @@ var SyscallsLibrary = {
     __syscall_getpid__sig: 'i',
     __syscall_getpid: function() {
 
-	return parseInt(window.frameElement.getAttribute('pid'));;
+	return parseInt(window.frameElement.getAttribute('pid'));
+    },
+    /* Modified by Benoit Baudaux 11/1/2023 */
+    __syscall_close__sig: 'ii',
+    __syscall_close: function(fd) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 16;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 15; // CLOSE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // fd
+	    buf2[12] = fd & 0xff;
+	    buf2[13] = (fd >> 8) & 0xff;
+	    buf2[14] = (fd >> 16) & 0xff;
+	    buf2[15] = (fd >> 24) & 0xff;
+
+	    let close_name = "close."+window.frameElement.getAttribute('pid');
+
+	    let close_bc = new BroadcastChannel(close_name);
+
+	    close_bc.onmessage = (messageEvent) => {
+
+		console.log(messageEvent);
+
+		close_bc = null;
+		
+		wakeUp(0); // TODO
+	    };
+
+	    let msg = {
+
+		from: close_name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	});
+	
+	return ret;
     },
 };
 

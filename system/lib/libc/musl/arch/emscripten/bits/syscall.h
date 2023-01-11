@@ -1,11 +1,11 @@
-#define SYS_link		  __syscall_link
+#define SYS_link		 __syscall_link
 #define SYS_chdir		 __syscall_chdir
 #define SYS_chmod		 __syscall_chmod
 #define SYS_getpid		 __syscall_getpid
 #define SYS_pause		 __syscall_pause
 #define SYS_sync		 __syscall_sync
 #define SYS_rmdir		 __syscall_rmdir
-#define SYS_dup		 __syscall_dup
+#define SYS_dup		         __syscall_dup
 #define SYS_pipe		 __syscall_pipe
 #define SYS_acct		 __syscall_acct
 #define SYS_ioctl		 __syscall_ioctl
@@ -18,8 +18,8 @@
 #define SYS_symlink		 __syscall_symlink
 #define SYS_munmap		 __syscall_munmap
 #define SYS_fchmod		 __syscall_fchmod
-#define SYS_getpriority	 __syscall_getpriority
-#define SYS_setpriority	 __syscall_setpriority
+#define SYS_getpriority	         __syscall_getpriority
+#define SYS_setpriority	         __syscall_setpriority
 #define SYS_setitimer		__syscall_setitimer
 #define SYS_getitimer		__syscall_getitimer
 #define SYS_wait4		__syscall_wait4
@@ -42,7 +42,7 @@
 #define SYS_ugetrlimit		__syscall_ugetrlimit
 #define SYS_mmap2		__syscall_mmap2
 #define SYS_truncate64		__syscall_truncate64
-#define SYS_ftruncate64	__syscall_ftruncate64
+#define SYS_ftruncate64	        __syscall_ftruncate64
 #define SYS_stat64		__syscall_stat64
 #define SYS_lstat64		__syscall_lstat64
 #define SYS_fstat64		__syscall_fstat64
@@ -50,10 +50,10 @@
 #define SYS_getgid32		__syscall_getgid32
 #define SYS_geteuid32		__syscall_geteuid32
 #define SYS_getegid32		__syscall_getegid32
-#define SYS_getgroups32	__syscall_getgroups32
+#define SYS_getgroups32	        __syscall_getgroups32
 #define SYS_fchown32		__syscall_fchown32
-#define SYS_getresuid32	__syscall_getresuid32
-#define SYS_getresgid32	__syscall_getresgid32
+#define SYS_getresuid32	        __syscall_getresuid32
+#define SYS_getresgid32	        __syscall_getresgid32
 #define SYS_mincore		__syscall_mincore
 #define SYS_madvise		__syscall_madvise
 #define SYS_getdents64		__syscall_getdents64
@@ -97,12 +97,15 @@
 #define SYS_recvmsg		__syscall_recvmsg
 #define SYS_shutdown		__syscall_shutdown
 
-// Modified by Benoit Baudaux 20/11/2022
+/* Modified by Benoit Baudaux 20/11/2022 */
 #define SYS_fork                __syscall_fork
 
-// Modified by Benoit Baudaux 22/12/2022
+/* Modified by Benoit Baudaux 22/12/2022 */
 #define SYS_execve              __syscall_execve
 
-// Modified by Benoit Baudaux 5/1/2023
+/* Modified by Benoit Baudaux 5/1/2023 */
 #define SYS_write               __syscall_write
 #define SYS_writev              __syscall_writev
+
+/* Modified by Benoit Baudaux 11/1/2023 */
+#define SYS_close               __syscall_close

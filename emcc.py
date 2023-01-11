@@ -111,6 +111,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_recvfrom',
   '__syscall_bind',
   '__syscall_openat',
+  '__syscall_close',
   '__syscall_write',
   '__syscall_writev',
   '__syscall_getpid',

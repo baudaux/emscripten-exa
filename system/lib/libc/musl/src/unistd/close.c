@@ -13,7 +13,8 @@ weak_alias(dummy, __aio_close);
 int close(int fd)
 {
 	fd = __aio_close(fd);
-#ifdef __EMSCRIPTEN__
+	/* Modified by Benoit Baudaux 11/1/2023 */
+#ifdef __EMSCRIPTEN__EXA
 	int r = __wasi_fd_close(fd);
 	if (r == __WASI_ERRNO_INTR) r = __WASI_ERRNO_SUCCESS;
 	return __wasi_syscall_ret(r);
