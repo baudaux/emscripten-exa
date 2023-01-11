@@ -107,6 +107,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_ioctl',
   '__syscall_fork',
   '__syscall_execve',
+  '__syscall_socket',
   '__syscall_recvfrom',
   '__syscall_bind',
   '__syscall_openat',

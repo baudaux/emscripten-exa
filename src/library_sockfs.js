@@ -53,36 +53,7 @@ mergeInto(LibraryManager.library, {
         throw new FS.ErrnoError({{{ cDefine('EPROTONOSUPPORT') }}}); // if SOCK_STREAM, must be tcp or 0.
 	}*/
 
-	if (!Module['fd_table']) {
-
-	    Module['fd_table'] = {};
-	    Module['fd_table'].last_fd = 2;
-	}
-
-	Module['fd_table'].last_fd += 1;
-
-	// create our internal socket structure
-	var sock = {
-	    fd: Module['fd_table'].last_fd,
-            family: family,
-            type: type,
-            protocol: protocol,
-            server: null,
-            error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
-            peers: {},
-            pending: [],
-            recv_queue: [],
-	    name: null,
-	    bc: null,
-#if SOCKET_WEBRTC
-#else
-            //sock_ops: SOCKFS.websocket_sock_ops
-	    // TODO: all types of socket
-	    sock_ops: SOCKFS.unix_dgram_sock_ops
-#endif
-	};
-
-	Module['fd_table'][Module['fd_table'].last_fd] = sock;
+	/* Moved to library_syscal.js */
 
 	/*
       // create the filesystem node to store the socket structure
@@ -191,20 +162,36 @@ mergeInto(LibraryManager.library, {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
+		  let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		  // pid
+		  Module.HEAPU8[buf+4] = pid & 0xff;
+		  Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
+		  Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
+		  Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
+
 		  // errno
 		  Module.HEAPU8[buf+8] = 0x0;
 		  Module.HEAPU8[buf+9] = 0x0;
 		  Module.HEAPU8[buf+10] = 0x0;
 		  Module.HEAPU8[buf+11] = 0x0;
+
+		  let fd = sock.fd;
+
+		  // fd
+		  Module.HEAPU8[buf+12] = fd & 0xff;
+		  Module.HEAPU8[buf+13] = (fd >> 8) & 0xff;
+		  Module.HEAPU8[buf+14] = (fd >> 16) & 0xff;
+		  Module.HEAPU8[buf+15] = (fd >> 24) & 0xff;
 		  
 		  // sa_family
-		  Module.HEAPU8[buf+12] = 0x1; // AF_UNIX
-		  Module.HEAPU8[buf+13] = 0x0;
+		  Module.HEAPU8[buf+16] = 0x1; // AF_UNIX
+		  Module.HEAPU8[buf+17] = 0x0;
 
 		  // sun_path
-		  stringToUTF8(sock.name,buf+14,108);
+		  stringToUTF8(sock.name, buf+18, 108);
 
-		  let buf2 = Module.HEAPU8.slice(buf,buf+256);
+		  let buf2 = Module.HEAPU8.slice(buf, buf+256);
 
 		  let msg = {
 

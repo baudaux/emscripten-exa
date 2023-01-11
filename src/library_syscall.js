@@ -346,13 +346,171 @@ var SyscallsLibrary = {
     __syscall_socket__deps: ['$SOCKFS'],
     __syscall_socket: function(domain, type, protocol) {
 
-	var sock = SOCKFS.createSocket(domain, type, protocol);
+	//var sock = SOCKFS.createSocket(domain, type, protocol);
 #if ASSERTIONS
     //assert(sock.stream.fd < 64); // XXX ? select() assumes socket fd values are in 0..63
 #endif
 	//return sock.stream.fd;
 
-	return sock.fd;
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (!Module['fd_table']) {
+
+		Module['fd_table'] = {};
+		Module['fd_table'].last_fd = 2;
+	    }
+
+	    if (window.frameElement.getAttribute('pid') != "1") {
+
+		let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+
+		let buf = Module._malloc(256);
+
+		Module.HEAPU8[buf] = 9; // SOCKET
+		
+		/*//padding
+		  buf[1] = 0;
+		  buf[2] = 0;
+		  buf[3] = 0;*/
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		Module.HEAPU8[buf+4] = pid & 0xff;
+		Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
+		Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
+		Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
+
+		// errno
+		Module.HEAPU8[buf+8] = 0x0;
+		Module.HEAPU8[buf+9] = 0x0;
+		Module.HEAPU8[buf+10] = 0x0;
+		Module.HEAPU8[buf+11] = 0x0;
+
+		// fd
+		Module.HEAPU8[buf+12] = 0x0;
+		Module.HEAPU8[buf+13] = 0x0;
+		Module.HEAPU8[buf+14] = 0x0;
+		Module.HEAPU8[buf+15] = 0x0;
+		
+		// domain
+		Module.HEAPU8[buf+16] = domain & 0xff;
+		Module.HEAPU8[buf+17] = (domain >> 8) & 0xff;
+		Module.HEAPU8[buf+18] = (domain >> 16) & 0xff;
+		Module.HEAPU8[buf+19] = (domain >> 24) & 0xff;
+
+		// type
+		Module.HEAPU8[buf+20] = type & 0xff;
+		Module.HEAPU8[buf+21] = (type >> 8) & 0xff;
+		Module.HEAPU8[buf+22] = (type >> 16) & 0xff;
+		Module.HEAPU8[buf+23] = (type >> 24) & 0xff;
+
+		// protocol
+		Module.HEAPU8[buf+24] = protocol & 0xff;
+		Module.HEAPU8[buf+25] = (protocol >> 8) & 0xff;
+		Module.HEAPU8[buf+26] = (protocol >> 16) & 0xff;
+		Module.HEAPU8[buf+27] = (protocol >> 24) & 0xff;
+		
+		let buf2 = Module.HEAPU8.slice(buf,buf+256);
+
+		let socket_name = "socket."+window.frameElement.getAttribute('pid');
+		let socket_bc = new BroadcastChannel(socket_name);
+
+		socket_bc.onmessage = (messageEvent) => {
+
+		    console.log(messageEvent);
+
+		    let msg2 = messageEvent.data;
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    console.log(msg2.buf[0]);
+
+		    if (msg2.buf[0] == (9|0x80)) {
+
+			console.log("Return of socket: errno = "+_errno);
+
+			if (_errno == 0) {
+
+			    let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			    console.log("fd = "+fd);
+
+			    // create our internal socket structure
+			    var sock = {
+				fd: fd,
+				family: domain,
+				type: type,
+				protocol: protocol,
+				server: null,
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+#if SOCKET_WEBRTC
+#else
+				//sock_ops: SOCKFS.websocket_sock_ops
+				// TODO: all types of socket
+				sock_ops: SOCKFS.unix_dgram_sock_ops
+#endif
+			    };
+
+			    Module['fd_table'][fd] = sock;
+
+			    wakeUp(fd);
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+		    }
+		};
+
+		let msg = {
+
+		    from: socket_name,
+		    buf: buf2,
+		    len: 256
+		};
+		
+		bc.postMessage(msg);
+
+		Module._free(buf);
+	    }
+	    else {
+
+		Module['fd_table'].last_fd += 1;
+
+		// create our internal socket structure
+		var sock = {
+		    fd: Module['fd_table'].last_fd,
+		    family: domain,
+		    type: type,
+		    protocol: protocol,
+		    server: null,
+		    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+		    peers: {},
+		    pending: [],
+		    recv_queue: [],
+		    name: null,
+		    bc: null,
+#if SOCKET_WEBRTC
+#else
+		    //sock_ops: SOCKFS.websocket_sock_ops
+		    // TODO: all types of socket
+		    sock_ops: SOCKFS.unix_dgram_sock_ops
+#endif
+		};
+
+		Module['fd_table'][Module['fd_table'].last_fd] = sock;
+
+		wakeUp(Module['fd_table'].last_fd);
+	    }
+	});
+
+	return ret;
   },
   __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
   __syscall_getsockname: function(fd, addr, addrlen) {
@@ -932,7 +1090,7 @@ var SyscallsLibrary = {
 		// TODO
 
 		// pathname
-		stringToUTF8(UTF8ToString(path), buf+142, 1024);
+		stringToUTF8(UTF8ToString(path), buf+140, 1024);
 
 		let buf2 = Module.HEAPU8.slice(buf, buf+1256);
 		
@@ -948,6 +1106,8 @@ var SyscallsLibrary = {
 		    //console.log(messageEvent);
 
 		    let msg2 = messageEvent.data;
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
 		    /*if (first_response) { // first response comes from resmgr
 
@@ -969,23 +1129,21 @@ var SyscallsLibrary = {
 
 			if (msg2.buf[0] == (11|0x80)) {
 
-			    if (!msg2.errno) {
+			    if (_errno == 0) {
 
 				let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 				let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 				let flags = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
 				let mode = msg2.buf[24] | (msg2.buf[25] << 8);
 				let type = msg2.buf[26];
-				let major = msg2.buf[30] | (msg2.buf[31] << 8);
-				let minor = msg2.buf[32] | (msg2.buf[33] << 8);
+				let major = msg2.buf[28] | (msg2.buf[29] << 8);
+				let minor = msg2.buf[30] | (msg2.buf[31] << 8);
+				let peer = UTF8ArrayToString(msg2.buf, 32, 108);
 
 				if (!Module['fd_table']) {
 
 				    Module['fd_table'] = {};
-				    //Module['fd_table'].last_fd = 2;
 				}
-
-				//Module['fd_table'].last_fd += 1;
 
 				// create our internal socket structure
 				var desc = {
@@ -994,8 +1152,7 @@ var SyscallsLibrary = {
 				    remote_fd: remote_fd,
 				    flags: flags,
 				    mode: mode,
-				    //peer: msg2.from,
-				    peer: UTF8ArrayToString(msg2.buf, 34, 108),
+				    peer: peer,
 				    type: type,
 				    major: major,
 				    minor: minor,
@@ -1018,10 +1175,6 @@ var SyscallsLibrary = {
 
 				wakeUp(-1);
 			    }
-			}
-			else {
-
-			    wakeUp(-1);
 			}
 		};
 
