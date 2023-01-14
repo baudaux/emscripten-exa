@@ -1604,9 +1604,11 @@ var SyscallsLibrary = {
     return ret;
     },
     /* Modified by Benoit Baudaux 8/1/2023 */
-    __syscall_writev__sig: 'iippp',
-    __syscall_writev: function(fd, iov, iovcnt, pnum) {
+    __syscall_writev__sig: 'iipp',
+    __syscall_writev: function(fd, iov, iovcnt) {
 
+	console.log("__syscall_writev: TODO");
+	
 	// TODO
 	return 0;
     },
@@ -1676,7 +1678,7 @@ var SyscallsLibrary = {
 	return ret;
     },
     /* Modified by Benoit Baudaux 13/1/2023 */
-    __syscall_setsid__sig: 'ii',
+    __syscall_setsid__sig: 'i',
     __syscall_setsid: function() {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
@@ -1733,6 +1735,18 @@ var SyscallsLibrary = {
 	});
 	
 	return ret;
+    },
+    /* Modified by Benoit Baudaux 14/1/2023 */
+    __syscall_read__sig: 'iipi',
+    __syscall_read: function(fd, buf, count) {
+
+	console.log("__syscall_read: TODO");
+    },
+    __syscall_readv__sig: 'iippp',
+    __syscall_readv: function(fd, iov, iovcnt) {
+
+	console.log("__syscall_readv: TODO");
+	return 0;
     },
 };
 

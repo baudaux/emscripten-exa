@@ -103,7 +103,6 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   'wasi_snapshot_preview1.fd_sync', '__wasi_fd_sync', '_emval_await',
   '_dlopen_js', '__asyncjs__*',
   # Added by Benoit Baudaux 07/11/2022
-  'wasi_snapshot_preview1.fd_read',
   '__syscall_ioctl',
   '__syscall_fork',
   '__syscall_execve',
@@ -116,6 +115,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_writev',
   '__syscall_getpid',
   '__syscall_setsid',
+  '__syscall_read',
+  '__syscall_readv',
 ]
 
 # Target options

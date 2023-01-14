@@ -9,7 +9,7 @@ size_t __stdio_read(FILE *f, unsigned char *buf, size_t len)
 	};
 	ssize_t cnt;
 
-#if __EMSCRIPTEN__
+#if __EMSCRIPTEN__EXA
 	size_t num;
 	if (__wasi_syscall_ret(__wasi_fd_read(f->fd, (struct __wasi_iovec_t*)iov, 2, &num))) {
 		num = -1;

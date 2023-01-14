@@ -133,6 +133,10 @@ int __syscall_writev(int fd, intptr_t iov, int iovcnt);
 
 /* Modified by Benoit Baudaux 11/1/2023 */
 int __syscall_close(int fd);
+
+   /* Modified by Benoit Baudaux 14/1/2023 */
+int __syscall_read(int fd, intptr_t buf, size_t count);
+int __syscall_readv(int fd, intptr_t iov, int iovcnt);
   
 #ifdef __cplusplus
 }

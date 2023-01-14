@@ -109,3 +109,7 @@
 
 /* Modified by Benoit Baudaux 11/1/2023 */
 #define SYS_close               __syscall_close
+
+/* Modified by Benoit Baudaux 14/1/2023 */
+#define SYS_read                __syscall_read
+#define SYS_readv               __syscall_readv

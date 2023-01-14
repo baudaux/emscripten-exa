@@ -25,7 +25,7 @@ size_t __stdio_write(FILE *f, const unsigned char *buf, size_t len)
 	
 	ssize_t cnt;
 	for (;;) {
-#if __EMSCRIPTEN__
+#if __EMSCRIPTEN__EXA
 		size_t num;
 		if (__wasi_syscall_ret(__wasi_fd_write(f->fd, (struct __wasi_ciovec_t*)iov, iovcnt, &num))) {
 			num = -1;
