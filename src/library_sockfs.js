@@ -43,6 +43,42 @@ mergeInto(LibraryManager.library, {
       Module['websocket']['on']('close', (fd) => dbg('Socket close fd = ' + fd));
 #endif
 
+	/* Modified by Benoit Baudaux 13/1/2023 */
+
+	Module['fd_table'] = {};
+	Module['fd_table'].last_fd = 2;
+
+	Module['bc_channels'] = {};
+	Module['get_broadcast_channel'] = (name) => {
+
+	    if (name in Module['bc_channels']) {
+		return Module['bc_channels'][name];
+	    }
+	    else {
+
+		Module['bc_channels'][name] = new BroadcastChannel(name);
+		return Module['bc_channels'][name];
+	    }
+	};
+
+	Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
+
+	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
+
+	    if (Module['rcv_bc_channel'].handler) {
+
+		if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
+		    return;
+	    }
+	};
+
+	Module['rcv_bc_channel'].set_handler = (handler) => {
+
+	    Module['rcv_bc_channel'].handler = handler;
+	};
+
+	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
+
       return FS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 511 /* 0777 */, 0);
     },
       /* Modified by Benoit Baudaux 26/12/2022 */

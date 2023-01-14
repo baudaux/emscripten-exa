@@ -205,7 +205,8 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_ioctl__sig: 'iiip',
-  __syscall_ioctl: function(fd, op, varargs) {
+    __syscall_ioctl: function(fd, op, varargs) {
+	/*
 #if SYSCALLS_REQUIRE_FILESYSTEM == 0
 #if SYSCALL_DEBUG
     dbg('no-op in ioctl syscall due to SYSCALLS_REQUIRE_FILESYSTEM=0');
@@ -296,7 +297,56 @@ var SyscallsLibrary = {
         wakeUp(r);
 
       //return 0;
-    });
+      });*/
+	
+	console.log("__syscall_ioctl: op="+op);
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	
+	    let buf_size = 256;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 14; // IOCTL
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	    
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (14|0x80)) {
+		
+		    wakeUp(0); // TODO: size
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	    
+	    driver_bc.postMessage(msg);
+	});
 
     return ret;
 
@@ -354,15 +404,9 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    if (!Module['fd_table']) {
-
-		Module['fd_table'] = {};
-		Module['fd_table'].last_fd = 2;
-	    }
-
 	    if (window.frameElement.getAttribute('pid') != "1") {
 
-		let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+		let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
 
 		let buf = Module._malloc(256);
 
@@ -413,23 +457,15 @@ var SyscallsLibrary = {
 		
 		let buf2 = Module.HEAPU8.slice(buf,buf+256);
 
-		if (!Module['last_bc'])
-		    Module['last_bc'] = 1;
-		else
-		    Module['last_bc'] += 1;
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		let socket_name = "socket."+window.frameElement.getAttribute('pid')+"."+Module['fd_table'].last_bc;
-		let socket_bc = new BroadcastChannel(socket_name);
-
-		socket_bc.onmessage = (messageEvent) => {
-
-		    socket_bc.close();
+		    Module['rcv_bc_channel'].set_handler(null);
 
 		    let msg2 = messageEvent.data;
 
-		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
-
 		    if (msg2.buf[0] == (9|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
 			if (_errno == 0) {
 
@@ -464,21 +500,31 @@ var SyscallsLibrary = {
 
 			    wakeUp(-1);
 			}
+
+			return 0;
 		    }
-		};
+
+		    return -1;
+		});
 
 		let msg = {
 
-		    from: socket_name,
+		    from: Module['rcv_bc_channel'].name,
 		    buf: buf2,
 		    len: 256
 		};
-		
+
 		bc.postMessage(msg);
 
 		Module._free(buf);
 	    }
 	    else {
+
+		if (!Module['fd_table']) {
+
+		    Module['fd_table'] = {};
+		    Module['fd_table'].last_fd = 0;
+		}
 
 		Module['fd_table'].last_fd += 1;
 
@@ -1042,8 +1088,8 @@ var SyscallsLibrary = {
 
 		var mode = varargs ? SYSCALLS.get() : 0;
 
-		let bc = new BroadcastChannel("/tmp2/resmgr.peer");
-
+		let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+		
 		let buf = Module._malloc(1256);
 
 		Module.HEAPU8[buf] = 11; // OPEN
@@ -1074,6 +1120,7 @@ var SyscallsLibrary = {
 		Module.HEAPU8[buf+15] = 0x0;
 
 		// remote fd
+
 		Module.HEAPU8[buf+16] = 0x0;
 		Module.HEAPU8[buf+17] = 0x0;
 		Module.HEAPU8[buf+18] = 0x0;
@@ -1092,29 +1139,15 @@ var SyscallsLibrary = {
 		stringToUTF8(UTF8ToString(path), buf+140, 1024);
 
 		let buf2 = Module.HEAPU8.slice(buf, buf+1256);
-
-		if (!Module['last_bc'])
-		    Module['last_bc'] = 1;
-		else
-		    Module['last_bc'] += 1;
 		
-		let open_name = "open."+window.frameElement.getAttribute('pid')+"."+Module['last_bc'];
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		let open_bc = new BroadcastChannel(open_name);
-
-		//first_response = true;
-
-		open_bc.onmessage = (messageEvent) => {
-
-		    //console.log("open_bc.onmessage");
-		    //console.log(messageEvent);
-
-		    open_bc = null;
+		    Module['rcv_bc_channel'].set_handler(null);
+		    
+		    console.log(messageEvent);
 
 		    let msg2 = messageEvent.data;
-
-		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
-
+		    
 		    /*if (first_response) { // first response comes from resmgr
 
 			first_response = false;
@@ -1133,7 +1166,9 @@ var SyscallsLibrary = {
 		    }
 		    else {*/
 
-			if (msg2.buf[0] == (11|0x80)) {
+		    if (msg2.buf[0] == (11|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
 			    if (_errno == 0) {
 
@@ -1146,10 +1181,7 @@ var SyscallsLibrary = {
 				let minor = msg2.buf[30] | (msg2.buf[31] << 8);
 				let peer = UTF8ArrayToString(msg2.buf, 32, 108);
 
-				if (!Module['fd_table']) {
-
-				    Module['fd_table'] = {};
-				}
+				
 
 				// create our internal socket structure
 				var desc = {
@@ -1181,12 +1213,16 @@ var SyscallsLibrary = {
 
 				wakeUp(-1);
 			    }
-			}
-		};
+
+			return 0;
+		    }
+
+		    return -1;
+		});
 
 		let msg = {
 
-		    from: open_name,
+		    from: Module['rcv_bc_channel'].name,
 		    buf: buf2,
 		    len: 1256
 		};
@@ -1535,33 +1571,34 @@ var SyscallsLibrary = {
 
 	    buf2.set(HEAPU8.slice(buf,buf+len),20);
 
-	    if (!Module['last_bc'])
-		Module['last_bc'] = 1;
-	    else
-		Module['last_bc'] += 1;
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-	    let write_name = "write."+window.frameElement.getAttribute('pid')+"."+Module['last_bc'];
+		Module['rcv_bc_channel'].set_handler(null);
 
-	    let write_bc = new BroadcastChannel(write_name);
+		let msg2 = messageEvent.data;
 
-	    write_bc.onmessage = (messageEvent) => {
-
-		write_bc.close();
+		if (msg2.buf[0] == (13|0x80)) {
 		
-		wakeUp(0); // TODO: size
-	    };
+		    wakeUp(0); // TODO: size
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
 
 	    let msg = {
 
-		from: write_name,
+		from: Module['rcv_bc_channel'].name,
 		buf: buf2,
 		len: buf_size
 	    };
 
-	    //let write_driver_bc = new BroadcastChannel(Module['fd_table'][fd].peer);
-	    let write_driver_bc = new BroadcastChannel("/tmp2/tty.peer");
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 	    
-	    write_driver_bc.postMessage(msg);
+	    driver_bc.postMessage(msg);
 	});
     
     return ret;
@@ -1605,32 +1642,91 @@ var SyscallsLibrary = {
 	    buf2[14] = (fd >> 16) & 0xff;
 	    buf2[15] = (fd >> 24) & 0xff;
 
-	    if (!Module['last_bc'])
-		Module['last_bc'] = 1;
-	    else
-		Module['last_bc'] += 1;
-	    
-	    let close_name = "close."+window.frameElement.getAttribute('pid')+"."+Module['last_bc'];
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-	    let close_bc = new BroadcastChannel(close_name);
+		Module['rcv_bc_channel'].set_handler(null);
 
-	    close_bc.onmessage = (messageEvent) => {
+		let msg2 = messageEvent.data;
 
-		//console.log(messageEvent);
+		if (msg2.buf[0] == (15|0x80)) {
 
-		close_bc.close();
-		
-		wakeUp(0); // TODO
-	    };
+		    //console.log(messageEvent);
+
+		    wakeUp(0); // TODO
+
+		    return 0;
+		}
+
+		return -1;
+	    });
 
 	    let msg = {
 
-		from: close_name,
+		from: Module['rcv_bc_channel'].name,
 		buf: buf2,
 		len: buf_size
 	    };
 
-	    let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+	    let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	});
+	
+	return ret;
+    },
+    /* Modified by Benoit Baudaux 13/1/2023 */
+    __syscall_setsid__sig: 'ii',
+    __syscall_setsid: function() {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 16;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 16; // SETSID
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // sid
+	    buf2[12] = 0;
+	    buf2[13] = 0;
+	    buf2[14] = 0;
+	    buf2[15] = 0;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (16|0x80)) {
+
+		    //console.log(messageEvent);
+
+		    wakeUp(0); // TODO
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
 
 	    bc.postMessage(msg);
 

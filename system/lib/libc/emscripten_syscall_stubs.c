@@ -117,9 +117,11 @@ int __syscall_getgroups32(int size, intptr_t list) {
   return 1;
 }
 
+
+/* Modified by Benoit Baudaux 13/1/2023
 int __syscall_setsid() {
   return 0; // no-op
-}
+  }*/
 
 // TODO BB
 int __syscall_umask(int mask) {

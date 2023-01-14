@@ -115,6 +115,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_write',
   '__syscall_writev',
   '__syscall_getpid',
+  '__syscall_setsid',
 ]
 
 # Target options
