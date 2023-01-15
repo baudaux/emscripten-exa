@@ -179,6 +179,8 @@ mergeInto(LibraryManager.library, {
 		  }
 		  else {
 		      sock.recv_queue.push(messageEvent.data);
+
+		      console.log(messageEvent);
 		      
 		      if (sock.notif)
 			  sock.notif();

@@ -1740,7 +1740,77 @@ var SyscallsLibrary = {
     __syscall_read__sig: 'iipi',
     __syscall_read: function(fd, buf, count) {
 
-	console.log("__syscall_read: TODO");
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let len = count;
+	
+	    let buf_size = 20;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 12; // READ
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+
+	    console.log("read: remote_fd="+remote_fd);
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    // len
+	    buf2[16] = len & 0xff;
+	    buf2[17] = (len >> 8) & 0xff;
+	    buf2[18] = (len >> 16) & 0xff;
+	    buf2[19] = (len >> 24) & 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (12|0x80)) {
+
+		    let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    console.log("bytes_read: "+bytes_read);
+
+		    Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
+		    
+		    wakeUp(bytes_read);
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	    
+	    driver_bc.postMessage(msg);
+	});
+    
+    return ret;
     },
     __syscall_readv__sig: 'iippp',
     __syscall_readv: function(fd, iov, iovcnt) {

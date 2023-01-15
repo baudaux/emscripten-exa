@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include "syscall.h"
 
+#include <emscripten.h>
+
 ssize_t read(int fd, void *buf, size_t count)
 {
 #if __EMSCRIPTEN__EXA
@@ -14,6 +16,10 @@ ssize_t read(int fd, void *buf, size_t count)
 	}
 	return num;
 #else
-	return syscall_cp(SYS_read, fd, buf, count);
+	ssize_t s = syscall_cp(SYS_read, fd, buf, count);
+
+	emscripten_log(EM_LOG_CONSOLE, "$$$$ %s", buf);
+
+	return s;
 #endif
 }
