@@ -189,7 +189,7 @@ mergeInto(LibraryManager.library, {
 
 	      if (window.frameElement.getAttribute('pid') != "1") {
 
-		  let bc = new BroadcastChannel("/tmp2/resmgr.peer");
+		  let bc = new BroadcastChannel("/var/resmgr.peer");
 
 		  let buf = Module._malloc(256);
 

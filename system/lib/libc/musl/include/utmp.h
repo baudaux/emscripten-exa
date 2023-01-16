@@ -37,8 +37,12 @@ int utmpname(const char *);
 
 int login_tty(int);
 
-#define _PATH_UTMP "/dev/null/utmp"
-#define _PATH_WTMP "/dev/null/wtmp"
+  /* Modified by Benoit Baudaux 16/1/2023*/
+  /*#define _PATH_UTMP "/dev/null/utmp"
+    #define _PATH_WTMP "/dev/null/wtmp"*/
+
+#define _PATH_UTMP "/var/run/utmp"
+#define _PATH_WTMP "/var/run/wtmp"
 
 #define UTMP_FILE _PATH_UTMP
 #define WTMP_FILE _PATH_WTMP

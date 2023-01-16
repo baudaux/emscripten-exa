@@ -406,7 +406,7 @@ var SyscallsLibrary = {
 
 	    if (window.frameElement.getAttribute('pid') != "1") {
 
-		let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
 		let buf = Module._malloc(256);
 
@@ -1088,7 +1088,7 @@ var SyscallsLibrary = {
 
 		var mode = varargs ? SYSCALLS.get() : 0;
 
-		let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 		
 		let buf = Module._malloc(1256);
 
@@ -1669,7 +1669,7 @@ var SyscallsLibrary = {
 		len: buf_size
 	    };
 
-	    let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
 	    bc.postMessage(msg);
 
@@ -1728,7 +1728,7 @@ var SyscallsLibrary = {
 		len: buf_size
 	    };
 
-	    let bc = Module.get_broadcast_channel("/tmp2/resmgr.peer");
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
 	    bc.postMessage(msg);
 
