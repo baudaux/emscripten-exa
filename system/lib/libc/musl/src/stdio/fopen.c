@@ -20,8 +20,8 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
 
 	fd = sys_open(filename, flags, 0666);
 	if (fd < 0) return 0;
-#ifndef __EMSCRIPTEN__ // CLOEXEC makes no sense for a single process
-// BB: TODO
+#ifndef __EMSCRIPTEN__EXA // CLOEXEC makes no sense for a single process
+	// 17/1/2023: Benoit Baudaux: But it makes sense for EXA
 	if (flags & O_CLOEXEC)
 		__syscall(SYS_fcntl, fd, F_SETFD, FD_CLOEXEC);
 #endif
@@ -29,7 +29,7 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
 	f = __fdopen(fd, mode);
 	if (f) return f;
 
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 	__wasi_fd_close(fd);
 #else
 	__syscall(SYS_close, fd);

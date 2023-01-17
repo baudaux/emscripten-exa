@@ -104,6 +104,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '_dlopen_js', '__asyncjs__*',
   # Added by Benoit Baudaux 07/11/2022
   '__syscall_ioctl',
+  '__syscall_fcntl64',
   '__syscall_fork',
   '__syscall_execve',
   '__syscall_socket',
@@ -117,6 +118,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_setsid',
   '__syscall_read',
   '__syscall_readv',
+  '__syscall_pause',
 ]
 
 # Target options

@@ -301,6 +301,8 @@ var SyscallsLibrary = {
 	
 	console.log("__syscall_ioctl: op="+op);
 
+	/* ops 21505 (TCGETS), 21506 (TCSETS), 21515 (TCFLSH), 21523 (TIOCGWINSZ) */
+
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 	
 	    let buf_size = 256;
@@ -316,6 +318,20 @@ var SyscallsLibrary = {
 	    buf2[5] = (pid >> 8) & 0xff;
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    // op
+	    buf2[16] = op & 0xff;
+	    buf2[17] = (op >> 8) & 0xff;
+	    buf2[18] = (op >> 16) & 0xff;
+	    buf2[19] = (op >> 24) & 0xff;
 	    
 
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
@@ -993,6 +1009,75 @@ var SyscallsLibrary = {
 #endif
     return 0;
 #else
+
+      console.log("__syscall_fcntl: cmd="+cmd);
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	
+	    let buf_size = 256;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 17; // FCNTL
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    //cmd
+	    buf2[16] = cmd & 0xff;
+	    buf2[17] = (cmd >> 8) & 0xff;
+	    buf2[18] = (cmd >> 16) & 0xff;
+	    buf2[19] = (cmd >> 24) & 0xff;
+	    
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (17|0x80)) {
+		
+		    wakeUp(0); // TODO: size
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	    
+	    driver_bc.postMessage(msg);
+	});      
+
+
+      return ret;
+
+      /* Modified by Benoit Baudaux 17/1/2023 */
+      /* Following code is not executed */
     var stream = SYSCALLS.getStreamFromFD(fd);
     switch (cmd) {
       case {{{ cDefine('F_DUPFD') }}}: {
@@ -1439,61 +1524,136 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    // TODO: fork from other process than resmgr
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    if (!Module.child_pid) {
+	    function do_fork() {
 
-		// Reserve 1 for resmgr, so start at 2
-		
-		Module.child_pid = 2;
+		let channel = 'channel.1.'+Module.child_pid+'.fork';
+
+		if (!Module[channel]) {
+
+		    Module[channel] = new BroadcastChannel('channel.1.'+Module.child_pid+'.fork');
+
+		    Module[channel].onmessage = (function(_ch,_pid) {
+
+			return ((messageEvent) => {
+
+			    if (messageEvent.data == "continue_fork") {
+
+				//console.log("continue_fork");
+
+				if (Module[_ch]) {
+
+				    Module[_ch].postMessage(Module.HEAPU8);
+
+				    Asyncify.stackTop = stackSave();
+				    Asyncify.stackBase = _emscripten_stack_get_base();
+				    Asyncify.stackEnd = _emscripten_stack_get_end();
+				    
+				    Module[_ch].postMessage(JSON.stringify(Asyncify));
+				}
+			    }
+			    else if (messageEvent.data == "end_fork") {
+
+				Module[_ch].close();
+
+				wakeUp(_pid);
+			    }
+
+			});
+		    })(channel,Module.child_pid);
+
+		    let msg = {
+
+			type: 3,   // fork
+			pid: Module.child_pid
+		    };
+
+		    window.parent.postMessage(msg);
+		}
+	    };
+
+	    if (pid == 1) {  // Fork called by resmgr
+
+		if (!Module.child_pid) {
+
+		    // Reserve 1 for resmgr, so start at 2
+		    
+		    Module.child_pid = 2;
+		}
+		else {
+
+		    Module.child_pid += 1;
+		}
+
+		do_fork();
 	    }
 	    else {
 
-		Module.child_pid += 1;
-	    }
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-	    let channel = 'channel.1.'+Module.child_pid+'.fork';
+		console.log(bc);
 
-	    if (!Module[channel]) {
+		let buf = Module._malloc(256);
 
-		Module[channel] = new BroadcastChannel('channel.1.'+Module.child_pid+'.fork');
+		Module.HEAPU8[buf] = 7; // FORK
 
-		Module[channel].onmessage = (function(_ch,_pid) {
+		/*//padding
+		  buf[1] = 0;
+		  buf[2] = 0;
+		  buf[3] = 0;*/
 
-		    return ((messageEvent) => {
+		// pid
+		Module.HEAPU8[buf+4] = pid & 0xff;
+		Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
+		Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
+		Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
 
-			if (messageEvent.data == "continue_fork") {
+		// errno
+		Module.HEAPU8[buf+8] = 0x0;
+		Module.HEAPU8[buf+9] = 0x0;
+		Module.HEAPU8[buf+10] = 0x0;
+		Module.HEAPU8[buf+11] = 0x0;
 
-			    //console.log("continue_fork");
+		// child pid
+		Module.HEAPU8[buf+12] = 0x0;
+		Module.HEAPU8[buf+13] = 0x0;
+		Module.HEAPU8[buf+14] = 0x0;
+		Module.HEAPU8[buf+15] = 0x0;
 
-			    if (Module[_ch]) {
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		    
+		    console.log(messageEvent);
 
-				Module[_ch].postMessage(Module.HEAPU8);
+		    let msg2 = messageEvent.data;
 
-				Asyncify.stackTop = stackSave();
-				Asyncify.stackBase = _emscripten_stack_get_base();
-				Asyncify.stackEnd = _emscripten_stack_get_end();
-				
-				Module[_ch].postMessage(JSON.stringify(Asyncify));
-			    }
-			}
-			else if (messageEvent.data == "end_fork") {
+		    if (msg2.buf[0] == (7|0x80)) {
 
-			    Module[_ch].close();
+			Module['rcv_bc_channel'].set_handler(null);
 
-			    wakeUp(_pid);
-			}
+			Module.child_pid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
-		    });
-		})(channel,Module.child_pid);
+			do_fork();
+
+			return 0;
+		    }
+
+		    return -1;
+		});
+
+		let buf2 = Module.HEAPU8.slice(buf, buf+256);
 
 		let msg = {
 
-                    type: 3,   // fork
-		    pid: Module.child_pid
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: 256
 		};
+		
+		bc.postMessage(msg);
 
-		window.parent.postMessage(msg);
+		Module._free(buf);
+		
 	    }
 	});
 
@@ -1523,10 +1683,84 @@ var SyscallsLibrary = {
 	
 	    let len = count;
 
-	    /*for (var i = 0; i < iovcnt; i++) {
-		len += {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
-		iov += {{{ C_STRUCTS.iovec.__size__ }}};
-	    }*/
+	    let buf_size = 20+len;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 13; // WRITE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    // len
+	    buf2[16] = len & 0xff;
+	    buf2[17] = (len >> 8) & 0xff;
+	    buf2[18] = (len >> 16) & 0xff;
+	    buf2[19] = (len >> 24) & 0xff;
+
+	    buf2.set(HEAPU8.slice(buf,buf+len),20);
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (13|0x80)) {
+		
+		    let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+		
+		    wakeUp(bytes_written);
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	    
+	    driver_bc.postMessage(msg);
+	});
+    
+    return ret;
+    },
+    /* Modified by Benoit Baudaux 8/1/2023 */
+    __syscall_writev__sig: 'iipp',
+    __syscall_writev: function(fd, iov, iovcnt) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	
+	    let len = 0;
+
+	    let iov2 = iov;
+
+	    for (var i = 0; i < iovcnt; i++) {
+		len += {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+		iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+	    }
 
 	    let buf_size = 20+len;
 
@@ -1556,20 +1790,21 @@ var SyscallsLibrary = {
 	    buf2[18] = (len >> 16) & 0xff;
 	    buf2[19] = (len >> 24) & 0xff;
 
-	    /*buf_size = 20;
+	    buf_size = 20;
+
+	    iov2 = iov;
 
 	    for (var i = 0; i < iovcnt; i++) {
-		let ptr = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_base, '*') }}};
-		let l = {{{ makeGetValue('iov', C_STRUCTS.iovec.iov_len, '*') }}};
-
-		buf.set(HEAPU8.slice(ptr,ptr+l),buf_size);
+		let ptr = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_base, '*') }}};
+		let l = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+		
+		if (l > 0)
+		    buf2.set(HEAPU8.slice(ptr,ptr+l), buf_size);
 		
 		buf_size += l;
 		
-		iov += {{{ C_STRUCTS.iovec.__size__ }}};
-		}*/
-
-	    buf2.set(HEAPU8.slice(buf,buf+len),20);
+		iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+	    }
 
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -1578,8 +1813,10 @@ var SyscallsLibrary = {
 		let msg2 = messageEvent.data;
 
 		if (msg2.buf[0] == (13|0x80)) {
+
+		    let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 		
-		    wakeUp(0); // TODO: size
+		    wakeUp(bytes_written);
 
 		    return 0;
 		}
@@ -1602,15 +1839,6 @@ var SyscallsLibrary = {
 	});
     
     return ret;
-    },
-    /* Modified by Benoit Baudaux 8/1/2023 */
-    __syscall_writev__sig: 'iipp',
-    __syscall_writev: function(fd, iov, iovcnt) {
-
-	console.log("__syscall_writev: TODO");
-	
-	// TODO
-	return 0;
     },
     /* Modified by Benoit Baudaux 9/1/2023 */
     __syscall_getpid__sig: 'i',
@@ -1817,6 +2045,16 @@ var SyscallsLibrary = {
 
 	console.log("__syscall_readv: TODO");
 	return 0;
+    },
+    __syscall_pause__sig: 'i',
+    __syscall_pause: function() {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    // TODO
+	});
+				       
+	return ret;
     },
 };
 

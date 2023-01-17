@@ -188,10 +188,12 @@ int __syscall_getresgid32(intptr_t ruid, intptr_t euid, intptr_t suid) {
   return 0;
 }
 
-int __syscall_pause() {
+/* Modified by Benoit Baudaux 17/1/2023 */
+
+/*int __syscall_pause() {
   REPORT(pause);
   return -EINTR; // we can't pause
-}
+  }*/
 
 int __syscall_madvise(intptr_t addr, size_t length, int advice) {
   REPORT(madvise);
