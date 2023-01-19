@@ -24,6 +24,11 @@
 #include <emscripten/console.h>
 #include <emscripten/version.h>
 
+#define __EXA_major__ "0"
+#define __EXA_minor__ "1"
+#define __EXA_tiny__  "0"
+
+
 static int g_pid = 0; //42;   Modified by Benoit Baudaux 10/11/2022
 static int g_pgid = 0; //42;
 static int g_ppid = 1;
@@ -46,18 +51,25 @@ static mode_t g_umask = S_IRWXU | S_IRWXG | S_IRWXO;
 #define STRINGIFY(s) #s
 #define STR(s) STRINGIFY(s)
 
+/* Modified by Benoit Baudaux 19/1/2023 */
+// TODO: ask resmgr
 int __syscall_uname(intptr_t buf) {
   if (!buf) {
     return -EFAULT;
   }
-  const char* full_version = STR(__EMSCRIPTEN_major__) "." \
+  /* Modified by Benoit Baudaux 19/1/2023 */
+  /*const char* full_version = STR(__EMSCRIPTEN_major__) "."	\
                              STR(__EMSCRIPTEN_minor__) "." \
-                             STR(__EMSCRIPTEN_tiny__);
+                             STR(__EMSCRIPTEN_tiny__);*/
+
+  const char* full_version = STR(__EXA_major__) "."	\
+                             STR(__EXA_minor__) "." \
+                             STR(__EXA_tiny__);
 
   struct utsname *utsname = (struct utsname *)buf;
 
-  strcpy(utsname->sysname, "Emscripten");
-  strcpy(utsname->nodename, "emscripten");
+  strcpy(utsname->sysname, "EXA");
+  strcpy(utsname->nodename, "extendedmachine");
   strcpy(utsname->release, full_version);
   strcpy(utsname->version, "#1");
 #ifdef __wasm64__

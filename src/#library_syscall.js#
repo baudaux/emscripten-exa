@@ -1669,6 +1669,8 @@ var SyscallsLibrary = {
 	
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
+	    
+
 	    // Remove name property of window for process to be loaded fully with no fork mechanism
 	    window.name = "";
 

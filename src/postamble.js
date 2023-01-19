@@ -414,7 +414,7 @@ function run(args) {
     calledRun = true;
     Module['calledRun'] = true;
 
-    if (ABORT) return;
+      if (ABORT) return;
 
     initRuntime();
 
