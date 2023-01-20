@@ -424,9 +424,9 @@ var SyscallsLibrary = {
 
 		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-		let buf = Module._malloc(256);
+		let buf = new Uint8Array(256);
 
-		Module.HEAPU8[buf] = 9; // SOCKET
+		buf[0] = 9; // SOCKET
 		
 		/*//padding
 		  buf[1] = 0;
@@ -436,42 +436,40 @@ var SyscallsLibrary = {
 		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
 		// pid
-		Module.HEAPU8[buf+4] = pid & 0xff;
-		Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
-		Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
-		Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
+		buf[4] = pid & 0xff;
+		buf[5] = (pid >> 8) & 0xff;
+		buf[6] = (pid >> 16) & 0xff;
+		buf[7] = (pid >> 24) & 0xff;
 
 		// errno
-		Module.HEAPU8[buf+8] = 0x0;
-		Module.HEAPU8[buf+9] = 0x0;
-		Module.HEAPU8[buf+10] = 0x0;
-		Module.HEAPU8[buf+11] = 0x0;
+		buf[8] = 0x0;
+		buf[9] = 0x0;
+		buf[10] = 0x0;
+		buf[11] = 0x0;
 
 		// fd
-		Module.HEAPU8[buf+12] = 0x0;
-		Module.HEAPU8[buf+13] = 0x0;
-		Module.HEAPU8[buf+14] = 0x0;
-		Module.HEAPU8[buf+15] = 0x0;
+		buf[12] = 0x0;
+		buf[3] = 0x0;
+		buf[14] = 0x0;
+		buf[15] = 0x0;
 		
 		// domain
-		Module.HEAPU8[buf+16] = domain & 0xff;
-		Module.HEAPU8[buf+17] = (domain >> 8) & 0xff;
-		Module.HEAPU8[buf+18] = (domain >> 16) & 0xff;
-		Module.HEAPU8[buf+19] = (domain >> 24) & 0xff;
+		buf[16] = domain & 0xff;
+		buf[17] = (domain >> 8) & 0xff;
+		buf[18] = (domain >> 16) & 0xff;
+		buf[19] = (domain >> 24) & 0xff;
 
 		// type
-		Module.HEAPU8[buf+20] = type & 0xff;
-		Module.HEAPU8[buf+21] = (type >> 8) & 0xff;
-		Module.HEAPU8[buf+22] = (type >> 16) & 0xff;
-		Module.HEAPU8[buf+23] = (type >> 24) & 0xff;
+		buf[20] = type & 0xff;
+		buf[21] = (type >> 8) & 0xff;
+		buf[22] = (type >> 16) & 0xff;
+		buf[23] = (type >> 24) & 0xff;
 
 		// protocol
-		Module.HEAPU8[buf+24] = protocol & 0xff;
-		Module.HEAPU8[buf+25] = (protocol >> 8) & 0xff;
-		Module.HEAPU8[buf+26] = (protocol >> 16) & 0xff;
-		Module.HEAPU8[buf+27] = (protocol >> 24) & 0xff;
-		
-		let buf2 = Module.HEAPU8.slice(buf,buf+256);
+		buf[24] = protocol & 0xff;
+		buf[25] = (protocol >> 8) & 0xff;
+		buf[26] = (protocol >> 16) & 0xff;
+		buf[27] = (protocol >> 24) & 0xff;
 
 		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -526,13 +524,11 @@ var SyscallsLibrary = {
 		let msg = {
 
 		    from: Module['rcv_bc_channel'].name,
-		    buf: buf2,
+		    buf: buf,
 		    len: 256
 		};
 
 		bc.postMessage(msg);
-
-		Module._free(buf);
 	    }
 	    else {
 
@@ -1526,6 +1522,8 @@ var SyscallsLibrary = {
 
 	    let pid = parseInt(window.frameElement.getAttribute('pid'));
 
+	    console.log("fork: pid="+pid);
+
 	    function do_fork() {
 
 		let channel = 'channel.1.'+Module.child_pid+'.fork';
@@ -1594,9 +1592,9 @@ var SyscallsLibrary = {
 
 		console.log(bc);
 
-		let buf = Module._malloc(256);
+		let buf = new Uint8Array(256);
 
-		Module.HEAPU8[buf] = 7; // FORK
+		buf[0] = 7; // FORK
 
 		/*//padding
 		  buf[1] = 0;
@@ -1604,22 +1602,22 @@ var SyscallsLibrary = {
 		  buf[3] = 0;*/
 
 		// pid
-		Module.HEAPU8[buf+4] = pid & 0xff;
-		Module.HEAPU8[buf+5] = (pid >> 8) & 0xff;
-		Module.HEAPU8[buf+6] = (pid >> 16) & 0xff;
-		Module.HEAPU8[buf+7] = (pid >> 24) & 0xff;
+		buf[4] = pid & 0xff;
+		buf[5] = (pid >> 8) & 0xff;
+		buf[6] = (pid >> 16) & 0xff;
+		buf[7] = (pid >> 24) & 0xff;
 
 		// errno
-		Module.HEAPU8[buf+8] = 0x0;
-		Module.HEAPU8[buf+9] = 0x0;
-		Module.HEAPU8[buf+10] = 0x0;
-		Module.HEAPU8[buf+11] = 0x0;
+		buf[8] = 0x0;
+		buf[9] = 0x0;
+		buf[10] = 0x0;
+		buf[11] = 0x0;
 
 		// child pid
-		Module.HEAPU8[buf+12] = 0x0;
-		Module.HEAPU8[buf+13] = 0x0;
-		Module.HEAPU8[buf+14] = 0x0;
-		Module.HEAPU8[buf+15] = 0x0;
+		buf[12] = 0x0;
+		buf[13] = 0x0;
+		buf[14] = 0x0;
+		buf[15] = 0x0;
 
 		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    
@@ -1641,19 +1639,14 @@ var SyscallsLibrary = {
 		    return -1;
 		});
 
-		let buf2 = Module.HEAPU8.slice(buf, buf+256);
-
 		let msg = {
 
 		    from: Module['rcv_bc_channel'].name,
-		    buf: buf2,
+		    buf: buf,
 		    len: 256
 		};
 		
 		bc.postMessage(msg);
-
-		Module._free(buf);
-		
 	    }
 	});
 
@@ -1663,16 +1656,118 @@ var SyscallsLibrary = {
     __syscall_execve__sig: 'ippp',
     __syscall_execve: function(pathname, argv, envp) {
 
-	
+	console.log("__syscall_execve: argv="+argv+", envp="+envp);
 
 	// Use Asyncify for not returning from execve
 	
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    // Remove name property of window for process to be loaded fully with no fork mechanism
-	    window.name = "";
+	    let buf_size = 1256;
 
-	    //TODO: use argv and envp
+	    let buf = new Uint8Array(buf_size);
+
+	    buf[0] = 8; // EXECVE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf[4] = pid & 0xff;
+	    buf[5] = (pid >> 8) & 0xff;
+	    buf[6] = (pid >> 16) & 0xff;
+	    buf[7] = (pid >> 24) & 0xff;
+
+	    // errno
+	    buf[8] = 0;
+	    buf[9] = 0;
+	    buf[10] = 0;
+	    buf[11] = 0;
+
+	    // Copy args in buf
+
+	    let i = 0;
+
+	    for (let offset = 0; ; offset += 4) {
+
+		let arg = Module.HEAPU8[argv+offset] | (Module.HEAPU8[argv+offset+1] << 8) | (Module.HEAPU8[argv+offset+2] << 16) |  (Module.HEAPU8[argv+offset+3] << 24);
+
+		if (!arg)
+		    break;
+
+		let j;
+
+		for (j = 0; Module.HEAPU8[arg+j]; j++) {
+
+		    buf[16+i+j] = Module.HEAPU8[arg+j];
+		}
+		
+		buf[16+i+j] = 0;
+		j++;
+
+		i += j;
+	    }
+
+	    buf[12] = i & 0xff;
+	    buf[13] = (i >> 8) & 0xff;
+	    buf[14] = (i >> 16) & 0xff;
+	    buf[15] = (i >> 24) & 0xff;
+
+	    // Copy env in buf
+
+	    let e = 16 + i;
+	    let f = e + 4;
+
+	    i = 0;
+
+	    for (let offset = 0; ; offset += 4) {
+
+		let str = Module.HEAPU8[envp+offset] | (Module.HEAPU8[envp+offset+1] << 8) | (Module.HEAPU8[envp+offset+2] << 16) |  (Module.HEAPU8[envp+offset+3] << 24);
+
+		if (!str)
+		    break;
+
+		let j;
+
+		for (j = 0; Module.HEAPU8[str+j]; j++) {
+
+		    buf[f+i+j] = Module.HEAPU8[str+j];
+		}
+		
+		buf[f+i+j] = 0;
+		j++;
+
+		i += j;
+	    }
+
+	    buf[e] = i & 0xff;
+	    buf[e+1] = (i >> 8) & 0xff;
+	    buf[e+2] = (i >> 16) & 0xff;
+	    buf[e+3] = (i >> 24) & 0xff;
+
+	    // rcv_bc_channel is not registered if it is a fork of resmgr
+
+	    let rcv_bc = Module['rcv_bc_channel'] || new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
+
+	    let msg = {
+
+		from: rcv_bc.name,
+		buf: buf,
+		len: buf_size
+	    };
+
+	    let bc;
+
+	    // Module.get_broadcast_channel is not registered if it is a fork of resmgr
+	    
+	    if (Module.get_broadcast_channel)
+		bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    else
+		bc = new BroadcastChannel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	    
+	    // name property of window for process to be loaded fully and args and env to be recovered
+	    window.name = "exec";
+	    
 	    window.frameElement.src = SYSCALLS.getStr(pathname)+"/exa/exa.html";
 	});
     },

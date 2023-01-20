@@ -240,7 +240,7 @@ function preRun() {
 
     /* Modified by Benoit Baudaux 13/1/2023 */
 
-	Module['fd_table'] = {};
+	/*Module['fd_table'] = {};
 	Module['fd_table'].last_fd = 2;
 
 	Module['bc_channels'] = {};
@@ -272,7 +272,7 @@ function preRun() {
 	    Module['rcv_bc_channel'].handler = handler;
 	};
 
-	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
+	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;*/
 }
 
 function initRuntime() {
