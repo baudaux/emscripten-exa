@@ -236,7 +236,7 @@ dependenciesFulfilled = function runCaller() {
     // Added by Benoit Baudaux 20/1/2023
     else if (window.name == "exec") {
 
-	console.log("From exec: need to get back args and env");
+	//console.log("From exec: need to get back args and env");
 
 	let buf_size = 1256;
 
@@ -272,15 +272,15 @@ dependenciesFulfilled = function runCaller() {
 
 	    if (msg2.buf[0] == (8|0x80)) {
 
-		console.log("Return from exec: time to restore !!!!!");
+		//console.log("Return from exec: time to restore !!!!!");
 
-		console.log(msg2.buf);
+		//console.log(msg2.buf);
 
 		arguments_ = [];
 
 		let args_size = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
-		console.log(args_size);
+		//console.log(args_size);
 
 		td = new TextDecoder("utf-8");
 
@@ -299,7 +299,20 @@ dependenciesFulfilled = function runCaller() {
 		    i += j+1;
 		}
 
-		console.log(arguments_);
+		//console.log(arguments_);
+
+		let env_count = msg2.buf[i] | (msg2.buf[i+1] << 8) | (msg2.buf[i+2] << 16) |  (msg2.buf[i+3] << 24);
+
+		let env_size = msg2.buf[i+4] | (msg2.buf[i+5] << 8) | (msg2.buf[i+6] << 16) |  (msg2.buf[i+7] << 24);
+
+		Module['env'] = {
+
+		    count: env_count,
+		    size: env_size,
+		    buf : msg2.buf.slice(i+8,i+8+env_size)
+		};
+
+		//console.log(Module['env']);
 
 		// If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
 		if (!calledRun) run();
@@ -345,7 +358,8 @@ function callMain(args) {
   // that will call the user's real main() for the application.
   var entryFunction = Module['__emscripten_proxy_main'];
 #else
-  var entryFunction = Module['_main'];
+    var entryFunction = Module['_main'];
+    
 #endif
 #endif
 

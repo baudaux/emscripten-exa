@@ -1714,9 +1714,11 @@ var SyscallsLibrary = {
 	    // Copy env in buf
 
 	    let e = 16 + i;
-	    let f = e + 4;
+	    let f = e + 8; // keep space for count and size (in that order)
 
 	    i = 0;
+
+	    let count = 0;
 
 	    for (let offset = 0; ; offset += 4) {
 
@@ -1724,6 +1726,8 @@ var SyscallsLibrary = {
 
 		if (!str)
 		    break;
+
+		count++;
 
 		let j;
 
@@ -1738,10 +1742,15 @@ var SyscallsLibrary = {
 		i += j;
 	    }
 
-	    buf[e] = i & 0xff;
-	    buf[e+1] = (i >> 8) & 0xff;
-	    buf[e+2] = (i >> 16) & 0xff;
-	    buf[e+3] = (i >> 24) & 0xff;
+	    buf[e] = count & 0xff;
+	    buf[e+1] = (count >> 8) & 0xff;
+	    buf[e+2] = (count >> 16) & 0xff;
+	    buf[e+3] = (count >> 24) & 0xff;
+
+	    buf[e+4] = i & 0xff;
+	    buf[e+5] = (i >> 8) & 0xff;
+	    buf[e+6] = (i >> 16) & 0xff;
+	    buf[e+7] = (i >> 24) & 0xff;
 
 	    // rcv_bc_channel is not registered if it is a fork of resmgr
 
@@ -2038,7 +2047,70 @@ var SyscallsLibrary = {
 
 		    //console.log(messageEvent);
 
-		    wakeUp(0); // TODO
+		    let sid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+		    wakeUp(sid);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	});
+	
+	return ret;
+    },
+    /* Modified by Benoit Baudaux 22/1/2023 */
+    __syscall_getsid__sig: 'i',
+    __syscall_getsid: function() {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 16;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 18; // GETSID
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // sid
+	    buf2[12] = 0;
+	    buf2[13] = 0;
+	    buf2[14] = 0;
+	    buf2[15] = 0;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (18|0x80)) {
+
+		    //console.log(messageEvent);
+		    
+		    let sid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+		    wakeUp(sid);
 
 		    return 0;
 		}
