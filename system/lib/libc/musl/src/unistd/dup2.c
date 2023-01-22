@@ -1,4 +1,4 @@
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 #include <stropts.h>
 #endif
 #include <unistd.h>
@@ -13,7 +13,7 @@ int dup2(int old, int new)
 	while ((r=__syscall(SYS_dup2, old, new))==-EBUSY);
 #else
 	if (old==new) {
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 		r = __wasi_fd_is_valid(old) ? 0 : -EBADF;
 #else
 		r = __syscall(SYS_fcntl, old, F_GETFD);

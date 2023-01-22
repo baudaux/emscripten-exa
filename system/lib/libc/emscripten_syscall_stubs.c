@@ -94,12 +94,12 @@ int __syscall_sync() {
   return 0;
 }
 
-int __syscall_getsid(int pid) {
+/*int __syscall_getsid(int pid) {
   if (pid && pid != g_pid) {
     return -ESRCH;
   }
   return g_sid;
-}
+  }*/
 
 int __syscall_getpgid(int pid) {
   if (pid && pid != g_pid) {

@@ -114,11 +114,13 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_close',
   '__syscall_write',
   '__syscall_writev',
-  '__syscall_getpid',
+  '__syscall_getsid',
   '__syscall_setsid',
   '__syscall_read',
   '__syscall_readv',
   '__syscall_pause',
+  '__syscall_dup',
+  '__syscall_dup2',
 ]
 
 # Target options

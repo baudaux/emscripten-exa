@@ -186,9 +186,140 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_dup__sig: 'ii',
-  __syscall_dup: function(fd) {
-    var old = SYSCALLS.getStreamFromFD(fd);
-    return FS.createStream(old, 0).fd;
+    __syscall_dup: function(fd) {
+	/* Modified by Benoit Baudaux 22/1/2023 */
+    /*var old = SYSCALLS.getStreamFromFD(fd);
+      return FS.createStream(old, 0).fd;*/
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 20;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 19; // DUP
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // fd
+	    buf2[12] = fd & 0xff;
+	    buf2[13] = (fd >> 8) & 0xff;
+	    buf2[14] = (fd >> 16) & 0xff;
+	    buf2[15] = (fd >> 24) & 0xff;
+
+	    // new_fd
+	    buf2[16] = 0xff;
+	    buf2[17] = 0xff;
+	    buf2[18] = 0xff;
+	    buf2[19] = 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (19|0x80)) {
+
+		    //console.log(messageEvent);
+		    
+		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    wakeUp(new_fd);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    },
+    __syscall_dup2__sig: 'iii',
+    __syscall_dup2: function(fd, new_fd) {
+	/* Modified by Benoit Baudaux 22/1/2023 */
+    /*var old = SYSCALLS.getStreamFromFD(fd);
+      return FS.createStream(old, 0).fd;*/
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 20;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 19; // DUP
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // fd
+	    buf2[12] = fd & 0xff;
+	    buf2[13] = (fd >> 8) & 0xff;
+	    buf2[14] = (fd >> 16) & 0xff;
+	    buf2[15] = (fd >> 24) & 0xff;
+
+	    // new_fd
+	    buf2[16] = new_fd & 0xff;
+	    buf2[17] = (new_fd >> 8) & 0xff;
+	    buf2[18] = (new_fd >> 16) & 0xff;
+	    buf2[19] = (new_fd >> 24) & 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (19|0x80)) {
+
+		    //console.log(messageEvent);
+		    
+		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    wakeUp(new_fd);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
   },
   __syscall_pipe__deps: ['$PIPEFS'],
   __syscall_pipe__sig: 'ip',
@@ -2074,11 +2205,11 @@ var SyscallsLibrary = {
     },
     /* Modified by Benoit Baudaux 22/1/2023 */
     __syscall_getsid__sig: 'i',
-    __syscall_getsid: function() {
+    __syscall_getsid: function(req_pid) {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    let buf_size = 16;
+	    let buf_size = 20;
 	
 	    let buf2 = new Uint8Array(buf_size);
 
@@ -2092,11 +2223,17 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 
+	    // requested pid
+	    buf2[12] = req_pid & 0xff;
+	    buf2[13] = (req_pid >> 8) & 0xff;
+	    buf2[14] = (req_pid >> 16) & 0xff;
+	    buf2[15] = (req_pid >> 24) & 0xff;
+
 	    // sid
-	    buf2[12] = 0;
-	    buf2[13] = 0;
-	    buf2[14] = 0;
-	    buf2[15] = 0;
+	    buf2[16] = 0;
+	    buf2[17] = 0;
+	    buf2[18] = 0;
+	    buf2[19] = 0;
 
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -2108,7 +2245,7 @@ var SyscallsLibrary = {
 
 		    //console.log(messageEvent);
 		    
-		    let sid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+		    let sid = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
 		    wakeUp(sid);
 

@@ -113,3 +113,6 @@
 /* Modified by Benoit Baudaux 14/1/2023 */
 #define SYS_read                __syscall_read
 #define SYS_readv               __syscall_readv
+
+/* Modified by Benoit Baudaux 22/1/2023 */
+#define SYS_dup2		__syscall_dup2
