@@ -121,6 +121,9 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_pause',
   '__syscall_dup',
   '__syscall_dup2',
+  '__syscall_getpgid',
+  '__syscall_setpgid',
+  '__syscall_getppid',
 ]
 
 # Target options

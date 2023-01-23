@@ -18,8 +18,6 @@ ssize_t read(int fd, void *buf, size_t count)
 #else
 	ssize_t s = syscall_cp(SYS_read, fd, buf, count);
 
-	emscripten_log(EM_LOG_CONSOLE, "$$$$ %s", buf);
-
 	return s;
 #endif
 }

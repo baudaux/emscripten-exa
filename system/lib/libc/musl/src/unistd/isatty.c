@@ -8,7 +8,7 @@
 
 int isatty(int fd)
 {
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 	__wasi_fdstat_t statbuf;
 	int err = __wasi_fd_fdstat_get(fd, &statbuf);
 	if (err != 0) {
@@ -25,6 +25,9 @@ int isatty(int fd)
 
 	return 1;
 #else
+	// TODO BB
+	return 1;
+	
 	struct winsize wsz;
 	unsigned long r = syscall(SYS_ioctl, fd, TIOCGWINSZ, &wsz);
 	if (r == 0) return 1;

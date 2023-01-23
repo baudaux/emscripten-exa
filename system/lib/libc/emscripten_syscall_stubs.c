@@ -80,7 +80,7 @@ int __syscall_uname(intptr_t buf) {
   return 0;
 }
 
-int __syscall_setpgid(int pid, int pgid) {
+/*int __syscall_setpgid(int pid, int pgid) {
   if (pid && pid != g_pid) {
     return -ESRCH;
   }
@@ -88,7 +88,7 @@ int __syscall_setpgid(int pid, int pgid) {
     return -EPERM;
   }
   return 0;
-}
+  }*/
 
 int __syscall_sync() {
   return 0;
@@ -101,21 +101,22 @@ int __syscall_sync() {
   return g_sid;
   }*/
 
-int __syscall_getpgid(int pid) {
+/*int __syscall_getpgid(int pid) {
   if (pid && pid != g_pid) {
     return -ESRCH;
   }
   return g_pgid;
-}
+  }*/
 
 /* Modified by Benoit Baudaux 8/1/2023*/
 /*int __syscall_getpid() {
   return g_pid;
   }*/
 
-int __syscall_getppid() {
+/* Modified by Benoit Baudaux 23/1/2023*/
+/*int __syscall_getppid() {
   return g_ppid;
-}
+  }*/
 
 int __syscall_link(intptr_t oldpath, intptr_t newpath) {
   return -EMLINK; // no hardlinks for us

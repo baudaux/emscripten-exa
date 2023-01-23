@@ -231,6 +231,8 @@ var SyscallsLibrary = {
 		    
 		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
+		    Module['fd_table'][new_fd] = Module['fd_table'][fd];
+
 		    wakeUp(new_fd);
 
 		    return 0;
@@ -298,6 +300,8 @@ var SyscallsLibrary = {
 		    //console.log(messageEvent);
 		    
 		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    Module['fd_table'][new_fd] = Module['fd_table'][fd];
 
 		    wakeUp(new_fd);
 
@@ -1356,27 +1360,9 @@ var SyscallsLibrary = {
 
 		    Module['rcv_bc_channel'].set_handler(null);
 		    
-		    console.log(messageEvent);
+		    //console.log(messageEvent);
 
 		    let msg2 = messageEvent.data;
-		    
-		    /*if (first_response) { // first response comes from resmgr
-
-			first_response = false;
-
-			msg2.buf[0] = 11;
-
-			msg2.from = open_name;
-
-			let peer = UTF8ArrayToString(msg2.buf, 26, 108);
-
-			console.log("forward to "+peer);
-			
-			let open_driver_bc = new BroadcastChannel(peer);
-
-			open_driver_bc.postMessage(msg2);
-		    }
-		    else {*/
 
 		    if (msg2.buf[0] == (11|0x80)) {
 
@@ -1393,7 +1379,7 @@ var SyscallsLibrary = {
 				let minor = msg2.buf[30] | (msg2.buf[31] << 8);
 				let peer = UTF8ArrayToString(msg2.buf, 32, 108);
 
-				
+				console.log("__syscall_openat: peer=%s", peer);
 
 				// create our internal socket structure
 				var desc = {
@@ -1444,6 +1430,8 @@ var SyscallsLibrary = {
 		Module._free(buf);
 	    }
 	});
+
+	//console.log("openat: ret="+ret);
 
 	return ret;
 	
@@ -2013,6 +2001,9 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 
+	    //console.log(Module['fd_table']);
+	    //console.log("fd="+fd);
+
 	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
 
 	    // remote_fd
@@ -2118,6 +2109,8 @@ var SyscallsLibrary = {
 		if (msg2.buf[0] == (15|0x80)) {
 
 		    //console.log(messageEvent);
+
+		    Module['fd_table'][fd] = null;
 
 		    wakeUp(0); // TODO
 
@@ -2362,6 +2355,18 @@ var SyscallsLibrary = {
 				       
 	return ret;
     },
+    __syscall_getpgid__sig: 'ii',
+    __syscall_getpgid: function(pid) {
+
+    },
+    __syscall_setpgid__sig: 'iii',
+    __syscall_setpgid: function(pid, pgid) {
+
+    },
+    __syscall_getppid__sig: 'i',
+    __syscall_getppid: function() {
+
+    }
 };
 
 function wrapSyscallFunction(x, library, isWasi) {
