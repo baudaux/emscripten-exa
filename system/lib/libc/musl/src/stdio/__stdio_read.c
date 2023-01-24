@@ -21,7 +21,7 @@ size_t __stdio_read(FILE *f, unsigned char *buf, size_t len)
 	cnt = iov[0].iov_len ? syscall(SYS_readv, f->fd, iov, 2)
 		: syscall(SYS_read, f->fd, iov[1].iov_base, iov[1].iov_len);
 
-	emscripten_log(EM_LOG_CONSOLE, "===== %d %d %d: %s", iov[0].iov_len, iov[1].iov_len, cnt, iov[1].iov_base);
+	//emscripten_log(EM_LOG_CONSOLE, "===== %d %d %d: %s", iov[0].iov_len, iov[1].iov_len, cnt, iov[1].iov_base);
 #endif
 	if (cnt <= 0) {
 		f->flags |= cnt ? F_ERR : F_EOF;

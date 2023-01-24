@@ -2001,9 +2001,6 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 
-	    //console.log(Module['fd_table']);
-	    //console.log("fd="+fd);
-
 	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
 
 	    // remote_fd

@@ -17,11 +17,6 @@ static int locking_putc(int c, FILE *f)
 
 static inline int do_putc(int c, FILE *f)
 {
-#ifndef __BB_DEBUG
-	// BB
-	emscripten_log(EM_LOG_CONSOLE,"--> do_putc: f->wpos=%x ; f->wend=%x",f->wpos,f->wend);
-#endif
-
 	int l = f->lock;
 	if (l < 0 || l && (l & ~MAYBE_WAITERS) == __pthread_self()->tid)
 		return putc_unlocked(c, f);
