@@ -339,7 +339,7 @@ var SyscallsLibrary = {
 
     return 0;
   },
-  __syscall_ioctl__sig: 'iiip',
+    __syscall_ioctl__sig: 'iiip',
     __syscall_ioctl: function(fd, op, varargs) {
 	/*
 #if SYSCALLS_REQUIRE_FILESYSTEM == 0
@@ -434,9 +434,11 @@ var SyscallsLibrary = {
       //return 0;
       });*/
 	
-	console.log("__syscall_ioctl: op="+op);
-
 	/* ops 21505 (TCGETS), 21506 (TCSETS), 21515 (TCFLSH), 21523 (TIOCGWINSZ) */
+
+	console.log("__syscall_ioctl: op="+op);
+	
+	var argp = SYSCALLS.get();
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 	
@@ -467,7 +469,18 @@ var SyscallsLibrary = {
 	    buf2[17] = (op >> 8) & 0xff;
 	    buf2[18] = (op >> 16) & 0xff;
 	    buf2[19] = (op >> 24) & 0xff;
-	    
+
+	    if ( (op == {{{ cDefine('TCSETS') }}}) || (op == {{{ cDefine('TCSETSW') }}}) || (op == {{{ cDefine('TCSETSF') }}}) ) {
+
+		let len = 60; // 4*4+4+32+2*4;
+			    
+		buf2[20] = len & 0xff;
+		buf2[21] = (len >> 8) & 0xff;
+		buf2[22] = (len >> 16) & 0xff;
+		buf2[23] = (len >> 24) & 0xff;
+
+		buf2.set(Module.HEAPU8.slice(argp,argp+len),24);
+	    }
 
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -476,8 +489,68 @@ var SyscallsLibrary = {
 		let msg2 = messageEvent.data;
 
 		if (msg2.buf[0] == (14|0x80)) {
-		
-		    wakeUp(0); // TODO: size
+
+		    let op2 = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    if (op2 != op) {
+
+			return -1;
+		    }
+
+		    let errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    switch(op2) {
+
+		    case {{{ cDefine('TIOCGWINSZ') }}}:
+
+			if (!errno) {
+
+			    let len = 8;
+			    
+			    msg2.buf[20] = len & 0xff;
+			    msg2.buf[21] = (len >> 8) & 0xff;
+			    msg2.buf[22] = (len >> 16) & 0xff;
+			    msg2.buf[23] = (len >> 24) & 0xff;
+
+			    Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
+			    
+			    wakeUp(0);
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+			
+			break;
+
+		    case {{{ cDefine('TCGETS') }}}:
+
+			if (!errno) {
+
+			    let len = 60; // 4*4+4+32+2*4;
+			    
+			    msg2.buf[20] = len & 0xff;
+			    msg2.buf[21] = (len >> 8) & 0xff;
+			    msg2.buf[22] = (len >> 16) & 0xff;
+			    msg2.buf[23] = (len >> 24) & 0xff;
+
+			    Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
+			    
+			    wakeUp(0);
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+			
+			break;
+
+		    default:
+
+			wakeUp(0);
+			
+			break;
+		    }
 
 		    return 0;
 		}

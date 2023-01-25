@@ -6,6 +6,8 @@
 #include <sys/ioctl.h>
 #include "syscall.h"
 
+#include <emscripten.h>
+
 int isatty(int fd)
 {
 #ifdef __EMSCRIPTEN__EXA
@@ -25,11 +27,9 @@ int isatty(int fd)
 
 	return 1;
 #else
-	// TODO BB
-	return 1;
-	
 	struct winsize wsz;
 	unsigned long r = syscall(SYS_ioctl, fd, TIOCGWINSZ, &wsz);
+	
 	if (r == 0) return 1;
 	if (errno != EBADF) errno = ENOTTY;
 	return 0;
