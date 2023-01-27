@@ -130,12 +130,13 @@ mergeInto(LibraryManager.library, {
 	      let wait_bind = true;
 
 	      sock.name = addr;
-	      
+
 	      sock.bc = new BroadcastChannel(addr);
 	      
 	      sock.bc.onmessage = (messageEvent) => {
 
-		  //console.log(messageEvent);
+		  console.log("sock.bc.onmessage");
+		  console.log(messageEvent);
 		  
 		  if (wait_bind) {
 
