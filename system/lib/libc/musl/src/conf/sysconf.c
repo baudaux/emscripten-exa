@@ -34,7 +34,8 @@ long sysconf(int name)
 		[_SC_CHILD_MAX] = 1024, // XXX EMSCRIPTEN replace RLIM(NPROC),
 		[_SC_CLK_TCK] = 100,
 		[_SC_NGROUPS_MAX] = 32,
-		[_SC_OPEN_MAX] = 1024, // XXX EMSCRIPTEN replace RLIM(NOFILE),
+		/* Modified by Benoit Baudaux 30/1/2023 */
+		[_SC_OPEN_MAX] = 64, // XXX EMSCRIPTEN replace RLIM(NOFILE),
 		[_SC_STREAM_MAX] = -1,
 		[_SC_TZNAME_MAX] = TZNAME_MAX,
 		[_SC_JOB_CONTROL] = 1,

@@ -135,9 +135,6 @@ mergeInto(LibraryManager.library, {
 	      
 	      sock.bc.onmessage = (messageEvent) => {
 
-		  console.log("sock.bc.onmessage");
-		  console.log(messageEvent);
-		  
 		  if (wait_bind) {
 
 		      wait_bind = false;
