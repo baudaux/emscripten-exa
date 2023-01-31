@@ -441,135 +441,226 @@ var SyscallsLibrary = {
 	var argp = SYSCALLS.get();
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_ioctl = () => {
 	
-	    let buf_size = 256;
+		let buf_size = 256;
 
-	    let buf2 = new Uint8Array(buf_size);
+		let buf2 = new Uint8Array(buf_size);
 
-	    buf2[0] = 14; // IOCTL
+		buf2[0] = 14; // IOCTL
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
 
-	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+		let remote_fd = Module['fd_table'][fd].remote_fd;
 
-	    // remote_fd
-	    buf2[12] = remote_fd & 0xff;
-	    buf2[13] = (remote_fd >> 8) & 0xff;
-	    buf2[14] = (remote_fd >> 16) & 0xff;
-	    buf2[15] = (remote_fd >> 24) & 0xff;
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
 
-	    // op
-	    buf2[16] = op & 0xff;
-	    buf2[17] = (op >> 8) & 0xff;
-	    buf2[18] = (op >> 16) & 0xff;
-	    buf2[19] = (op >> 24) & 0xff;
+		// op
+		buf2[16] = op & 0xff;
+		buf2[17] = (op >> 8) & 0xff;
+		buf2[18] = (op >> 16) & 0xff;
+		buf2[19] = (op >> 24) & 0xff;
 
-	    if ( (op == {{{ cDefine('TCSETS') }}}) || (op == {{{ cDefine('TCSETSW') }}}) || (op == {{{ cDefine('TCSETSF') }}}) ) {
+		if ( (op == {{{ cDefine('TCSETS') }}}) || (op == {{{ cDefine('TCSETSW') }}}) || (op == {{{ cDefine('TCSETSF') }}}) ) {
 
-		let len = 60; // 4*4+4+32+2*4;
+		    let len = 60; // 4*4+4+32+2*4;
+		    
+		    buf2[20] = len & 0xff;
+		    buf2[21] = (len >> 8) & 0xff;
+		    buf2[22] = (len >> 16) & 0xff;
+		    buf2[23] = (len >> 24) & 0xff;
+
+		    buf2.set(Module.HEAPU8.slice(argp,argp+len),24);
+		}
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (14|0x80)) {
+
+			let op2 = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			if (op2 != op) {
+
+			    return -1;
+			}
+
+			let errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			switch(op2) {
+
+			case {{{ cDefine('TIOCGWINSZ') }}}:
+
+			    if (!errno) {
+
+				let len = 8;
+				
+				msg2.buf[20] = len & 0xff;
+				msg2.buf[21] = (len >> 8) & 0xff;
+				msg2.buf[22] = (len >> 16) & 0xff;
+				msg2.buf[23] = (len >> 24) & 0xff;
+
+				Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
+				
+				wakeUp(0);
+			    }
+			    else {
+
+				wakeUp(-1);
+			    }
 			    
-		buf2[20] = len & 0xff;
-		buf2[21] = (len >> 8) & 0xff;
-		buf2[22] = (len >> 16) & 0xff;
-		buf2[23] = (len >> 24) & 0xff;
+			    break;
 
-		buf2.set(Module.HEAPU8.slice(argp,argp+len),24);
-	    }
+			case {{{ cDefine('TCGETS') }}}:
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+			    if (!errno) {
 
-		Module['rcv_bc_channel'].set_handler(null);
+				let len = 60; // 4*4+4+32+2*4;
+				
+				msg2.buf[20] = len & 0xff;
+				msg2.buf[21] = (len >> 8) & 0xff;
+				msg2.buf[22] = (len >> 16) & 0xff;
+				msg2.buf[23] = (len >> 24) & 0xff;
 
-		let msg2 = messageEvent.data;
+				Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
+				
+				wakeUp(0);
+			    }
+			    else {
 
-		if (msg2.buf[0] == (14|0x80)) {
+				wakeUp(-1);
+			    }
+			    
+			    break;
 
-		    let op2 = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			default:
 
-		    if (op2 != op) {
+			    wakeUp(0);
+			    
+			    break;
+			}
+
+			return 0;
+		    }
+		    else {
 
 			return -1;
 		    }
+		});
 
-		    let errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+		let msg = {
 
-		    switch(op2) {
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
 
-		    case {{{ cDefine('TIOCGWINSZ') }}}:
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
+	    }
 
-			if (!errno) {
+	    if (fd in Module['fd_table']) {
 
-			    let len = 8;
-			    
-			    msg2.buf[20] = len & 0xff;
-			    msg2.buf[21] = (len >> 8) & 0xff;
-			    msg2.buf[22] = (len >> 16) & 0xff;
-			    msg2.buf[23] = (len >> 24) & 0xff;
+		do_ioctl();
+	    }
+	    else {
+		let buf_size = 20;
 
-			    Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
-			    
-			    wakeUp(0);
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_ioctl();
 			}
 			else {
 
 			    wakeUp(-1);
 			}
-			
-			break;
 
-		    case {{{ cDefine('TCGETS') }}}:
-
-			if (!errno) {
-
-			    let len = 60; // 4*4+4+32+2*4;
-			    
-			    msg2.buf[20] = len & 0xff;
-			    msg2.buf[21] = (len >> 8) & 0xff;
-			    msg2.buf[22] = (len >> 16) & 0xff;
-			    msg2.buf[23] = (len >> 24) & 0xff;
-
-			    Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
-			    
-			    wakeUp(0);
-			}
-			else {
-
-			    wakeUp(-1);
-			}
-			
-			break;
-
-		    default:
-
-			wakeUp(0);
-			
-			break;
+			return 0;
 		    }
+		    else {
 
-		    return 0;
-		}
-		else {
+			return -1;
+		    }
+		});
 
-		    return -1;
-		}
-	    });
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
 
-	    let msg = {
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
-	    };
+		bc.postMessage(msg);
+	    }
 
-	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 	    
-	    driver_bc.postMessage(msg);
 	});
 
     return ret;
@@ -1454,7 +1545,6 @@ var SyscallsLibrary = {
 
 				console.log("__syscall_openat: peer=%s", peer);
 
-				// create our internal socket structure
 				var desc = {
 
 				    fd: fd,
@@ -1978,69 +2068,158 @@ var SyscallsLibrary = {
     __syscall_write: function(fd, buf, count) {
 	
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_write = () => {
 	
-	    let len = count;
+		let len = count;
 
-	    let buf_size = 20+len;
+		let buf_size = 20+len;
 
-	    let buf2 = new Uint8Array(buf_size);
+		let buf2 = new Uint8Array(buf_size);
 
-	    buf2[0] = 13; // WRITE
+		buf2[0] = 13; // WRITE
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
 
-	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+		let remote_fd = Module['fd_table'][fd].remote_fd;
 
-	    // remote_fd
-	    buf2[12] = remote_fd & 0xff;
-	    buf2[13] = (remote_fd >> 8) & 0xff;
-	    buf2[14] = (remote_fd >> 16) & 0xff;
-	    buf2[15] = (remote_fd >> 24) & 0xff;
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
 
-	    // len
-	    buf2[16] = len & 0xff;
-	    buf2[17] = (len >> 8) & 0xff;
-	    buf2[18] = (len >> 16) & 0xff;
-	    buf2[19] = (len >> 24) & 0xff;
+		// len
+		buf2[16] = len & 0xff;
+		buf2[17] = (len >> 8) & 0xff;
+		buf2[18] = (len >> 16) & 0xff;
+		buf2[19] = (len >> 24) & 0xff;
 
-	    buf2.set(HEAPU8.slice(buf,buf+len),20);
+		buf2.set(HEAPU8.slice(buf,buf+len),20);
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
+		    Module['rcv_bc_channel'].set_handler(null);
 
-		let msg2 = messageEvent.data;
+		    let msg2 = messageEvent.data;
 
-		if (msg2.buf[0] == (13|0x80)) {
+		    if (msg2.buf[0] == (13|0x80)) {
+			
+			let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			
+			wakeUp(bytes_written);
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 		
-		    let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-		
-		    wakeUp(bytes_written);
-
-		    return 0;
-		}
-		else {
-
-		    return -1;
-		}
-	    });
-
-	    let msg = {
-
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
+		driver_bc.postMessage(msg);
 	    };
 
-	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
-	    
-	    driver_bc.postMessage(msg);
+	    if (fd in Module['fd_table']) {
+
+		do_write();
+	    }
+	    else {
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_write();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
 	});
     
     return ret;
@@ -2050,90 +2229,179 @@ var SyscallsLibrary = {
     __syscall_writev: function(fd, iov, iovcnt) {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_writev = () => {
 	
-	    let len = 0;
+		let len = 0;
 
-	    let iov2 = iov;
+		let iov2 = iov;
 
-	    for (var i = 0; i < iovcnt; i++) {
-		len += {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
-		iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
-	    }
-
-	    let buf_size = 20+len;
-
-	    let buf2 = new Uint8Array(buf_size);
-
-	    buf2[0] = 13; // WRITE
-
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
-
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
-
-	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
-
-	    // remote_fd
-	    buf2[12] = remote_fd & 0xff;
-	    buf2[13] = (remote_fd >> 8) & 0xff;
-	    buf2[14] = (remote_fd >> 16) & 0xff;
-	    buf2[15] = (remote_fd >> 24) & 0xff;
-
-	    // len
-	    buf2[16] = len & 0xff;
-	    buf2[17] = (len >> 8) & 0xff;
-	    buf2[18] = (len >> 16) & 0xff;
-	    buf2[19] = (len >> 24) & 0xff;
-
-	    buf_size = 20;
-
-	    iov2 = iov;
-
-	    for (var i = 0; i < iovcnt; i++) {
-		let ptr = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_base, '*') }}};
-		let l = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
-		
-		if (l > 0)
-		    buf2.set(HEAPU8.slice(ptr,ptr+l), buf_size);
-		
-		buf_size += l;
-		
-		iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
-	    }
-
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
-
-		let msg2 = messageEvent.data;
-
-		if (msg2.buf[0] == (13|0x80)) {
-
-		    let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-		
-		    wakeUp(bytes_written);
-
-		    return 0;
+		for (var i = 0; i < iovcnt; i++) {
+		    len += {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+		    iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
 		}
-		else {
 
-		    return -1;
+		let buf_size = 20+len;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 13; // WRITE
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// len
+		buf2[16] = len & 0xff;
+		buf2[17] = (len >> 8) & 0xff;
+		buf2[18] = (len >> 16) & 0xff;
+		buf2[19] = (len >> 24) & 0xff;
+
+		buf_size = 20;
+
+		iov2 = iov;
+
+		for (var i = 0; i < iovcnt; i++) {
+		    let ptr = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_base, '*') }}};
+		    let l = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+		    
+		    if (l > 0)
+			buf2.set(HEAPU8.slice(ptr,ptr+l), buf_size);
+		    
+		    buf_size += l;
+		    
+		    iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
 		}
-	    });
 
-	    let msg = {
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (13|0x80)) {
+
+			let bytes_written = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			
+			wakeUp(bytes_written);
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
 	    };
 
-	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
-	    
-	    driver_bc.postMessage(msg);
+	    if (fd in Module['fd_table']) {
+
+		do_writev();
+	    }
+	    else {
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_writev();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
 	});
     
     return ret;
@@ -2339,72 +2607,159 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    let len = count;
-	
-	    let buf_size = 20;
+	    let do_read = () => {
 
-	    let buf2 = new Uint8Array(buf_size);
-
-	    buf2[0] = 12; // READ
-
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
-
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
-
-	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
-
-	    console.log("read: remote_fd="+remote_fd);
-
-	    // remote_fd
-	    buf2[12] = remote_fd & 0xff;
-	    buf2[13] = (remote_fd >> 8) & 0xff;
-	    buf2[14] = (remote_fd >> 16) & 0xff;
-	    buf2[15] = (remote_fd >> 24) & 0xff;
-
-	    // len
-	    buf2[16] = len & 0xff;
-	    buf2[17] = (len >> 8) & 0xff;
-	    buf2[18] = (len >> 16) & 0xff;
-	    buf2[19] = (len >> 24) & 0xff;
-
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
-
-		let msg2 = messageEvent.data;
-
-		if (msg2.buf[0] == (12|0x80)) {
-
-		    let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-
-		    console.log("bytes_read: "+bytes_read);
-
-		    Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
-		    
-		    wakeUp(bytes_read);
-
-		    return 0;
-		}
-		else {
-
-		    return -1;
-		}
-	    });
-
-	    let msg = {
+		let len = count;
 		
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 12; // READ
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// len
+		buf2[16] = len & 0xff;
+		buf2[17] = (len >> 8) & 0xff;
+		buf2[18] = (len >> 16) & 0xff;
+		buf2[19] = (len >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (12|0x80)) {
+
+			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			console.log("bytes_read: "+bytes_read);
+
+			Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
+			
+			wakeUp(bytes_read);
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
 	    };
 
-	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
-	    
-	    driver_bc.postMessage(msg);
+	    if (fd in Module['fd_table']) {
+
+		do_read();
+	    }
+	    else {
+		let buf_size = 256;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_read();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
 	});
     
     return ret;
