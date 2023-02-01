@@ -2966,6 +2966,85 @@ var SyscallsLibrary = {
 	});
 				       
 	return ret;
+    },
+    __syscall_getppid__sig: 'iippi',
+    __syscall_readlinkat: function(dirfd, path, buf, bufsize) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 1256;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 27; // READLINK
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    buf2[12] = dirfd & 0xff;
+	    buf2[13] = (dirfd >> 8) & 0xff;
+	    buf2[14] = (dirfd >> 16) & 0xff;
+	    buf2[15] = (dirfd >> 24) & 0xff;
+
+	    let path_len = 0;
+
+	    while (Module.HEAPU8[path+path_len]) {
+
+		path_len++;
+	    }
+
+	    path_len++;
+
+	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 20);
+
+	    buf2[16] = path_len & 0xff;
+	    buf2[17] = (path_len >> 8) & 0xff;
+	    buf2[18] = (path_len >> 16) & 0xff;
+	    buf2[19] = (path_len >> 24) & 0xff;
+	    
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (27|0x80)) {
+
+		    console.log(messageEvent);
+		    
+		    // TODO: check bufsize
+
+		    let len = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
+
+		    wakeUp(0);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	    
+	});
+
+	return ret;
     }
 };
 

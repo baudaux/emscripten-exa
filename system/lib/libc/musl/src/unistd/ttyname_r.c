@@ -3,6 +3,9 @@
 #include <sys/stat.h>
 #include "syscall.h"
 
+// BB
+#include <emscripten.h>
+
 int ttyname_r(int fd, char *name, size_t size)
 {
 	struct stat st1, st2;
@@ -12,7 +15,12 @@ int ttyname_r(int fd, char *name, size_t size)
 	if (!isatty(fd)) return errno;
 
 	__procfdname(procname, fd);
+
+	emscripten_log(EM_LOG_CONSOLE,"__procfdname: %s", procname);
+	
 	l = readlink(procname, name, size);
+
+	emscripten_log(EM_LOG_CONSOLE,"readlink: %d %s", l, name);
 
 	if (l < 0) return errno;
 	else if (l == size) return ERANGE;

@@ -124,6 +124,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_getpgid',
   '__syscall_setpgid',
   '__syscall_getppid',
+  '__syscall_readlinkat'
 ]
 
 # Target options
