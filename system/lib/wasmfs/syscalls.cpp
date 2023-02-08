@@ -343,7 +343,8 @@ backend_t wasmfs_get_backend_by_path(const char* path) {
   return parsed.getFile()->getBackend();
 }
 
-int __syscall_newfstatat(int dirfd, intptr_t path, intptr_t buf, int flags) {
+  /* Modified by Benoit Baudaux 8/2/2023 */
+  /*int __syscall_newfstatat(int dirfd, intptr_t path, intptr_t buf, int flags) {
   // Only accept valid flags.
   if (flags & ~(AT_EMPTY_PATH | AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW)) {
     // TODO: Test this case.
@@ -387,7 +388,7 @@ int __syscall_newfstatat(int dirfd, intptr_t path, intptr_t buf, int flags) {
   buffer->st_mtim.tv_sec = lockedFile.getMTime();
   buffer->st_ctim.tv_sec = lockedFile.getCTime();
   return __WASI_ERRNO_SUCCESS;
-}
+  }
 
 int __syscall_stat64(intptr_t path, intptr_t buf) {
   return __syscall_newfstatat(AT_FDCWD, path, buf, 0);
@@ -399,7 +400,7 @@ int __syscall_lstat64(intptr_t path, intptr_t buf) {
 
 int __syscall_fstat64(int fd, intptr_t buf) {
   return __syscall_newfstatat(fd, (intptr_t) "", buf, AT_EMPTY_PATH);
-}
+  }*/
 
 // When calling doOpen(), we may request an FD be returned, or we may not need
 // that return value (in which case no FD need be allocated, and we return 0 on

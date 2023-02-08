@@ -1229,19 +1229,43 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_stat64__sig: 'ipp',
-  __syscall_stat64: function(path, buf) {
-    path = SYSCALLS.getStr(path);
-    return SYSCALLS.doStat(FS.stat, path, buf);
+    __syscall_stat64: function(path, buf) {
+
+	console.log("__syscall_stat64");
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	});
+
+	return ret;
+	
+	/* Modified by Benoit Baudaux 8/2/2023 */
+    /*path = SYSCALLS.getStr(path);
+    return SYSCALLS.doStat(FS.stat, path, buf);*/
   },
   __syscall_lstat64__sig: 'ipp',
-  __syscall_lstat64: function(path, buf) {
-    path = SYSCALLS.getStr(path);
-    return SYSCALLS.doStat(FS.lstat, path, buf);
+    __syscall_lstat64: function(path, buf) {
+
+	console.log("__syscall_lstat64");
+
+	/* Modified by Benoit Baudaux 8/2/2023 */
+    /*path = SYSCALLS.getStr(path);
+    return SYSCALLS.doStat(FS.lstat, path, buf);*/
   },
   __syscall_fstat64__sig: 'iip',
-  __syscall_fstat64: function(fd, buf) {
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    return SYSCALLS.doStat(FS.stat, stream.path, buf);
+    __syscall_fstat64: function(fd, buf) {
+
+	console.log("__syscall_fstat64");
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	});
+
+	return ret;
+
+	/* Modified by Benoit Baudaux 8/2/2023 */
+    /*var stream = SYSCALLS.getStreamFromFD(fd);
+    return SYSCALLS.doStat(FS.stat, stream.path, buf);*/
   },
   __syscall_fchown32: function(fd, owner, group) {
     FS.fchown(fd, owner, group);
@@ -1654,8 +1678,12 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_newfstatat__sig: 'iippi',
-  __syscall_newfstatat: function(dirfd, path, buf, flags) {
-    path = SYSCALLS.getStr(path);
+    __syscall_newfstatat: function(dirfd, path, buf, flags) {
+
+	console.log("__syscall_newfstatat");
+	
+	/* Modified by Benoit Baudaux 8/2/2023 */
+    /*path = SYSCALLS.getStr(path);
     var nofollow = flags & {{{ cDefine('AT_SYMLINK_NOFOLLOW') }}};
     var allowEmpty = flags & {{{ cDefine('AT_EMPTY_PATH') }}};
     flags = flags & (~{{{ cDefine('AT_SYMLINK_NOFOLLOW') | cDefine('AT_EMPTY_PATH') }}});
@@ -1663,7 +1691,7 @@ var SyscallsLibrary = {
     assert(!flags, flags);
 #endif
     path = SYSCALLS.calculateAt(dirfd, path, allowEmpty);
-    return SYSCALLS.doStat(nofollow ? FS.lstat : FS.stat, path, buf);
+    return SYSCALLS.doStat(nofollow ? FS.lstat : FS.stat, path, buf);*/
   },
   __syscall_unlinkat__sig: 'iipi',
   __syscall_unlinkat: function(dirfd, path, flags) {
@@ -2967,7 +2995,7 @@ var SyscallsLibrary = {
 				       
 	return ret;
     },
-    __syscall_getppid__sig: 'iippi',
+    __syscall_readlinkat__sig: 'iippi',
     __syscall_readlinkat: function(dirfd, path, buf, bufsize) {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
@@ -3045,7 +3073,7 @@ var SyscallsLibrary = {
 	});
 
 	return ret;
-    }
+    },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {
