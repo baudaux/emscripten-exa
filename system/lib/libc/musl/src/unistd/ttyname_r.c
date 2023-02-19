@@ -16,11 +16,11 @@ int ttyname_r(int fd, char *name, size_t size)
 
 	__procfdname(procname, fd);
 
-	emscripten_log(EM_LOG_CONSOLE,"__procfdname: %s", procname);
+	emscripten_log(EM_LOG_CONSOLE, "__procfdname: %s", procname);
 	
 	l = readlink(procname, name, size);
 
-	emscripten_log(EM_LOG_CONSOLE,"readlink: %d %s", l, name);
+	emscripten_log(EM_LOG_CONSOLE, "readlink: %d %s", l, name);
 
 	if (l < 0) return errno;
 	else if (l == size) return ERANGE;
@@ -29,6 +29,9 @@ int ttyname_r(int fd, char *name, size_t size)
 
 	if (stat(name, &st1) || fstat(fd, &st2))
 		return errno;
+
+	emscripten_log(EM_LOG_CONSOLE, "%d %d %d %d", st1.st_dev, st2.st_dev, st1.st_ino, st2.st_ino);
+	
 	if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
 		return ENODEV;
 
