@@ -27,10 +27,12 @@ int ttyname_r(int fd, char *name, size_t size)
 
 	name[l] = 0;
 
+	emscripten_log(EM_LOG_CONSOLE, "%d %d", stat(name, &st1), fstat(fd, &st2));
+
 	if (stat(name, &st1) || fstat(fd, &st2))
 		return errno;
 
-	emscripten_log(EM_LOG_CONSOLE, "%d %d %d %d", st1.st_dev, st2.st_dev, st1.st_ino, st2.st_ino);
+	emscripten_log(EM_LOG_CONSOLE, "%d %d %lld %lld", st1.st_dev, st2.st_dev, st1.st_ino, st2.st_ino);
 	
 	if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
 		return ENODEV;

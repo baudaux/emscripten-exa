@@ -1292,6 +1292,12 @@ var SyscallsLibrary = {
 
 		    if (_errno == 0) {
 
+			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			console.log("__syscall_stat64: len="+len);
+
+			Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
+
 			wakeUp(0);
 		    }
 		    else {
@@ -1327,7 +1333,100 @@ var SyscallsLibrary = {
   __syscall_lstat64__sig: 'ipp',
     __syscall_lstat64: function(path, buf) {
 
-	console.log("__syscall_lstat64");
+	console.log("__syscall_lstat64: "+SYSCALLS.getStr(path));
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 1256;
+	
+	    let buf2 = new Uint8Array(buf_size);
+	    
+	    buf2[0] = 30; // LSTAT
+
+	    /*//padding
+	      buf[1] = 0;
+	      buf[2] = 0;
+	      buf[3] = 0;*/
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // errno
+	    buf2[8] = 0x0;
+	    buf2[9] = 0x0;
+	    buf2[10] = 0x0;
+	    buf2[11] = 0x0;
+
+	    let path_len = 0;
+
+	    while (Module.HEAPU8[path+path_len]) {
+
+		path_len++;
+	    }
+
+	    path_len++;
+
+	    buf2[12] = path_len & 0xff;
+	    buf2[13] = (path_len >> 8) & 0xff;
+	    buf2[14] = (path_len >> 16) & 0xff;
+	    buf2[15] = (path_len >> 24) & 0xff;
+
+	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 16);
+	    
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+		
+		//console.log(messageEvent);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (30|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    console.log("__syscall_lstat64: _errno="+_errno);
+
+		    if (_errno == 0) {
+
+			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			console.log("__syscall_lstat64: len="+len);
+
+			Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
+
+			wakeUp(0);
+		    }
+		    else {
+
+			wakeUp(-1);
+		    }
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: 1256
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    
+	    bc.postMessage(msg);
+
+	});
+
+	return ret;
 
 	/* Modified by Benoit Baudaux 8/2/2023 */
     /*path = SYSCALLS.getStr(path);
