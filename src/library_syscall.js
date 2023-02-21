@@ -574,7 +574,7 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    }
 
-	    if (fd in Module['fd_table']) {
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_ioctl();
 	    }
@@ -1508,7 +1508,7 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    };
 
-	   if (fd in Module['fd_table']) {
+	   if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_fstat();
 	    }
@@ -1665,7 +1665,9 @@ var SyscallsLibrary = {
 
       console.log("__syscall_fcntl: cmd="+cmd);
 
-	let ret = Asyncify.handleSleep(function (wakeUp) {
+      let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  let do_fcntl = () => {
 	
 	    let buf_size = 256;
 
@@ -1680,6 +1682,8 @@ var SyscallsLibrary = {
 	    buf2[5] = (pid >> 8) & 0xff;
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
+
+	      console.log(Module['fd_table'][fd]);
 
 	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
 
@@ -1724,10 +1728,101 @@ var SyscallsLibrary = {
 	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 	    
 	    driver_bc.postMessage(msg);
-	});      
+	};
 
+	  if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
-      return ret;
+	      console.log("__syscall_fcntl: "+fd+" found in fd_table");
+
+		do_fcntl();
+	    }
+	  else {
+
+	      console.log("__syscall_fcntl: "+fd+" not found in fd_table");
+	      
+		let buf_size = 256;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_fcntl();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+	});
+    
+    return ret;
 
       /* Modified by Benoit Baudaux 17/1/2023 */
       /* Following code is not executed */
@@ -2580,7 +2675,7 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    };
 
-	    if (fd in Module['fd_table']) {
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_write();
 	    }
@@ -2762,7 +2857,7 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    };
 
-	    if (fd in Module['fd_table']) {
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_writev();
 	    }
@@ -3120,7 +3215,7 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    };
 
-	    if (fd in Module['fd_table']) {
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_read();
 	    }
