@@ -436,7 +436,7 @@ var SyscallsLibrary = {
 	
 	/* ops 21505 (TCGETS), 21506 (TCSETS), 21515 (TCFLSH), 21523 (TIOCGWINSZ) */
 
-	console.log("__syscall_ioctl: op="+op);
+	//console.log("__syscall_ioctl: op="+op);
 	
 	var argp = SYSCALLS.get();
 
@@ -1287,7 +1287,7 @@ var SyscallsLibrary = {
 	    buf2[14] = (path_len >> 16) & 0xff;
 	    buf2[15] = (path_len >> 24) & 0xff;
 
-	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 16);
+	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 16);
 	    
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -1301,13 +1301,13 @@ var SyscallsLibrary = {
 
 		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    console.log("__syscall_stat64: _errno="+_errno);
+		    //console.log("__syscall_stat64: _errno="+_errno);
 
 		    if (_errno == 0) {
 
 			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
-			console.log("__syscall_stat64: len="+len);
+			//console.log("__syscall_stat64: len="+len);
 
 			Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
 
@@ -1346,7 +1346,7 @@ var SyscallsLibrary = {
   __syscall_lstat64__sig: 'ipp',
     __syscall_lstat64: function(path, buf) {
 
-	console.log("__syscall_lstat64: "+SYSCALLS.getStr(path));
+	//console.log("__syscall_lstat64: "+SYSCALLS.getStr(path));
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -1403,13 +1403,13 @@ var SyscallsLibrary = {
 
 		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    console.log("__syscall_lstat64: _errno="+_errno);
+		    //console.log("__syscall_lstat64: _errno="+_errno);
 
 		    if (_errno == 0) {
 
 			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
-			console.log("__syscall_lstat64: len="+len);
+			//console.log("__syscall_lstat64: len="+len);
 
 			Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
 
@@ -1448,7 +1448,7 @@ var SyscallsLibrary = {
     __syscall_fstat64__sig: 'iip',
     __syscall_fstat64: function(fd, buf) {
 
-	console.log("__syscall_fstat64: fd="+fd);
+	//console.log("__syscall_fstat64: fd="+fd);
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -1490,7 +1490,7 @@ var SyscallsLibrary = {
 
 			    let len = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-			    console.log("__syscall_fstat64: len="+len);
+			    //console.log("__syscall_fstat64: len="+len);
 
 			    Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
 
@@ -1676,7 +1676,7 @@ var SyscallsLibrary = {
     return 0;
 #else
 
-      console.log("__syscall_fcntl: cmd="+cmd);
+      //console.log("__syscall_fcntl: cmd="+cmd);
 
       let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -1696,7 +1696,7 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 
-	      console.log(Module['fd_table'][fd]);
+	      //console.log(Module['fd_table'][fd]);
 
 	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
 
@@ -1745,13 +1745,13 @@ var SyscallsLibrary = {
 
 	  if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
-	      console.log("__syscall_fcntl: "+fd+" found in fd_table");
+	      //console.log("__syscall_fcntl: "+fd+" found in fd_table");
 
 		do_fcntl();
 	    }
 	  else {
 
-	      console.log("__syscall_fcntl: "+fd+" not found in fd_table");
+	      //console.log("__syscall_fcntl: "+fd+" not found in fd_table");
 	      
 		let buf_size = 256;
 
@@ -2018,7 +2018,7 @@ var SyscallsLibrary = {
 				let minor = msg2.buf[30] | (msg2.buf[31] << 8);
 				let peer = UTF8ArrayToString(msg2.buf, 32, 108);
 
-				console.log("__syscall_openat: peer=%s", peer);
+				//console.log("__syscall_openat: peer=%s", peer);
 
 				var desc = {
 
@@ -2128,7 +2128,7 @@ var SyscallsLibrary = {
   __syscall_newfstatat__sig: 'iippi',
     __syscall_newfstatat: function(dirfd, path, buf, flags) {
 
-	console.log("__syscall_newfstatat");
+	//console.log("__syscall_newfstatat");
 	
 	/* Modified by Benoit Baudaux 8/2/2023 */
     /*path = SYSCALLS.getStr(path);
@@ -2175,98 +2175,6 @@ var SyscallsLibrary = {
     linkpath = SYSCALLS.calculateAt(newdirfd, linkpath);
     FS.symlink(target, linkpath);
     return 0;
-  },
-  __syscall_readlinkat__sig: 'vippp',
-    __syscall_readlinkat: function(dirfd, path, buf, bufsize) {
-
-	let ret = Asyncify.handleSleep(function (wakeUp) {
-
-	    let buf_size = 1256;
-	
-	    let buf2 = new Uint8Array(buf_size);
-
-	    buf2[0] = 27; // READLINK
-
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
-
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
-
-	    buf2[12] = dirfd & 0xff;
-	    buf2[13] = (dirfd >> 8) & 0xff;
-	    buf2[14] = (dirfd >> 16) & 0xff;
-	    buf2[15] = (dirfd >> 24) & 0xff;
-
-	    let path_len = 0;
-
-	    while (Module.HEAPU8[path+path_len]) {
-
-		path_len++;
-	    }
-
-	    path_len++;
-
-	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 20);
-
-	    buf2[16] = path_len & 0xff;
-	    buf2[17] = (path_len >> 8) & 0xff;
-	    buf2[18] = (path_len >> 16) & 0xff;
-	    buf2[19] = (path_len >> 24) & 0xff;
-	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
-
-		let msg2 = messageEvent.data;
-
-		if (msg2.buf[0] == (27|0x80)) {
-
-		    console.log(messageEvent);
-		    
-		    // TODO: check bufsize
-
-		    let len = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-
-		    Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
-
-		    wakeUp(len);
-
-		    return 0;
-		}
-
-		return -1;
-	    });
-
-	    let msg = {
-
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
-	    };
-
-	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-
-	    bc.postMessage(msg);
-	    
-	});
-
-	return ret;
-
-      /*path = SYSCALLS.getStr(path);
-    path = SYSCALLS.calculateAt(dirfd, path);
-    if (bufsize <= 0) return -{{{ cDefine('EINVAL') }}};
-    var ret = FS.readlink(path);
-
-    var len = Math.min(bufsize, lengthBytesUTF8(ret));
-    var endChar = HEAP8[buf+len];
-    stringToUTF8(ret, buf, bufsize+1);
-    // readlink is one of the rare functions that write out a C string, but does never append a null to the output buffer(!)
-    // stringToUTF8() always appends a null byte, so restore the character under the null byte after the write.
-    HEAP8[buf+len] = endChar;
-    return len;*/
   },
   __syscall_fchmodat__sig: 'iipip',
   __syscall_fchmodat: function(dirfd, path, mode, varargs) {
@@ -2357,7 +2265,7 @@ var SyscallsLibrary = {
 
 	    let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    console.log("fork: pid="+pid);
+	    //console.log("fork: pid="+pid);
 
 	    function do_fork() {
 
@@ -2425,7 +2333,7 @@ var SyscallsLibrary = {
 
 		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-		console.log(bc);
+		//console.log(bc);
 
 		let buf = new Uint8Array(256);
 
@@ -2456,7 +2364,7 @@ var SyscallsLibrary = {
 
 		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    
-		    console.log(messageEvent);
+		    //console.log(messageEvent);
 
 		    let msg2 = messageEvent.data;
 
@@ -2491,7 +2399,7 @@ var SyscallsLibrary = {
     __syscall_execve__sig: 'ippp',
     __syscall_execve: function(pathname, argv, envp) {
 
-	console.log("__syscall_execve: argv="+argv+", envp="+envp);
+	//console.log("__syscall_execve: argv="+argv+", envp="+envp);
 
 	// Use Asyncify for not returning from execve
 	
@@ -3202,7 +3110,7 @@ var SyscallsLibrary = {
 
 			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-			console.log("bytes_read: "+bytes_read);
+			//console.log("bytes_read: "+bytes_read);
 
 			Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
 			
@@ -3320,7 +3228,7 @@ var SyscallsLibrary = {
     __syscall_readv__sig: 'iippp',
     __syscall_readv: function(fd, iov, iovcnt) {
 
-	console.log("__syscall_readv: TODO");
+	//console.log("__syscall_readv: TODO");
 	return 0;
     },
     __syscall_pause__sig: 'i',
@@ -3553,7 +3461,7 @@ var SyscallsLibrary = {
 
 	    path_len++;
 
-	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 20);
+	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 20);
 
 	    buf2[16] = path_len & 0xff;
 	    buf2[17] = (path_len >> 8) & 0xff;
@@ -3568,7 +3476,7 @@ var SyscallsLibrary = {
 
 		if (msg2.buf[0] == (27|0x80)) {
 
-		    console.log(messageEvent);
+		    //console.log(messageEvent);
 		    
 		    // TODO: check bufsize
 
@@ -3576,7 +3484,7 @@ var SyscallsLibrary = {
 
 		    Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
 
-		    wakeUp(0);
+		    wakeUp(len-1); // Remove last zero frol len
 
 		    return 0;
 		}
@@ -3598,11 +3506,25 @@ var SyscallsLibrary = {
 	});
 
 	return ret;
+	
 	},
     __syscall_pselect6__sig: 'iippppp',
     __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
 
-	console.log("__syscall_pselect6: nfds="+nfds);
+	//console.log("__syscall_pselect6: nfds="+nfds);
+
+	if (timeout) {
+
+	    let s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
+
+	    let ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
+
+	    //console.log("__syscall_pselect6: timeout s="+s+", ns="+ns);
+	}
+	else {
+
+	    //console.log("__syscall_pselect6: no timeout");
+	}
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
