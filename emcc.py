@@ -128,6 +128,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_stat64',
   '__syscall_fstat64',
   '__syscall_lstat64',
+  '__syscall_pselect6',
 ]
 
 # Target options

@@ -472,16 +472,25 @@ var SyscallsLibrary = {
 		buf2[18] = (op >> 16) & 0xff;
 		buf2[19] = (op >> 24) & 0xff;
 
+		let len = 0;
+
 		if ( (op == {{{ cDefine('TCSETS') }}}) || (op == {{{ cDefine('TCSETSW') }}}) || (op == {{{ cDefine('TCSETSF') }}}) ) {
 
-		    let len = 60; // 4*4+4+32+2*4;
-		    
-		    buf2[20] = len & 0xff;
-		    buf2[21] = (len >> 8) & 0xff;
-		    buf2[22] = (len >> 16) & 0xff;
-		    buf2[23] = (len >> 24) & 0xff;
+		    len = 60; // 4*4+4+32+2*4;
+		}
+		else if (op == {{{ cDefine('TIOCSPGRP') }}}) {
 
-		    buf2.set(Module.HEAPU8.slice(argp,argp+len),24);
+		    len = 4;
+		}
+
+		buf2[20] = len & 0xff;
+		buf2[21] = (len >> 8) & 0xff;
+		buf2[22] = (len >> 16) & 0xff;
+		buf2[23] = (len >> 24) & 0xff;
+
+		if (len > 0) {
+
+		    buf2.set(Module.HEAPU8.slice(argp, argp+len), 24);
 		}
 
 		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
@@ -509,13 +518,7 @@ var SyscallsLibrary = {
 
 				let len = 8;
 				
-				msg2.buf[20] = len & 0xff;
-				msg2.buf[21] = (len >> 8) & 0xff;
-				msg2.buf[22] = (len >> 16) & 0xff;
-				msg2.buf[23] = (len >> 24) & 0xff;
-
-				Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
-				
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);
 				wakeUp(0);
 			    }
 			    else {
@@ -531,13 +534,23 @@ var SyscallsLibrary = {
 
 				let len = 60; // 4*4+4+32+2*4;
 				
-				msg2.buf[20] = len & 0xff;
-				msg2.buf[21] = (len >> 8) & 0xff;
-				msg2.buf[22] = (len >> 16) & 0xff;
-				msg2.buf[23] = (len >> 24) & 0xff;
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);
+				wakeUp(0);
+			    }
+			    else {
 
-				Module.HEAPU8.set(msg2.buf.slice(24,24+len), argp);
+				wakeUp(-1);
+			    }
+			    
+			    break;
+
+			case {{{ cDefine('TIOCGPGRP') }}}:
+
+			    if (!errno) {
+
+				let len = 4;
 				
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
 				wakeUp(0);
 			    }
 			    else {
@@ -3507,7 +3520,7 @@ var SyscallsLibrary = {
 				       
 	return ret;
     },
-    /*__syscall_readlinkat__sig: 'iippi',
+    __syscall_readlinkat__sig: 'iippi',
     __syscall_readlinkat: function(dirfd, path, buf, bufsize) {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
@@ -3585,7 +3598,174 @@ var SyscallsLibrary = {
 	});
 
 	return ret;
-    },*/
+	},
+    __syscall_pselect6__sig: 'iippppp',
+    __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
+
+	console.log("__syscall_pselect6: nfds="+nfds);
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let readfds_array = [];
+
+	    for (let i=0; i < nfds; i++) {
+
+		if (Module.HEAPU8[readfds+Math.floor(i/8)] & (1 << (i % 8))) {
+
+		    readfds_array.push(i);
+		}
+	    }
+
+	    let writefds_array = [];
+
+	    for (let i=0; i < nfds; i++) {
+
+		if (Module.HEAPU8[writefds+Math.floor(i/8)] & (1 << (i % 8))) {
+
+		    writefds_array.push(i);
+		}
+	    }
+
+	    let do_select = (fd, rw, start) => {
+
+		let buf_size = 256;
+	
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 31; // SELECT
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		// rw
+		buf2[16] = rw & 0xff;
+		buf2[17] = (rw >> 8) & 0xff;
+		buf2[18] = (rw >> 16) & 0xff;
+		buf2[19] = (rw >> 24) & 0xff;
+		
+		let start_stop = 1;
+		
+		// start_stop
+		buf2[20] = start & 0xff;
+		buf2[21] = (start >> 8) & 0xff;
+		buf2[22] = (start >> 16) & 0xff;
+		buf2[23] = (start >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote fd
+		buf2[24] = remote_fd & 0xff;
+		buf2[25] = (remote_fd >> 8) & 0xff;
+		buf2[26] = (remote_fd >> 16) & 0xff;
+		buf2[27] = (remote_fd >> 24) & 0xff;
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
+	    };
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+		
+		if (msg2.buf[0] == (31|0x80)) {
+
+		    // Stop select for readfds
+		    
+		    for (let readfd in readfds_array) {
+
+			if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+			    do_select(readfd, 0, 0);
+			}
+		    }
+
+		    // Stop select for writefds
+
+		    for (let writefd in writefds_array) {
+
+			if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+			    do_select(writefd, 1, 0);
+			}
+		    }
+
+		    let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+		    let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    for (let i=0; i < nfds; i++) {
+
+			Module.HEAPU8[readfds+Math.floor(i/8)] = 0;
+		    }
+
+		    for (let i=0; i < nfds; i++) {
+
+			Module.HEAPU8[writefds+Math.floor(i/8)] = 0;
+		    }
+
+		    if (rw) {
+
+			Module.HEAPU8[writefds+Math.floor(fd/8)] = 1 << (fd % 8);
+		    }
+		    else {
+
+			Module.HEAPU8[readfds+Math.floor(fd/8)] = 1 << (fd % 8);
+		    }
+
+		    wakeUp(1);
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    // Start select for readfds
+	    
+	    for (let readfd in readfds_array) {
+
+		if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+		    do_select(readfd, 0, 1);
+		}
+	    }
+	    
+	    // Start select for writefds
+
+	    for (let writefd in writefds_array) {
+
+		if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+		    do_select(writefd, 1, 1);
+		}
+	    }
+	});
+
+	return ret;
+    },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {
