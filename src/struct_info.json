@@ -315,7 +315,9 @@
             "TIOCGPGRP",
             "TIOCSPGRP",
             "TIOCGWINSZ",
-            "TIOCSWINSZ"
+            "TIOCSWINSZ",
+	    "TIOCSCTTY",
+	    "TIOCNOTTY"
         ]
     },
     {

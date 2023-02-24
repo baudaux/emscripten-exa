@@ -436,10 +436,10 @@ var SyscallsLibrary = {
 	
 	/* ops 21505 (TCGETS), 21506 (TCSETS), 21515 (TCFLSH), 21523 (TIOCGWINSZ) */
 
-	//console.log("__syscall_ioctl: op="+op);
-	
-	var argp = SYSCALLS.get();
+	console.log("__syscall_ioctl: op=" +op);
 
+	var argp = SYSCALLS.get();
+	
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	    let do_ioctl = () => {
@@ -491,6 +491,16 @@ var SyscallsLibrary = {
 		if (len > 0) {
 
 		    buf2.set(Module.HEAPU8.slice(argp, argp+len), 24);
+		}
+
+		if (op == {{{ cDefine('TIOCSCTTY') }}}) {
+
+		    // argp is int
+		    
+		    buf2[24] = argp & 0xff;
+		    buf2[25] = (argp >> 8) & 0xff;
+		    buf2[26] = (argp >> 16) & 0xff;
+		    buf2[27] = (argp >> 24) & 0xff;
 		}
 
 		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
