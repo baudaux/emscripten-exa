@@ -116,3 +116,8 @@
 
 /* Modified by Benoit Baudaux 22/1/2023 */
 #define SYS_dup2		__syscall_dup2
+
+/* Modified by Benoit Baudaux 6/3/2023 */
+#define SYS_timerfd_create      __syscall_timerfd_create
+#define SYS_timerfd_settime     __syscall_timerfd_settime
+#define SYS_timerfd_gettime     __syscall_timerfd_gettime

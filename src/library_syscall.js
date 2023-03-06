@@ -3698,6 +3698,83 @@ var SyscallsLibrary = {
 
 	return ret;
     },
+    __syscall_timerfd_create__sig: 'iii',
+    __syscall_timerfd_create: function(clockid, flags) {
+
+	console.log('__syscall_timerfd_create: '+clockid);
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	    
+	    let buf_size = 20;
+	    
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 33; // TIMERFD_CREATE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // clockid
+	    buf2[12] = clockid & 0xff;
+	    buf2[13] = (clockid >> 8) & 0xff;
+	    buf2[14] = (clockid >> 16) & 0xff;
+	    buf2[15] = (clockid >> 24) & 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (33|0x80)) {
+
+		    let fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+		    var desc = {
+
+			timerfd: fd,
+		    };
+
+		    Module['fd_table'][fd] = desc;
+
+		    wakeUp(fd);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+	
+    },
+    __syscall_timerfd_settime__sig: 'iiipp',
+    __syscall_timerfd_settime: function(fd, flags, new_value, curr_value) {
+
+	console.log('__syscall_timerfd_settime: fd='+fd);
+    },
+    __syscall_timerfd_gettime__sig: 'iip',
+    __syscall_timerfd_gettime: function(fd, curr_value) {
+
+	console.log('__syscall_timerfd_gettime: fd='+fd);
+    },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {

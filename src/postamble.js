@@ -99,239 +99,243 @@ var mainArgs = undefined;
 dependenciesFulfilled = function runCaller() {
 
     // Added by Benoit Baudaux 20/1/2023
-    
-    Module['fd_table'] = {};
-    Module['fd_table'].last_fd = 2;
 
-    Module['bc_channels'] = {};
-    Module['get_broadcast_channel'] = (name) => {
+    if (ENVIRONMENT_IS_WEB) {
+	
+	Module['fd_table'] = {};
+	Module['fd_table'].last_fd = 2;
 
-	if (name in Module['bc_channels']) {
-	    return Module['bc_channels'][name];
-	}
-	else {
+	Module['bc_channels'] = {};
+	Module['get_broadcast_channel'] = (name) => {
 
-	    Module['bc_channels'][name] = new BroadcastChannel(name);
-	    return Module['bc_channels'][name];
-	}
-    };
-
-    Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
-
-    //console.log("rcv_bc_channel created");
-
-    Module['rcv_bc_channel'].default_handler = (messageEvent) => {
-
-	if (Module['rcv_bc_channel'].handler) {
-
-	    if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
-		return;
-	}
-    };
-
-    Module['rcv_bc_channel'].set_handler = (handler) => {
-
-	Module['rcv_bc_channel'].handler = handler;
-    };
-
-    Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
-    
-    // Added by Benoit Baudaux 02/12/2022
-    if (window.name == "child") {
-
-	let channel = 'channel.1.'+window.frameElement.getAttribute('pid')+'.fork';
-
-	if (!Module[channel]) {
-
-	    Module[channel] = new BroadcastChannel('channel.1.'+window.frameElement.getAttribute('pid')+'.fork');
-
-	    Module[channel].onmessage = (function(_ch) {
-
-		return ((messageEvent) => {
-
-		    if (messageEvent.data.length > 1024) {
-
-			stackCheckInit();
-			
-			preRun();
-			
-			Module['calledRun'] = true;
-			
-			initRuntime();
-			
-			preMain();
-
-			Module.HEAPU8.set(messageEvent.data);
-		    }
-		    else {
-
-			var a = JSON.parse(messageEvent.data);
-			
-			Asyncify.callStackId = a.callStackId;
-			Asyncify.callStackIdToName = a.callStackIdToName;
-			Asyncify.callStackNameToId = a.callStackNameToId;
-			Asyncify.currData = a.currData;
-			Asyncify.handleSleepReturnValue = 0;// 0 is return from fork in child process
-			Asyncify.state = a.state;
-			Asyncify.exportCallStack = a.exportCallStack;
-			
-			_emscripten_stack_set_limits(a.stackBase,a.stackEnd);
-			stackRestore(a.stackTop);
-
-			Module[_ch].postMessage("end_fork");
-
-			Module[_ch] = null;
-			
-			// Start child
-			
-			Asyncify.state = Asyncify.State.Rewinding;
-			
-			runAndAbortIfError(() => Module['_asyncify_start_rewind'](Asyncify.currData));
-			
-			var asyncWasmReturnValue, isError = false;
-			try {
-                            asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);
-                            
-			} catch (err) {
-			    
-                            console.log(err);
-                            debugger;
-                            
-                            asyncWasmReturnValue = err;
-                            isError = true;
-			}
-			// Track whether the return value was handled by any promise handlers.
-			var handled = false;
-			if (!Asyncify.currData) {
-                            // All asynchronous execution has finished.
-                            // `asyncWasmReturnValue` now contains the final
-                            // return value of the exported async WASM function.
-                            //
-                            // Note: `asyncWasmReturnValue` is distinct from
-                            // `Asyncify.handleSleepReturnValue`.
-                            // `Asyncify.handleSleepReturnValue` contains the return
-                            // value of the last C function to have executed
-                            // `Asyncify.handleSleep()`, where as `asyncWasmReturnValue`
-                            // contains the return value of the exported WASM function
-                            // that may have called C functions that
-                            // call `Asyncify.handleSleep()`.
-                            var asyncPromiseHandlers = Asyncify.asyncPromiseHandlers;
-                            if (asyncPromiseHandlers) {
-				Asyncify.asyncPromiseHandlers = null;
-				(isError ? asyncPromiseHandlers.reject : asyncPromiseHandlers.resolve)(asyncWasmReturnValue);
-				handled = true;
-                            }
-			}
-		    }
-		});
-	    })(channel);
-
-	//console.log("Sending continue_fork on "+window.frameElement.getAttribute('pid'));
-
-	    Module[channel].postMessage("continue_fork");
-              
-            return;
-	}
-    }
-    // Added by Benoit Baudaux 20/1/2023
-    else if (window.name == "exec") {
-
-	//console.log("From exec: need to get back args and env");
-
-	let buf_size = 1256;
-
-	let buf = new Uint8Array(buf_size);
-
-	buf[0] = 8; // EXECVE
-
-	let pid = parseInt(window.frameElement.getAttribute('pid'));
-
-	// pid
-	buf[4] = pid & 0xff;
-	buf[5] = (pid >> 8) & 0xff;
-	buf[6] = (pid >> 16) & 0xff;
-	buf[7] = (pid >> 24) & 0xff;
-
-	// errno
-	buf[8] = 0;
-	buf[9] = 0;
-	buf[10] = 0;
-	buf[11] = 0;
-
-	// size
-	buf[12] = 0xff;
-	buf[13] = 0xff;
-	buf[14] = 0xff;
-	buf[15] = 0xff;
-
-	Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-	    Module['rcv_bc_channel'].set_handler(null);
-
-	    let msg2 = messageEvent.data;
-
-	    if (msg2.buf[0] == (8|0x80)) {
-
-		//console.log("Return from exec: time to restore !!!!!");
-
-		//console.log(msg2.buf);
-
-		arguments_ = [];
-
-		let args_size = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
-
-		//console.log(args_size);
-
-		td = new TextDecoder("utf-8");
-
-		let i = 16;
-
-		for (; i < (16+args_size); ) {
-
-		    let j = 0;
-
-		    for (; msg2.buf[i+j]; j++) ;
-
-		    let a = msg2.buf.slice(i,i+j);
-
-		    arguments_.push(td.decode(a));
-
-		    i += j+1;
-		}
-
-		//console.log(arguments_);
-
-		let env_count = msg2.buf[i] | (msg2.buf[i+1] << 8) | (msg2.buf[i+2] << 16) |  (msg2.buf[i+3] << 24);
-
-		let env_size = msg2.buf[i+4] | (msg2.buf[i+5] << 8) | (msg2.buf[i+6] << 16) |  (msg2.buf[i+7] << 24);
-
-		Module['env'] = {
-
-		    count: env_count,
-		    size: env_size,
-		    buf : msg2.buf.slice(i+8,i+8+env_size)
-		};
-
-		//console.log(Module['env']);
-
-		// If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
-		if (!calledRun) run();
-		if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
+	    if (name in Module['bc_channels']) {
+		return Module['bc_channels'][name];
 	    }
-	});
+	    else {
 
-	let msg = {
-	    
-	    from: Module['rcv_bc_channel'].name,
-	    buf: buf,
-	    len: buf_size
+		Module['bc_channels'][name] = new BroadcastChannel(name);
+		return Module['bc_channels'][name];
+	    }
 	};
 
-	let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
 
-	bc.postMessage(msg);
+	//console.log("rcv_bc_channel created");
 
-	return;
+	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
+
+	    if (Module['rcv_bc_channel'].handler) {
+
+		if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
+		    return;
+	    }
+	};
+
+	Module['rcv_bc_channel'].set_handler = (handler) => {
+
+	    Module['rcv_bc_channel'].handler = handler;
+	};
+
+	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
+	
+	// Added by Benoit Baudaux 02/12/2022
+	if (window.name == "child") {
+
+	    let channel = 'channel.1.'+window.frameElement.getAttribute('pid')+'.fork';
+
+	    if (!Module[channel]) {
+
+		Module[channel] = new BroadcastChannel('channel.1.'+window.frameElement.getAttribute('pid')+'.fork');
+
+		Module[channel].onmessage = (function(_ch) {
+
+		    return ((messageEvent) => {
+
+			if (messageEvent.data.length > 1024) {
+
+			    stackCheckInit();
+			    
+			    preRun();
+			    
+			    Module['calledRun'] = true;
+			    
+			    initRuntime();
+			    
+			    preMain();
+
+			    Module.HEAPU8.set(messageEvent.data);
+			}
+			else {
+
+			    var a = JSON.parse(messageEvent.data);
+			    
+			    Asyncify.callStackId = a.callStackId;
+			    Asyncify.callStackIdToName = a.callStackIdToName;
+			    Asyncify.callStackNameToId = a.callStackNameToId;
+			    Asyncify.currData = a.currData;
+			    Asyncify.handleSleepReturnValue = 0;// 0 is return from fork in child process
+			    Asyncify.state = a.state;
+			    Asyncify.exportCallStack = a.exportCallStack;
+			    
+			    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
+			    stackRestore(a.stackTop);
+
+			    Module[_ch].postMessage("end_fork");
+
+			    Module[_ch] = null;
+			    
+			    // Start child
+			    
+			    Asyncify.state = Asyncify.State.Rewinding;
+			    
+			    runAndAbortIfError(() => Module['_asyncify_start_rewind'](Asyncify.currData));
+			    
+			    var asyncWasmReturnValue, isError = false;
+			    try {
+				asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);
+				
+			    } catch (err) {
+				
+				console.log(err);
+				debugger;
+				
+				asyncWasmReturnValue = err;
+				isError = true;
+			    }
+			    // Track whether the return value was handled by any promise handlers.
+			    var handled = false;
+			    if (!Asyncify.currData) {
+				// All asynchronous execution has finished.
+				// `asyncWasmReturnValue` now contains the final
+				// return value of the exported async WASM function.
+				//
+				// Note: `asyncWasmReturnValue` is distinct from
+				// `Asyncify.handleSleepReturnValue`.
+				// `Asyncify.handleSleepReturnValue` contains the return
+				// value of the last C function to have executed
+				// `Asyncify.handleSleep()`, where as `asyncWasmReturnValue`
+				// contains the return value of the exported WASM function
+				// that may have called C functions that
+				// call `Asyncify.handleSleep()`.
+				var asyncPromiseHandlers = Asyncify.asyncPromiseHandlers;
+				if (asyncPromiseHandlers) {
+				    Asyncify.asyncPromiseHandlers = null;
+				    (isError ? asyncPromiseHandlers.reject : asyncPromiseHandlers.resolve)(asyncWasmReturnValue);
+				    handled = true;
+				}
+			    }
+			}
+		    });
+		})(channel);
+
+		//console.log("Sending continue_fork on "+window.frameElement.getAttribute('pid'));
+
+		Module[channel].postMessage("continue_fork");
+		
+		return;
+	    }
+	}
+	// Added by Benoit Baudaux 20/1/2023
+	else if (window.name == "exec") {
+
+	    //console.log("From exec: need to get back args and env");
+
+	    let buf_size = 1256;
+
+	    let buf = new Uint8Array(buf_size);
+
+	    buf[0] = 8; // EXECVE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf[4] = pid & 0xff;
+	    buf[5] = (pid >> 8) & 0xff;
+	    buf[6] = (pid >> 16) & 0xff;
+	    buf[7] = (pid >> 24) & 0xff;
+
+	    // errno
+	    buf[8] = 0;
+	    buf[9] = 0;
+	    buf[10] = 0;
+	    buf[11] = 0;
+
+	    // size
+	    buf[12] = 0xff;
+	    buf[13] = 0xff;
+	    buf[14] = 0xff;
+	    buf[15] = 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (8|0x80)) {
+
+		    //console.log("Return from exec: time to restore !!!!!");
+
+		    //console.log(msg2.buf);
+
+		    arguments_ = [];
+
+		    let args_size = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+		    //console.log(args_size);
+
+		    td = new TextDecoder("utf-8");
+
+		    let i = 16;
+
+		    for (; i < (16+args_size); ) {
+
+			let j = 0;
+
+			for (; msg2.buf[i+j]; j++) ;
+
+			let a = msg2.buf.slice(i,i+j);
+
+			arguments_.push(td.decode(a));
+
+			i += j+1;
+		    }
+
+		    //console.log(arguments_);
+
+		    let env_count = msg2.buf[i] | (msg2.buf[i+1] << 8) | (msg2.buf[i+2] << 16) |  (msg2.buf[i+3] << 24);
+
+		    let env_size = msg2.buf[i+4] | (msg2.buf[i+5] << 8) | (msg2.buf[i+6] << 16) |  (msg2.buf[i+7] << 24);
+
+		    Module['env'] = {
+
+			count: env_count,
+			size: env_size,
+			buf : msg2.buf.slice(i+8,i+8+env_size)
+		    };
+
+		    //console.log(Module['env']);
+
+		    // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
+		    if (!calledRun) run();
+		    if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
+		}
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	    return;
+	}
+
     }
     
   // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)

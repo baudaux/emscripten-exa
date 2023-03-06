@@ -140,6 +140,12 @@ int __syscall_readv(int fd, intptr_t iov, int iovcnt);
 
   /* Modified by Benoit Baudaux 22/1/2023 */
   int __syscall_dup2(int fd, int new_fd);
+
+  /* Modified by Benoit Baudaux 6/3/2023 */
+  int __syscall_timerfd_create(int clockid, int flags);
+  int __syscall_timerfd_settime(int fd, int flags, intptr_t new_value, intptr_t curr_value);
+  int __syscall_timerfd_gettime(int fd, intptr_t curr_value);
+  
   
 #ifdef __cplusplus
 }
