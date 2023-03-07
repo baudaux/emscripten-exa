@@ -824,7 +824,7 @@ var SyscallsLibrary = {
 #else
 				//sock_ops: SOCKFS.websocket_sock_ops
 				// TODO: all types of socket
-				sock_ops: SOCKFS.unix_dgram_sock_ops
+				sock_ops: SOCKFS.unix_dgram_sock_ops,
 #endif
 			    };
 
@@ -879,7 +879,7 @@ var SyscallsLibrary = {
 #else
 		    //sock_ops: SOCKFS.websocket_sock_ops
 		    // TODO: all types of socket
-		    sock_ops: SOCKFS.unix_dgram_sock_ops
+		    sock_ops: SOCKFS.unix_dgram_sock_ops,
 #endif
 		};
 
@@ -3521,8 +3521,6 @@ var SyscallsLibrary = {
     __syscall_pselect6__sig: 'iippppp',
     __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
 
-	//console.log("__syscall_pselect6: nfds="+nfds);
-
 	if (timeout) {
 
 	    let s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
@@ -3540,25 +3538,33 @@ var SyscallsLibrary = {
 
 	    let readfds_array = [];
 
-	    for (let i=0; i < nfds; i++) {
+	    if (readfds) {
 
-		if (Module.HEAPU8[readfds+Math.floor(i/8)] & (1 << (i % 8))) {
+		for (let i=0; i < nfds; i++) {
 
-		    readfds_array.push(i);
+		    if (Module.HEAPU8[readfds+Math.floor(i/8)] & (1 << (i % 8))) {
+
+			readfds_array.push(i);
+		    }
 		}
 	    }
 
 	    let writefds_array = [];
 
-	    for (let i=0; i < nfds; i++) {
+	    if (writefds) {
 
-		if (Module.HEAPU8[writefds+Math.floor(i/8)] & (1 << (i % 8))) {
+		for (let i=0; i < nfds; i++) {
 
-		    writefds_array.push(i);
+		    if (Module.HEAPU8[writefds+Math.floor(i/8)] & (1 << (i % 8))) {
+
+			writefds_array.push(i);
+		    }
 		}
 	    }
 
 	    let do_select = (fd, rw, start) => {
+
+		console.log("do_select: fd="+fd);
 
 		let buf_size = 256;
 	
@@ -3594,24 +3600,91 @@ var SyscallsLibrary = {
 		buf2[22] = (start >> 16) & 0xff;
 		buf2[23] = (start >> 24) & 0xff;
 
-		let remote_fd = Module['fd_table'][fd].remote_fd;
+		if (Module['fd_table'][fd].timerfd) { // timerfd
 
-		// remote fd
-		buf2[24] = remote_fd & 0xff;
-		buf2[25] = (remote_fd >> 8) & 0xff;
-		buf2[26] = (remote_fd >> 16) & 0xff;
-		buf2[27] = (remote_fd >> 24) & 0xff;
+		    Module['fd_table'][fd].select(fd, rw, start, function(fd, rw) {
 
-		let msg = {
+			notif_select(fd, rw);
+		    });
+		}
+		else if (Module['fd_table'][fd].sock_ops) { // socket
+
+		    Module['fd_table'][fd].sock_ops.select(getSocketFromFD(fd), fd, rw, start, function(fd, rw) {
+
+			notif_select(fd, rw);
+		    });
+		}
+		else { // any other type of fd (remote)
+
+		    let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		    // remote fd
+		    buf2[24] = remote_fd & 0xff;
+		    buf2[25] = (remote_fd >> 8) & 0xff;
+		    buf2[26] = (remote_fd >> 16) & 0xff;
+		    buf2[27] = (remote_fd >> 24) & 0xff;
+
+		    let msg = {
+			
+			from: Module['rcv_bc_channel'].name,
+			buf: buf2,
+			len: buf_size
+		    };
+
+		    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 		    
-		    from: Module['rcv_bc_channel'].name,
-		    buf: buf2,
-		    len: buf_size
-		};
+		    driver_bc.postMessage(msg);
+		}
+	    };
 
-		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	    let notif_select = (fd, rw) => {
+
+		console.log("!!! notif_select: fd="+fd);
+
+		// Stop select for readfds
 		
-		driver_bc.postMessage(msg);
+		for (let readfd in readfds_array) {
+
+		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+			do_select(readfd, 0, 0);
+		    }
+		}
+
+		// Stop select for writefds
+
+		for (let writefd in writefds_array) {
+
+		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+			do_select(writefd, 1, 0);
+		    }
+		}
+		
+		if (readfds) {
+		    for (let i=0; i < nfds; i++) {
+
+			Module.HEAPU8[readfds+Math.floor(i/8)] = 0;
+		    }
+		}
+
+		if (writefds) {
+		    for (let i=0; i < nfds; i++) {
+
+			Module.HEAPU8[writefds+Math.floor(i/8)] = 0;
+		    }
+		}
+
+		if (rw && writefds) {
+
+		    Module.HEAPU8[writefds+Math.floor(fd/8)] = 1 << (fd % 8);
+		}
+		else if (readfds) {
+
+		    Module.HEAPU8[readfds+Math.floor(fd/8)] = 1 << (fd % 8);
+		}
+
+		wakeUp(1);
 	    };
 
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
@@ -3622,50 +3695,11 @@ var SyscallsLibrary = {
 		
 		if (msg2.buf[0] == (31|0x80)) {
 
-		    // Stop select for readfds
-		    
-		    for (let readfd in readfds_array) {
-
-			if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
-
-			    do_select(readfd, 0, 0);
-			}
-		    }
-
-		    // Stop select for writefds
-
-		    for (let writefd in writefds_array) {
-
-			if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
-
-			    do_select(writefd, 1, 0);
-			}
-		    }
-
 		    let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
 		    let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-		    for (let i=0; i < nfds; i++) {
-
-			Module.HEAPU8[readfds+Math.floor(i/8)] = 0;
-		    }
-
-		    for (let i=0; i < nfds; i++) {
-
-			Module.HEAPU8[writefds+Math.floor(i/8)] = 0;
-		    }
-
-		    if (rw) {
-
-			Module.HEAPU8[writefds+Math.floor(fd/8)] = 1 << (fd % 8);
-		    }
-		    else {
-
-			Module.HEAPU8[readfds+Math.floor(fd/8)] = 1 << (fd % 8);
-		    }
-
-		    wakeUp(1);
+		    notif_select(fd, rw);
 
 		    return 0;
 		}
@@ -3738,6 +3772,37 @@ var SyscallsLibrary = {
 		    var desc = {
 
 			timerfd: fd,
+			counter: 0,
+			increase_counter: function() {
+
+			    this.counter++;
+
+			    if (this.notif_select)
+				this.notif_select(this.select_fd, this.select_rw);
+
+			    //console.log("!!!! increase_counter "+this.timerfd+" counter="+this.counter);
+			},
+			select: function (fd, rw, start_stop, notif_select) {
+
+			    if (start_stop) {
+
+				if (this.counter > 0) {
+
+				    this.notif_select = null;
+				    notif_select(fd, rw);
+				}
+				else {
+
+				    this.select_fd = fd;
+				    this.select_rw = rw;
+				    this.notif_select = notif_select;
+				}
+			    }
+			    else {
+
+				sock.notif_select = null;
+			    }
+			}
 		    };
 
 		    Module['fd_table'][fd] = desc;
@@ -3768,7 +3833,39 @@ var SyscallsLibrary = {
     __syscall_timerfd_settime__sig: 'iiipp',
     __syscall_timerfd_settime: function(fd, flags, new_value, curr_value) {
 
-	console.log('__syscall_timerfd_settime: fd='+fd);
+	console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value);
+
+	const int_sec = Module.HEAPU8[new_value] | (Module.HEAPU8[new_value+1] << 8) | (Module.HEAPU8[new_value+2] << 16) |  (Module.HEAPU8[new_value+3] << 24);
+	const int_nsec = Module.HEAPU8[new_value+8] | (Module.HEAPU8[new_value+9] << 8) | (Module.HEAPU8[new_value+10] << 16) |  (Module.HEAPU8[new_value+11] << 24);
+	const val_sec = Module.HEAPU8[new_value+16] | (Module.HEAPU8[new_value+17] << 8) | (Module.HEAPU8[new_value+18] << 16) |  (Module.HEAPU8[new_value+19] << 24);
+	const val_nsec = Module.HEAPU8[new_value+24] | (Module.HEAPU8[new_value+25] << 8) | (Module.HEAPU8[new_value+26] << 16) |  (Module.HEAPU8[new_value+27] << 24);
+
+	Module['fd_table'][fd].int_msec = int_sec * 1000 + int_nsec / 1000000;
+	Module['fd_table'][fd].val_msec = val_sec * 1000 + val_nsec / 1000000;
+	
+	console.log('__syscall_timerfd_settime: int='+int_sec+' '+int_nsec+' '+Module['fd_table'][fd].int_msec+', val='+val_sec+' '+val_nsec+' '+Module['fd_table'][fd].val_msec);
+
+	if (Module['fd_table'][fd].val_msec) {
+
+	    Module['fd_table'][fd].timeout_id = setTimeout(() => {
+
+		Module['fd_table'][fd].increase_counter();
+
+		if (Module['fd_table'][fd].int_msec) {
+
+		    Module['fd_table'][fd].timeout_id = setInterval(() => {
+
+			Module['fd_table'][fd].increase_counter();
+			
+		    }, Module['fd_table'][fd].int_msec);
+		}
+		
+	    }, Module['fd_table'][fd].val_msec);
+	}
+	else {
+
+	    clearTimeout(Module['fd_table'][fd].timeout_id);
+	}
     },
     __syscall_timerfd_gettime__sig: 'iip',
     __syscall_timerfd_gettime: function(fd, curr_value) {

@@ -147,6 +147,9 @@ mergeInto(LibraryManager.library, {
 		      
 		      if (sock.notif)
 			  sock.notif();
+
+		      if (sock.notif_select)
+			  sock.notif_select(sock.select_fd, sock.select_rw);
 		  }
 	      };
 
@@ -282,6 +285,32 @@ mergeInto(LibraryManager.library, {
 	      bc.postMessage(msg);
 
 	      return 0;
+	  },
+	  select: function(sock, fd, rw, start_stop, notif_select) {
+
+	      console.log("sockfs: select "+start_stop);
+	      //console.log(sock);
+
+	      if (start_stop) {
+
+		  console.log("sockfs: select start "+sock.recv_queue.length);
+
+		  if (sock.recv_queue.length > 0) {
+
+		      sock.notif_select = null;
+		      notif_select(fd, rw);
+		  }
+		  else {
+
+		      sock.select_fd = fd;
+		      sock.select_rw = rw;
+		      sock.notif_select = notif_select;
+		  }
+	      }
+	      else {
+
+		  sock.notif_select = null;
+	      }
 	  }
       },
     // backend-specific stream ops

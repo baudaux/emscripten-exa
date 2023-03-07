@@ -4,6 +4,8 @@
 #include <errno.h>
 #include "syscall.h"
 
+#include <emscripten.h>
+
 #define IS32BIT(x) !((x)+0x80000000ULL>>32)
 #define CLAMP(x) (int)(IS32BIT(x) ? (x) : 0x7fffffffU+((0ULL+(x))>>63))
 
@@ -25,7 +27,9 @@ int select(int n, fd_set *restrict rfds, fd_set *restrict wfds, fd_set *restrict
 		ns = us*1000;
 	}
 
+	
 #ifdef SYS_pselect6_time64
+
 	int r = -ENOSYS;
 	if (SYS_pselect6 == SYS_pselect6_time64 || !IS32BIT(s))
 		r = __syscall_cp(SYS_pselect6_time64, n, rfds, wfds, efds,
@@ -34,7 +38,9 @@ int select(int n, fd_set *restrict rfds, fd_set *restrict wfds, fd_set *restrict
 	if (SYS_pselect6 == SYS_pselect6_time64 || r!=-ENOSYS)
 		return __syscall_ret(r);
 #endif
-#ifdef SYS_select
+	/* Modified by Benoit Baudaux 7/3/2023 */
+#ifdef SYS_select_EXA
+
 	return syscall_cp(SYS_select, n, rfds, wfds, efds,
 		tv ? ((long[]){s, us}) : 0);
 #else
