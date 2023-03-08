@@ -288,12 +288,12 @@ mergeInto(LibraryManager.library, {
 	  },
 	  select: function(sock, fd, rw, start_stop, notif_select) {
 
-	      console.log("sockfs: select "+start_stop);
+	      //console.log("sockfs: select "+start_stop);
 	      //console.log(sock);
 
 	      if (start_stop) {
 
-		  console.log("sockfs: select start "+sock.recv_queue.length);
+		  //console.log("sockfs: select start "+sock.recv_queue.length);
 
 		  if (sock.recv_queue.length > 0) {
 

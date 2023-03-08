@@ -436,7 +436,7 @@ var SyscallsLibrary = {
 	
 	/* ops 21505 (TCGETS), 21506 (TCSETS), 21515 (TCFLSH), 21523 (TIOCGWINSZ) */
 
-	console.log("__syscall_ioctl: op=" +op);
+	//console.log("__syscall_ioctl: op=" +op);
 
 	var argp = SYSCALLS.get();
 	
@@ -1254,7 +1254,7 @@ var SyscallsLibrary = {
   __syscall_stat64__sig: 'ipp',
     __syscall_stat64: function(path, buf) {
 
-	console.log("__syscall_stat64: "+SYSCALLS.getStr(path));
+	//console.log("__syscall_stat64: "+SYSCALLS.getStr(path));
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -3079,6 +3079,30 @@ var SyscallsLibrary = {
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	    let do_read = () => {
+		
+		if (Module['fd_table'][fd].timerfd) {
+
+		    if (count < 8) {
+
+			wakeUp(-1);
+		    }
+		    else {
+			Module.HEAPU8[buf] = Module['fd_table'][fd].counter & 0xff;
+			Module.HEAPU8[buf+1] = (Module['fd_table'][fd].counter >> 8) & 0xff;
+			Module.HEAPU8[buf+2] = (Module['fd_table'][fd].counter >> 16) & 0xff;
+			Module.HEAPU8[buf+3] = (Module['fd_table'][fd].counter >> 24) & 0xff;
+			Module.HEAPU8[buf+4] = 0;
+			Module.HEAPU8[buf+5] = 0;
+			Module.HEAPU8[buf+6] = 0;
+			Module.HEAPU8[buf+7] = 0;
+
+			Module['fd_table'][fd].counter = 0;
+
+			wakeUp(8);
+		    }
+
+		    return;
+		}
 
 		let len = count;
 		
@@ -3564,8 +3588,6 @@ var SyscallsLibrary = {
 
 	    let do_select = (fd, rw, start) => {
 
-		console.log("do_select: fd="+fd);
-
 		let buf_size = 256;
 	
 		let buf2 = new Uint8Array(buf_size);
@@ -3638,8 +3660,6 @@ var SyscallsLibrary = {
 	    };
 
 	    let notif_select = (fd, rw) => {
-
-		console.log("!!! notif_select: fd="+fd);
 
 		// Stop select for readfds
 		
@@ -3735,8 +3755,6 @@ var SyscallsLibrary = {
     __syscall_timerfd_create__sig: 'iii',
     __syscall_timerfd_create: function(clockid, flags) {
 
-	console.log('__syscall_timerfd_create: '+clockid);
-
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 	    
 	    let buf_size = 20;
@@ -3779,8 +3797,6 @@ var SyscallsLibrary = {
 
 			    if (this.notif_select)
 				this.notif_select(this.select_fd, this.select_rw);
-
-			    //console.log("!!!! increase_counter "+this.timerfd+" counter="+this.counter);
 			},
 			select: function (fd, rw, start_stop, notif_select) {
 
@@ -3800,7 +3816,7 @@ var SyscallsLibrary = {
 			    }
 			    else {
 
-				sock.notif_select = null;
+				this.notif_select = null;
 			    }
 			}
 		    };
@@ -3833,7 +3849,7 @@ var SyscallsLibrary = {
     __syscall_timerfd_settime__sig: 'iiipp',
     __syscall_timerfd_settime: function(fd, flags, new_value, curr_value) {
 
-	console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value);
+	//console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value);
 
 	const int_sec = Module.HEAPU8[new_value] | (Module.HEAPU8[new_value+1] << 8) | (Module.HEAPU8[new_value+2] << 16) |  (Module.HEAPU8[new_value+3] << 24);
 	const int_nsec = Module.HEAPU8[new_value+8] | (Module.HEAPU8[new_value+9] << 8) | (Module.HEAPU8[new_value+10] << 16) |  (Module.HEAPU8[new_value+11] << 24);
@@ -3843,7 +3859,7 @@ var SyscallsLibrary = {
 	Module['fd_table'][fd].int_msec = int_sec * 1000 + int_nsec / 1000000;
 	Module['fd_table'][fd].val_msec = val_sec * 1000 + val_nsec / 1000000;
 	
-	console.log('__syscall_timerfd_settime: int='+int_sec+' '+int_nsec+' '+Module['fd_table'][fd].int_msec+', val='+val_sec+' '+val_nsec+' '+Module['fd_table'][fd].val_msec);
+	//console.log('__syscall_timerfd_settime: int='+int_sec+' '+int_nsec+' '+Module['fd_table'][fd].int_msec+', val='+val_sec+' '+val_nsec+' '+Module['fd_table'][fd].val_msec);
 
 	if (Module['fd_table'][fd].val_msec) {
 
@@ -3870,7 +3886,7 @@ var SyscallsLibrary = {
     __syscall_timerfd_gettime__sig: 'iip',
     __syscall_timerfd_gettime: function(fd, curr_value) {
 
-	console.log('__syscall_timerfd_gettime: fd='+fd);
+	//console.log('__syscall_timerfd_gettime: fd='+fd);
     },
 };
 
