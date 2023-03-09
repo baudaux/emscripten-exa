@@ -2057,7 +2057,7 @@ var SyscallsLibrary = {
 			    }
 			    else {
 
-				wakeUp(-1);
+				wakeUp(-_errno);
 			    }
 
 			return 0;
