@@ -101,6 +101,8 @@ dependenciesFulfilled = function runCaller() {
     // Added by Benoit Baudaux 20/1/2023
 
     if (ENVIRONMENT_IS_WEB) {
+
+	//console.log = function() {};
 	
 	Module['fd_table'] = {};
 	Module['fd_table'].last_fd = 2;
@@ -153,7 +155,9 @@ dependenciesFulfilled = function runCaller() {
 
 			if (messageEvent.data.length > 1024) {
 
+			    #if STACK_OVERFLOW_CHECK
 			    stackCheckInit();
+			    #endif
 			    
 			    preRun();
 			    
