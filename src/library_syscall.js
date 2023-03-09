@@ -471,7 +471,7 @@ var SyscallsLibrary = {
 		buf2[17] = (op >> 8) & 0xff;
 		buf2[18] = (op >> 16) & 0xff;
 		buf2[19] = (op >> 24) & 0xff;
-
+		
 		let len = 0;
 
 		if ( (op == {{{ cDefine('TCSETS') }}}) || (op == {{{ cDefine('TCSETSW') }}}) || (op == {{{ cDefine('TCSETSF') }}}) ) {
@@ -2982,6 +2982,8 @@ var SyscallsLibrary = {
 
 		    let sid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
+		    Module['sid'] = sid;
+
 		    wakeUp(sid);
 
 		    return 0;
@@ -3545,11 +3547,15 @@ var SyscallsLibrary = {
     __syscall_pselect6__sig: 'iippppp',
     __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
 
+	//let end = -1;
+
 	if (timeout) {
 
 	    let s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
 
 	    let ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
+
+	    //end = 1000*s + 1000000*ns;
 
 	    //console.log("__syscall_pselect6: timeout s="+s+", ns="+ns);
 	}
@@ -3729,12 +3735,15 @@ var SyscallsLibrary = {
 		}
 	    });
 
+	    let i = 0;
+
 	    // Start select for readfds
 	    
 	    for (let readfd in readfds_array) {
 
 		if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
 
+		    i++;
 		    do_select(readfd, 0, 1);
 		}
 	    }
@@ -3745,8 +3754,14 @@ var SyscallsLibrary = {
 
 		if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
 
+		    i++;
 		    do_select(writefd, 1, 1);
 		}
+	    }
+
+	    if (i == 0) { // no fd for select
+
+		wakeUp(0);
 	    }
 	});
 

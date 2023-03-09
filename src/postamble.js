@@ -153,7 +153,7 @@ dependenciesFulfilled = function runCaller() {
 
 			if (messageEvent.data.length > 1024) {
 
-			    //stackCheckInit();
+			    stackCheckInit();
 			    
 			    preRun();
 			    
