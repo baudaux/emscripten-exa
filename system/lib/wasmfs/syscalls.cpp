@@ -712,6 +712,9 @@ static int doChdir(std::shared_ptr<File>& file) {
 }
 
 int __syscall_chdir(intptr_t path) {
+
+  emscripten_log(EM_LOG_CONSOLE, "__syscall_chdir");
+  
   auto parsed = path::parseFile((char*)path);
   if (auto err = parsed.getError()) {
     return err;

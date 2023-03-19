@@ -130,6 +130,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_lstat64',
   '__syscall_pselect6',
   '__syscall_timerfd_create',
+  '__syscall_getcwd',
+  '__syscall_chdir',
 ]
 
 # Target options

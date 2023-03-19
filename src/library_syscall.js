@@ -161,10 +161,87 @@ var SyscallsLibrary = {
   },
 
   __syscall_chdir__sig: 'ip',
-  __syscall_chdir: function(path) {
-    path = SYSCALLS.getStr(path);
+    __syscall_chdir: function(path) {
+
+	console.log("library_syscall.js: __syscall_chdir");
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 1256;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 35; // CHDIR
+
+	    /*//padding
+	      buf[1] = 0;
+	      buf[2] = 0;
+	      buf[3] = 0;*/
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let path_len = 0;
+
+	    while (Module.HEAPU8[path+path_len]) {
+
+		path_len++;
+	    }
+
+	    path_len++;
+
+	    buf2[12] = path_len & 0xff;
+	    buf2[13] = (path_len >> 8) & 0xff;
+	    buf2[14] = (path_len >> 16) & 0xff;
+	    buf2[15] = (path_len >> 24) & 0xff;
+
+	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 16);
+	    
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+		
+		//console.log(messageEvent);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (35|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    //console.log("__syscall_stat64: _errno="+_errno);
+
+		    wakeUp(-_errno);
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: 1256
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    
+	    bc.postMessage(msg);
+
+	});
+
+	return ret;
+	
+    /*path = SYSCALLS.getStr(path);
     FS.chdir(path);
-    return 0;
+    return 0;*/
   },
   __syscall_chmod__sig: 'ipi',
   __syscall_chmod: function(path, mode) {
@@ -1228,13 +1305,101 @@ var SyscallsLibrary = {
     return nonzero;
   },
   __syscall_getcwd__sig: 'ipp',
-  __syscall_getcwd: function(buf, size) {
-    if (size === 0) return -{{{ cDefine('EINVAL') }}};
-    var cwd = FS.cwd();
+    __syscall_getcwd: function(buf, size) {
+
+	/* Modified by Benoit Baudaux 19/03/2023 */
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 256;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 34; // GETCWD
+
+	    /*//padding
+	      buf[1] = 0;
+	      buf[2] = 0;
+	      buf[3] = 0;*/
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	    
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+		
+		//console.log(messageEvent);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (34|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    //console.log("__syscall_stat64: _errno="+_errno);
+
+		    if (_errno == 0) {
+
+			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			if (buf) {
+
+			    if (len <=  size) {
+
+				//console.log("__syscall_stat64: len="+len);
+
+				Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
+				wakeUp(len);
+			    }
+			    else {
+
+				wakeUp( -{{{ cDefine('ERANGE') }}} );
+			    }
+			}
+			else {
+			    
+			    //TODO: alloc buf
+			}
+		    }
+		    else {
+
+			wakeUp(-1);
+		    }
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: 1256
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    
+	    bc.postMessage(msg);
+
+	});
+
+	return ret;
+
+      /*if (size === 0) return -{{{ cDefine('EINVAL') }}};
+	var cwd = FS.cwd();
     var cwdLengthInBytes = lengthBytesUTF8(cwd) + 1;
     if (size < cwdLengthInBytes) return -{{{ cDefine('ERANGE') }}};
     stringToUTF8(cwd, buf, size);
-    return cwdLengthInBytes;
+    return cwdLengthInBytes;*/
+
   },
   __syscall_truncate64__sig: 'ipj',
   __syscall_truncate64__deps: i53ConversionDeps,
@@ -1989,9 +2154,10 @@ var SyscallsLibrary = {
 		buf2[21] = (flags >> 8) & 0xff;
 		buf2[22] = (flags >> 16) & 0xff;
 		buf2[23] = (flags >> 24) & 0xff;
-
+		
 		// mode
-		// TODO
+		buf2[24] = mode & 0xff;
+		buf2[25] = (mode >> 8) & 0xff;
 
 		// pathname
 		let path_len = 0;

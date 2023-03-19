@@ -69,7 +69,7 @@ int __syscall_uname(intptr_t buf) {
   struct utsname *utsname = (struct utsname *)buf;
 
   strcpy(utsname->sysname, "EXA");
-  strcpy(utsname->nodename, "extendedmachine");
+  strcpy(utsname->nodename, "axel");
   strcpy(utsname->release, full_version);
   strcpy(utsname->version, "#1");
 #ifdef __wasm64__
