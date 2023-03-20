@@ -163,7 +163,7 @@ var SyscallsLibrary = {
   __syscall_chdir__sig: 'ip',
     __syscall_chdir: function(path) {
 
-	console.log("library_syscall.js: __syscall_chdir");
+	//console.log("library_syscall.js: __syscall_chdir");
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
