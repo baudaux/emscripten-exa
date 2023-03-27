@@ -278,4 +278,6 @@ UNIMPLEMENTED(setitimer, (int which, intptr_t new_value, intptr_t old_value))
 UNIMPLEMENTED(getitimer, (int which, intptr_t old_value))
 UNIMPLEMENTED(shutdown, (int sockfd, int how, int dummy, int dummy2, int dummy3, int dummy4))
 UNIMPLEMENTED(socketpair, (int domain, int type, int protocol, intptr_t fds, int dummy, int dummy2))
-UNIMPLEMENTED(wait4,(int pid, intptr_t wstatus, int options, int rusage))
+
+/* Modified by Benoit Baudaux 27/03/2023 */
+/*UNIMPLEMENTED(wait4,(int pid, intptr_t wstatus, int options, int rusage))*/

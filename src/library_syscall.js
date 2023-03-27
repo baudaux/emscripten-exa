@@ -4161,6 +4161,73 @@ var SyscallsLibrary = {
 
 	//console.log('__syscall_timerfd_gettime: fd='+fd);
     },
+    __syscall_wait4__sig: 'iipii',
+    __syscall_wait4: function (wpid, wstatus, options, rusage) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    console.log("__syscall_wait4: wpid="+wpid+", options="+options);
+	    
+	    let buf_size = 24;
+	    
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 37; // WAIT
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // wpid
+	    buf2[12] = wpid & 0xff;
+	    buf2[13] = (wpid >> 8) & 0xff;
+	    buf2[14] = (wpid >> 16) & 0xff;
+	    buf2[15] = (wpid >> 24) & 0xff;
+
+	    // options
+	    buf2[16] = options & 0xff;
+	    buf2[17] = (options >> 8) & 0xff;
+	    buf2[18] = (options >> 16) & 0xff;
+	    buf2[19] = (options >> 24) & 0xff;
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (37|0x80)) {
+
+		    let pid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+		    Module.HEAPU8.set(msg2.buf.slice(20, 20+4), wstatus);
+
+		    wakeUp(pid);
+		    
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    }
 };
 
 function wrapSyscallFunction(x, library, isWasi) {

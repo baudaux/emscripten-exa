@@ -60,7 +60,8 @@ mergeInto(LibraryManager.library, {
 #if !MINIMAL_RUNTIME
   $exitJS__docs: '/** @param {boolean|number=} implicit */',
   $exitJS__deps: ['proc_exit'],
-  $exitJS: function(status, implicit) {
+    $exitJS: function(status, implicit) {
+	
     EXITSTATUS = status;
 
 #if ASSERTIONS && !EXIT_RUNTIME

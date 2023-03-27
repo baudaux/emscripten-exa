@@ -133,6 +133,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_getcwd',
   '__syscall_chdir',
   '__syscall_getdents64',
+  '__syscall_wait4',
 ]
 
 # Target options

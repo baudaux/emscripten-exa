@@ -18,7 +18,8 @@ var WasiLibrary = {
 
   proc_exit__nothrow: true,
   proc_exit__sig: 'vi',
-  proc_exit: function(code) {
+    proc_exit: function(code) {
+	
 #if MINIMAL_RUNTIME
     throw 'exit(' + code + ')';
 #else

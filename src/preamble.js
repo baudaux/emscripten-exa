@@ -214,6 +214,7 @@ var runtimeExited = false;
 var runtimeKeepaliveCounter = 0;
 
 function keepRuntimeAlive() {
+    
   return noExitRuntime || runtimeKeepaliveCounter > 0;
 }
 #else
@@ -342,7 +343,7 @@ function exitRuntime() {
 #if USE_PTHREADS
   PThread.terminateAllThreads();
 #endif
-  runtimeExited = true;
+    runtimeExited = true;
 }
 #endif
 

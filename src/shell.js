@@ -84,6 +84,38 @@ var moduleOverrides = Object.assign({}, Module);
 var arguments_ = [];
 var thisProgram = './this.program';
 var quit_ = (status, toThrow) => {
+
+    let buf_size = 20;
+	    
+    let buf2 = new Uint8Array(buf_size);
+
+    buf2[0] = 38; // EXIT
+
+    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+    // pid
+    buf2[4] = pid & 0xff;
+    buf2[5] = (pid >> 8) & 0xff;
+    buf2[6] = (pid >> 16) & 0xff;
+    buf2[7] = (pid >> 24) & 0xff;
+
+    // status
+    buf2[12] = status & 0xff;
+    buf2[13] = (status >> 8) & 0xff;
+    buf2[14] = (status >> 16) & 0xff;
+    buf2[15] = (status >> 24) & 0xff;
+    
+    let msg = {
+	
+	from: Module['rcv_bc_channel'].name,
+	buf: buf2,
+	len: buf_size
+    };
+
+    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+    bc.postMessage(msg);
+    
   throw toThrow;
 };
 
