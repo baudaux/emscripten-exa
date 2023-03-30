@@ -134,6 +134,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_chdir',
   '__syscall_getdents64',
   '__syscall_wait4',
+  '__syscall_exit_group',
+  '__syscall_exit',
 ]
 
 # Target options
@@ -1789,7 +1791,7 @@ def phase_linker_setup(options, state, newargs, user_settings):
         settings.EXPECT_MAIN = 0
     else:
       assert not settings.EXPORTED_FUNCTIONS
-      settings.EXPORTED_FUNCTIONS = ['_main']
+      settings.EXPORTED_FUNCTIONS = ['_main', '__start']
 
   if settings.STANDALONE_WASM:
     # In STANDALONE_WASM mode we either build a command or a reactor.
@@ -2163,6 +2165,7 @@ def phase_linker_setup(options, state, newargs, user_settings):
 
   settings.REQUIRED_EXPORTS += ['stackSave', 'stackRestore', 'stackAlloc']
 
+  # Modified by Benoit Baudaux 29/03/2023
   if not settings.STANDALONE_WASM:
     # in standalone mode, crt1 will call the constructors from inside the wasm
     settings.REQUIRED_EXPORTS.append('__wasm_call_ctors')
@@ -2694,6 +2697,7 @@ def phase_linker_setup(options, state, newargs, user_settings):
     # which is a per-module export.
     settings.REQUIRED_EXPORTS.clear()
 
+    # Modified by Benoit Baudaux 29/03/2023
   if not settings.STANDALONE_WASM:
     # in standalone mode, crt1 will call the constructors from inside the wasm
     settings.REQUIRED_EXPORTS.append('__wasm_call_ctors')

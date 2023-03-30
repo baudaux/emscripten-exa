@@ -1082,7 +1082,8 @@ class libc(MuslInternalLibrary,
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/exit',
-        filenames=['_Exit.c', 'atexit.c'])
+        # Modified by Benoit Baudaux 30/3/2023
+        filenames=['_Exit.c', 'atexit.c', 'exit.c'])
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/ldso',
@@ -1308,7 +1309,8 @@ class crt1(MuslInternalLibrary):
     return '.o'
 
   def can_use(self):
-    return super().can_use() and settings.STANDALONE_WASM
+    return super().can_use()
+    #BB - and settings.STANDALONE_WASM
 
 
 class crt1_reactor(MuslInternalLibrary):
@@ -2028,6 +2030,8 @@ def get_libs_to_link(args, forced, only_forced):
           add_library('crt1_reactor')
       elif settings.PROXY_TO_PTHREAD:
         add_library('crt1_proxy_main')
+
+  add_library('crt1')
 
   if settings.SIDE_MODULE:
     return libs_to_link

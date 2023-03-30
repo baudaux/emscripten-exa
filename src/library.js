@@ -59,7 +59,9 @@ mergeInto(LibraryManager.library, {
 
 #if !MINIMAL_RUNTIME
   $exitJS__docs: '/** @param {boolean|number=} implicit */',
-  $exitJS__deps: ['proc_exit'],
+
+    //$exitJS__deps: ['proc_exit', 'exit'],
+    $exitJS__deps: ['proc_exit'],
     $exitJS: function(status, implicit) {
 	
     EXITSTATUS = status;
@@ -113,17 +115,56 @@ mergeInto(LibraryManager.library, {
     }
 #endif // ASSERTIONS
 
-    _proc_exit(status);
+	_proc_exit(status);
   },
 #endif
-
-  exit__sig: 'vi',
+    
+  /*exit__sig: 'vi',
 #if MINIMAL_RUNTIME
   // minimal runtime doesn't do any exit cleanup handling so just
   // map exit directly to the lower-level proc_exit syscall.
   exit: 'proc_exit',
 #else
-  exit: '$exitJS',
+    //exit: '$exitJS',
+    exit: function(code) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    console.log(">>> EXIT");
+
+	    let buf_size = 20;
+	    
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 38; // EXIT
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // status
+	    buf2[12] = status & 0xff;
+	    buf2[13] = (status >> 8) & 0xff;
+	    buf2[14] = (status >> 16) & 0xff;
+	    buf2[15] = (status >> 24) & 0xff;
+	    
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	});
+    },*/
 #endif
 
   // Returns a pointer ('p'), which means an i32 on wasm32 and an i64 wasm64
@@ -3293,7 +3334,8 @@ mergeInto(LibraryManager.library, {
   },
 
   $callRuntimeCallbacks__internal: true,
-  $callRuntimeCallbacks: function(callbacks) {
+    $callRuntimeCallbacks: function(callbacks) {
+	
     while (callbacks.length > 0) {
       // Pass the module as the first argument.
       callbacks.shift()(Module);
@@ -3350,7 +3392,9 @@ mergeInto(LibraryManager.library, {
     throw 'unwind';
   },
 
-  emscripten_force_exit__deps: ['exit',
+    //BB
+    //emscripten_force_exit__deps: ['exit',
+    emscripten_force_exit__deps: [
 #if !EXIT_RUNTIME && ASSERTIONS
     '$warnOnce',
 #endif
@@ -3367,7 +3411,8 @@ mergeInto(LibraryManager.library, {
     runtimeKeepaliveCounter = 0;
 #endif
 #endif
-    _exit(status);
+      //BB
+    //_exit(status);
   },
 
   _emscripten_out__sig: 'vp',
@@ -3519,7 +3564,9 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  $maybeExit__deps: ['exit', '$handleException',
+      //BB
+      //$maybeExit__deps: ['exit', '$handleException',
+      $maybeExit__deps: ['$handleException',
 #if USE_PTHREADS
     '_emscripten_thread_exit',
 #endif
@@ -3538,7 +3585,8 @@ mergeInto(LibraryManager.library, {
         if (ENVIRONMENT_IS_PTHREAD) __emscripten_thread_exit(EXITSTATUS);
         else
 #endif
-        _exit(EXITSTATUS);
+	    //BB
+        //_exit(EXITSTATUS);
       } catch (e) {
         handleException(e);
       }

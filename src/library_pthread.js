@@ -36,7 +36,8 @@ var LibraryPThread = {
                    '$cancelThread', '$cleanupThread', '$zeroMemory',
                    '$spawnThread',
                    '_emscripten_thread_free_data',
-                   'exit',
+		   //BB
+                   //'exit',
 #if PTHREADS_DEBUG || ASSERTIONS
                    '$ptrToString',
 #endif
@@ -820,10 +821,12 @@ var LibraryPThread = {
     dbg('exitOnMainThread');
 #endif
 #if MINIMAL_RUNTIME
-    _exit(returnCode);
+      //BB
+    //_exit(returnCode);
 #else
-    try {
-      _exit(returnCode);
+      try {
+	  //BB
+      //_exit(returnCode);
     } catch (e) {
       handleException(e);
     }

@@ -21,11 +21,13 @@ var WasiLibrary = {
     proc_exit: function(code) {
 	
 #if MINIMAL_RUNTIME
+	
     throw 'exit(' + code + ')';
 #else
 #if RUNTIME_DEBUG
     dbg('proc_exit: ' + code);
 #endif
+	
     EXITSTATUS = code;
     if (!keepRuntimeAlive()) {
 #if USE_PTHREADS

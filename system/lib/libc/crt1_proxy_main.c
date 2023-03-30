@@ -19,6 +19,7 @@ static char** _main_argv;
 int __main_argc_argv(int argc, char *argv[]);
 
 weak int __main_void(void) {
+
   return __main_argc_argv(_main_argc, _main_argv);
 }
 

@@ -11,8 +11,21 @@
 
 #include <stdlib.h>
 
-int atexit(void (*function)(void)) { return 0; }
+#include <emscripten.h>
 
-int __cxa_atexit(void (*func)(void *), void *arg, void *dso) { return 0; }
+int atexit(void (*function)(void)) {
+
+  //BB
+  emscripten_log(EM_LOG_CONSOLE, ">>> atexit_dummy");
+  
+  return 0;
+}
+
+int __cxa_atexit(void (*func)(void *), void *arg, void *dso) {
+
+  emscripten_log(EM_LOG_CONSOLE, ">>> __cxa_atexit_dummy");
+  
+  return 0;
+}
 
 void __cxa_finalize(void *dso) { }

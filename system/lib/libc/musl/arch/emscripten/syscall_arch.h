@@ -145,6 +145,10 @@ int __syscall_readv(int fd, intptr_t iov, int iovcnt);
   int __syscall_timerfd_create(int clockid, int flags);
   int __syscall_timerfd_settime(int fd, int flags, intptr_t new_value, intptr_t curr_value);
   int __syscall_timerfd_gettime(int fd, intptr_t curr_value);
+
+   /* Modified by Benoit Baudaux 28/03/2023 */
+void __syscall_exit_group(int status);
+  void __syscall_exit(int status);
   
   
 #ifdef __cplusplus

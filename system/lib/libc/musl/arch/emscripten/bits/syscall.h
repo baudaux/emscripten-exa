@@ -121,3 +121,7 @@
 #define SYS_timerfd_create      __syscall_timerfd_create
 #define SYS_timerfd_settime     __syscall_timerfd_settime
 #define SYS_timerfd_gettime     __syscall_timerfd_gettime
+
+/* Modified by Benoit Baudaux 28/03/2023 */
+#define SYS_exit_group          __syscall_exit_group
+#define SYS_exit                __syscall_exit

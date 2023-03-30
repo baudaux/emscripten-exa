@@ -320,9 +320,11 @@ dependenciesFulfilled = function runCaller() {
 
 		    //console.log(Module['env']);
 
+		    
 		    // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
 		    if (!calledRun) run();
 		    if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
+		    
 		}
 	    });
 
@@ -366,7 +368,18 @@ function callMain(args) {
   // that will call the user's real main() for the application.
   var entryFunction = Module['__emscripten_proxy_main'];
 #else
-    var entryFunction = Module['_main'];
+    // Modified by Benoit Baudaux 29/03/2023
+    var entryFunction;
+
+    //BB
+
+    if (ENVIRONMENT_IS_WEB) {
+
+	entryFunction = Module['__start'];
+    }
+    else {
+	entryFunction = Module['_main'];
+    }
     
 #endif
 #endif
@@ -414,7 +427,9 @@ function callMain(args) {
     // that if we get here main returned zero.
     var ret = 0;
 #else
-    var ret = entryFunction(argc, {{{ to64('argv') }}});
+
+      var ret = entryFunction(argc, {{{ to64('argv') }}});
+      
 #endif // STANDALONE_WASM
 
 #if BENCHMARK

@@ -7,8 +7,6 @@
 #include "atomic.h"
 #include "libc.h"
 
-#include <emscripten.h>
-
 static void dummy(void) {}
 weak_alias(dummy, _init);
 
@@ -73,8 +71,6 @@ static lsm2_fn libc_start_main_stage2;
 
 int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv)
 {
-  emscripten_log(EM_LOG_CONSOLE, "__libc_start_main");
-  
 	char **envp = argv+argc+1;
 
 	/* External linkage, and explicit noinline attribute if available,
@@ -91,8 +87,6 @@ int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv)
 
 static int libc_start_main_stage2(int (*main)(int,char **,char **), int argc, char **argv)
 {
-   emscripten_log(EM_LOG_CONSOLE, "libc_start_main_stage2");
-   
 	char **envp = argv+argc+1;
 	__libc_start_init();
 

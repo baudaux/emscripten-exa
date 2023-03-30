@@ -48,6 +48,9 @@ _Noreturn void _Exit (int);
 int at_quick_exit (void (*) (void));
 _Noreturn void quick_exit (int);
 
+//BB
+void exa_main(int, char **);
+
 char *getenv (const char *);
 
 int system (const char *);
