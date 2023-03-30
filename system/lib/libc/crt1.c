@@ -10,10 +10,15 @@
 
 __attribute__((__weak__)) void __wasm_call_ctors(void);
 
-//int __main_void(void);
+int __main_void(void);
 
-//BB
-int __main_argc_argv(int argc, char *argv[]);
+static int ___main_argc_argv(int argc, char *argv[]) {
+
+  return __main_void();
+}
+
+weak_alias(___main_argc_argv, __main_argc_argv);
+
 
 //void _start(void) {
 void _start(int argc, char *argv[]) {

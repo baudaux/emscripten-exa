@@ -1441,7 +1441,7 @@ var SyscallsLibrary = {
 	    buf2[5] = (pid >> 8) & 0xff;
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
-
+	    
 	    // errno
 	    buf2[8] = 0x0;
 	    buf2[9] = 0x0;
@@ -1754,7 +1754,7 @@ var SyscallsLibrary = {
 			    };
 
 			    Module['fd_table'][fd] = desc;
-
+exec
 			    do_fstat();
 			}
 			else {
@@ -2669,10 +2669,10 @@ var SyscallsLibrary = {
 
 	//console.log("__syscall_execve: argv="+argv+", envp="+envp);
 
-	// Use Asyncify for not returning from execve
-	
-	let ret = Asyncify.handleSleep(function (wakeUp) {
-
+	let do_exec = (path) => {
+	    
+	    console.log("do_exec:"+path);
+	    
 	    let buf_size = 1256;
 
 	    let buf = new Uint8Array(buf_size);
@@ -2788,8 +2788,94 @@ var SyscallsLibrary = {
 	    // name property of window for process to be loaded fully and args and env to be recovered
 	    window.name = "exec";
 	    
-	    window.frameElement.src = SYSCALLS.getStr(pathname)+"/exa/exa.html";
+	    window.frameElement.src = path+"/exa/exa.html";
+	};
+
+	let path = SYSCALLS.getStr(pathname);
+
+	if (path.charAt(0) == "/") {
+			
+	    do_exec(path);
+	    return;
+	}
+	
+	/* Modified by Benoit Baudaux 19/03/2023 */
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 256;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 34; // GETCWD
+
+	    /*//padding
+	      buf[1] = 0;
+	      buf[2] = 0;
+	      buf[3] = 0;*/
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	    
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+		
+		//console.log(messageEvent);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (34|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    //console.log("__syscall_stat64: _errno="+_errno);
+
+		    if (_errno == 0) {
+
+			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			let cwd = UTF8ArrayToString(msg2.buf, 16, 1024);
+
+			let sep = "";
+
+			if ( (cwd.length > 0) && (cwd.slice(-1) != "/") && (path.length > 0) && (path.charAt(0) != "/") )
+			    sep = "/";
+
+			console.log("cwd:"+cwd);
+			
+			do_exec(cwd+sep+path);
+		    }
+		    else {
+
+			wakeUp(-1);
+		    }
+
+		    return 0;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    
+	    bc.postMessage(msg);
+
 	});
+
+	
     },
 
     /* Modified by Benoit Baudaux 5/1/2023 */
