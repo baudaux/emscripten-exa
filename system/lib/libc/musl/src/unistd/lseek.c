@@ -3,7 +3,7 @@
 
 off_t __lseek(int fd, off_t offset, int whence)
 {
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 	off_t result;
 	return __wasi_syscall_ret(__wasi_fd_seek(fd, offset, whence, &result)) ? -1 : result;
 #else

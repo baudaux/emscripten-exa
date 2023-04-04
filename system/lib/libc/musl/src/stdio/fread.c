@@ -1,6 +1,9 @@
 #include "stdio_impl.h"
 #include <string.h>
 
+//BB
+#include <emscripten.h>
+
 #define MIN(a,b) ((a)<(b) ? (a) : (b))
 
 size_t fread(void *restrict destv, size_t size, size_t nmemb, FILE *restrict f)
@@ -8,6 +11,10 @@ size_t fread(void *restrict destv, size_t size, size_t nmemb, FILE *restrict f)
 	unsigned char *dest = destv;
 	size_t len = size*nmemb, l = len, k;
 	if (!size) nmemb = 0;
+
+	//BB
+	emscripten_log(EM_LOG_CONSOLE, "--> fread: fd=%d", f->fd);
+  
 
 	FLOCK(f);
 

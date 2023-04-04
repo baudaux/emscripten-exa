@@ -125,3 +125,6 @@
 /* Modified by Benoit Baudaux 28/03/2023 */
 #define SYS_exit_group          __syscall_exit_group
 #define SYS_exit                __syscall_exit
+
+/* Modified by Benoit Baudaux 4/04/2023 */
+#define SYS_lseek               __syscall_lseek

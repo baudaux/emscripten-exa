@@ -1754,7 +1754,7 @@ var SyscallsLibrary = {
 			    };
 
 			    Module['fd_table'][fd] = desc;
-exec
+			    
 			    do_fstat();
 			}
 			else {
@@ -2668,147 +2668,147 @@ exec
     __syscall_execve: function(pathname, argv, envp) {
 
 	//console.log("__syscall_execve: argv="+argv+", envp="+envp);
-
-	let do_exec = (path) => {
-	    
-	    console.log("do_exec:"+path);
-	    
-	    let buf_size = 1256;
-
-	    let buf = new Uint8Array(buf_size);
-
-	    buf[0] = 8; // EXECVE
-
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
-
-	    // pid
-	    buf[4] = pid & 0xff;
-	    buf[5] = (pid >> 8) & 0xff;
-	    buf[6] = (pid >> 16) & 0xff;
-	    buf[7] = (pid >> 24) & 0xff;
-
-	    // errno
-	    buf[8] = 0;
-	    buf[9] = 0;
-	    buf[10] = 0;
-	    buf[11] = 0;
-
-	    // Copy args in buf
-
-	    let i = 0;
-
-	    for (let offset = 0; ; offset += 4) {
-
-		let arg = Module.HEAPU8[argv+offset] | (Module.HEAPU8[argv+offset+1] << 8) | (Module.HEAPU8[argv+offset+2] << 16) |  (Module.HEAPU8[argv+offset+3] << 24);
-
-		if (!arg)
-		    break;
-
-		let j;
-
-		for (j = 0; Module.HEAPU8[arg+j]; j++) {
-
-		    buf[16+i+j] = Module.HEAPU8[arg+j];
-		}
-		
-		buf[16+i+j] = 0;
-		j++;
-
-		i += j;
-	    }
-
-	    buf[12] = i & 0xff;
-	    buf[13] = (i >> 8) & 0xff;
-	    buf[14] = (i >> 16) & 0xff;
-	    buf[15] = (i >> 24) & 0xff;
-
-	    // Copy env in buf
-
-	    let e = 16 + i;
-	    let f = e + 8; // keep space for count and size (in that order)
-
-	    i = 0;
-
-	    let count = 0;
-
-	    for (let offset = 0; ; offset += 4) {
-
-		let str = Module.HEAPU8[envp+offset] | (Module.HEAPU8[envp+offset+1] << 8) | (Module.HEAPU8[envp+offset+2] << 16) |  (Module.HEAPU8[envp+offset+3] << 24);
-
-		if (!str)
-		    break;
-
-		count++;
-
-		let j;
-
-		for (j = 0; Module.HEAPU8[str+j]; j++) {
-
-		    buf[f+i+j] = Module.HEAPU8[str+j];
-		}
-		
-		buf[f+i+j] = 0;
-		j++;
-
-		i += j;
-	    }
-
-	    buf[e] = count & 0xff;
-	    buf[e+1] = (count >> 8) & 0xff;
-	    buf[e+2] = (count >> 16) & 0xff;
-	    buf[e+3] = (count >> 24) & 0xff;
-
-	    buf[e+4] = i & 0xff;
-	    buf[e+5] = (i >> 8) & 0xff;
-	    buf[e+6] = (i >> 16) & 0xff;
-	    buf[e+7] = (i >> 24) & 0xff;
-
-	    // rcv_bc_channel is not registered if it is a fork of resmgr
-
-	    let rcv_bc = Module['rcv_bc_channel'] || new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
-
-	    let msg = {
-
-		from: rcv_bc.name,
-		buf: buf,
-		len: buf_size
-	    };
-
-	    let bc;
-
-	    // Module.get_broadcast_channel is not registered if it is a fork of resmgr
-	    
-	    if (Module.get_broadcast_channel)
-		bc = Module.get_broadcast_channel("/var/resmgr.peer");
-	    else
-		bc = new BroadcastChannel("/var/resmgr.peer");
-
-	    bc.postMessage(msg);
-	    
-	    // name property of window for process to be loaded fully and args and env to be recovered
-	    window.name = "exec";
-	    
-	    window.frameElement.src = path+"/exa/exa.html";
-	};
-
-	let path = SYSCALLS.getStr(pathname);
-
-	if (path.charAt(0) == "/") {
-			
-	    do_exec(path);
-	    return;
-	}
 	
 	/* Modified by Benoit Baudaux 19/03/2023 */
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_exec = (path) => {
+		
+		console.log("do_exec: "+path);
+		
+		let buf_size = 1256;
+
+		let buf = new Uint8Array(buf_size);
+
+		buf[0] = 8; // EXECVE
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf[4] = pid & 0xff;
+		buf[5] = (pid >> 8) & 0xff;
+		buf[6] = (pid >> 16) & 0xff;
+		buf[7] = (pid >> 24) & 0xff;
+
+		// errno
+		buf[8] = 0;
+		buf[9] = 0;
+		buf[10] = 0;
+		buf[11] = 0;
+
+		// Copy args in buf
+
+		let i = 0;
+
+		for (let offset = 0; ; offset += 4) {
+
+		    let arg = Module.HEAPU8[argv+offset] | (Module.HEAPU8[argv+offset+1] << 8) | (Module.HEAPU8[argv+offset+2] << 16) |  (Module.HEAPU8[argv+offset+3] << 24);
+
+		    if (!arg)
+			break;
+
+		    let j;
+
+		    for (j = 0; Module.HEAPU8[arg+j]; j++) {
+
+			buf[16+i+j] = Module.HEAPU8[arg+j];
+		    }
+		    
+		    buf[16+i+j] = 0;
+		    j++;
+
+		    i += j;
+		}
+
+		buf[12] = i & 0xff;
+		buf[13] = (i >> 8) & 0xff;
+		buf[14] = (i >> 16) & 0xff;
+		buf[15] = (i >> 24) & 0xff;
+
+		// Copy env in buf
+
+		let e = 16 + i;
+		let f = e + 8; // keep space for count and size (in that order)
+
+		i = 0;
+
+		let count = 0;
+
+		for (let offset = 0; ; offset += 4) {
+
+		    let str = Module.HEAPU8[envp+offset] | (Module.HEAPU8[envp+offset+1] << 8) | (Module.HEAPU8[envp+offset+2] << 16) |  (Module.HEAPU8[envp+offset+3] << 24);
+
+		    if (!str)
+			break;
+
+		    count++;
+
+		    let j;
+
+		    for (j = 0; Module.HEAPU8[str+j]; j++) {
+
+			buf[f+i+j] = Module.HEAPU8[str+j];
+		    }
+		    
+		    buf[f+i+j] = 0;
+		    j++;
+
+		    i += j;
+		}
+
+		buf[e] = count & 0xff;
+		buf[e+1] = (count >> 8) & 0xff;
+		buf[e+2] = (count >> 16) & 0xff;
+		buf[e+3] = (count >> 24) & 0xff;
+
+		buf[e+4] = i & 0xff;
+		buf[e+5] = (i >> 8) & 0xff;
+		buf[e+6] = (i >> 16) & 0xff;
+		buf[e+7] = (i >> 24) & 0xff;
+
+		// rcv_bc_channel is not registered if it is a fork of resmgr
+
+		let rcv_bc = Module['rcv_bc_channel'] || new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
+
+		let msg = {
+
+		    from: rcv_bc.name,
+		    buf: buf,
+		    len: buf_size
+		};
+
+		let bc;
+
+		// Module.get_broadcast_channel is not registered if it is a fork of resmgr
+		
+		if (Module.get_broadcast_channel)
+		    bc = Module.get_broadcast_channel("/var/resmgr.peer");
+		else
+		    bc = new BroadcastChannel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+		
+		// name property of window for process to be loaded fully and args and env to be recovered
+		window.name = "exec";
+		
+		window.frameElement.src = "/netfs" + path+"/exa/exa.html";
+	    };
+
+	    let path = SYSCALLS.getStr(pathname);
+
+	    if (path.charAt(0) == "/") {
+		
+		do_exec(path);
+		return;
+	    }
 
 	    let buf_size = 256;
 	
 	    let buf2 = new Uint8Array(buf_size);
 
 	    buf2[0] = 34; // GETCWD
-
+	    
 	    /*//padding
 	      buf[1] = 0;
 	      buf[2] = 0;
@@ -3422,6 +3422,8 @@ exec
     __syscall_read__sig: 'iipi',
     __syscall_read: function(fd, buf, count) {
 
+	console.log("__syscall_read: fd="+fd);
+
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	    let do_read = () => {
@@ -3608,8 +3610,199 @@ exec
     __syscall_readv__sig: 'iippp',
     __syscall_readv: function(fd, iov, iovcnt) {
 
-	//console.log("__syscall_readv: TODO");
-	return 0;
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let count = 0;
+
+	    for (let i = 0; i < iovcnt; i++) {
+
+		count += Module.HEAPU8[iov+8*i+4] | (Module.HEAPU8[iov+8*i+5] << 8) | (Module.HEAPU8[iov+8*i+6] << 16) |  (Module.HEAPU8[iov+8*i+7] << 24)
+	    }
+
+	    console.log("__syscall_readv: iovcnt="+iovcnt+", count="+count);
+
+	    let do_readv = () => {
+
+		let len = count;
+		
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 12; // READ
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// len
+		buf2[16] = len & 0xff;
+		buf2[17] = (len >> 8) & 0xff;
+		buf2[18] = (len >> 16) & 0xff;
+		buf2[19] = (len >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (12|0x80)) {
+
+			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			console.log("__syscall_readv: bytes_read="+bytes_read);
+
+			let offset = 0;
+
+			for (let i = 0; i < iovcnt; i++) {
+
+			    let len =  Module.HEAPU8[iov+8*i+4] | (Module.HEAPU8[iov+8*i+5] << 8) | (Module.HEAPU8[iov+8*i+6] << 16) |  (Module.HEAPU8[iov+8*i+7] << 24);
+
+			    console.log("__syscall_readv: "+i+", len="+len);
+			    
+			    let len2 = ((offset+len) <= bytes_read)?len:bytes_read-offset;
+
+			    console.log("__syscall_readv: "+i+", len2="+len2);
+
+			    if (len2 > 0) {
+				let ptr =  Module.HEAPU8[iov+8*i] | (Module.HEAPU8[iov+8*i+1] << 8) | (Module.HEAPU8[iov+8*i+2] << 16) |  (Module.HEAPU8[iov+8*i+3] << 24);
+
+				Module.HEAPU8.set(msg2.buf.slice(20+offset, 20+offset+len2), ptr);
+			    }
+			    else {
+
+				break;
+			    }
+
+			    offset += len2;
+
+			    if (offset >= bytes_read)
+				break;
+			}
+			
+			wakeUp(bytes_read);
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
+	    };
+
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+
+		do_readv();
+	    }
+	    else {
+		let buf_size = 256;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_readv();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+	});
+    
+    return ret;
     },
     __syscall_pause__sig: 'i',
     __syscall_pause: function() {
@@ -4393,6 +4586,171 @@ exec
 	    bc.postMessage(msg);
 
 	});
+    },
+
+    __syscall_lseek__sig: 'iiii',
+    __syscall_lseek: function (fd, offset, whence) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_lseek = () => {
+
+		let buf_size = 24;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 39; // SEEK
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// offset
+		buf2[16] = offset & 0xff;
+		buf2[17] = (offset >> 8) & 0xff;
+		buf2[18] = (offset >> 16) & 0xff;
+		buf2[19] = (offset >> 24) & 0xff;
+
+		// whence
+		buf2[20] = whence & 0xff;
+		buf2[21] = (whence >> 8) & 0xff;
+		buf2[22] = (whence >> 16) & 0xff;
+		buf2[23] = (whence >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (39|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			//console.log("bytes_read: "+bytes_read);
+			
+			wakeUp(-_errno);
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
+	    };
+
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+
+		do_lseek();
+	    }
+	    else {
+		let buf_size = 256;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    Module['rcv_bc_channel'].set_handler(null);
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_lseek();
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return 0;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+	});
+
+	return ret;
     },
 };
 

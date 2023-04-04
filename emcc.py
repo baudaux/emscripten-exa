@@ -136,6 +136,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_wait4',
   '__syscall_exit_group',
   '__syscall_exit',
+  '__syscall_lseek',
 ]
 
 # Target options
@@ -1333,7 +1334,7 @@ def phase_parse_arguments(state):
 def phase_setup(options, state, newargs, user_settings):
   """Second phase: configure and setup the compiler based on the specified settings and arguments.
   """
-
+  
   if settings.RUNTIME_LINKED_LIBS:
     diagnostics.warning('deprecated', 'RUNTIME_LINKED_LIBS is deprecated; you can simply list the libraries directly on the commandline now')
     newargs += settings.RUNTIME_LINKED_LIBS
@@ -4152,6 +4153,12 @@ def is_int(s):
 
 @ToolchainProfiler.profile()
 def main(args):
+
+  # Added by Benoit Baudaux 1/04/2023
+  if "-c" not in args and "-sBOOTSTRAPPING_STRUCT_INFO" not in args:
+    args.append('-sASYNCIFY=1')
+    args.append('-sEXIT_RUNTIME=1')
+    
   start_time = time.time()
   ret = run(args)
   logger.debug('total time: %.2f seconds', (time.time() - start_time))
