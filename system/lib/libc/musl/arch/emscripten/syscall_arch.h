@@ -151,7 +151,7 @@ void __syscall_exit_group(int status);
   void __syscall_exit(int status);
 
   /* Modified by Benoit Baudaux 04/04/2023 */
-int __syscall_lseek(int fd, int64_t offset, int whence);
+int __syscall_lseek(int fd, int offset, int whence);
   
   
 #ifdef __cplusplus

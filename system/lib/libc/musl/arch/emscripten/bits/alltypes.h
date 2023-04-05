@@ -238,7 +238,9 @@ typedef unsigned _Reg nlink_t;
 #endif
 
 #if defined(__NEED_off_t) && !defined(__DEFINED_off_t)
-typedef _Int64 off_t;
+/*Modified by Benoit Baudaux 5/04/2023 */
+/*typedef _Int64 off_t;*/
+typedef int off_t;
 #define __DEFINED_off_t
 #endif
 

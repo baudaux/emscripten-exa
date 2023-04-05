@@ -15,7 +15,7 @@ extern "C" {
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 #define SEEK_SET __WASI_WHENCE_SET
 #define SEEK_CUR __WASI_WHENCE_CUR
 #define SEEK_END __WASI_WHENCE_END

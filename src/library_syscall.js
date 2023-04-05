@@ -4593,9 +4593,11 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
+	    console.log("__syscall_lseek: off="+offset+", whence="+whence);
+
 	    let do_lseek = () => {
 
-		let buf_size = 24;
+		let buf_size = 256;
 
 		let buf2 = new Uint8Array(buf_size);
 
@@ -4640,8 +4642,17 @@ var SyscallsLibrary = {
 			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
 			//console.log("bytes_read: "+bytes_read);
+
+			if (!_errno) {
+
+			    let off = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			    wakeUp(off);
+			}
+			else {
 			
-			wakeUp(-_errno);
+			    wakeUp(-_errno);
+			}
 
 			return 0;
 		    }

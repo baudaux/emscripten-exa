@@ -79,7 +79,7 @@ int posix_fallocate(int, off_t, off_t);
 #undef SEEK_SET
 #undef SEEK_CUR
 #undef SEEK_END
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 #define SEEK_SET __WASI_WHENCE_SET
 #define SEEK_CUR __WASI_WHENCE_CUR
 #define SEEK_END __WASI_WHENCE_END
