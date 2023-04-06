@@ -13,7 +13,7 @@ DIR *opendir(const char *name)
 	if ((fd = open(name, O_RDONLY|O_DIRECTORY|O_CLOEXEC)) < 0)
 		return 0;
 	if (!(dir = calloc(1, sizeof *dir))) {
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 		__wasi_fd_close(fd);
 #else
 		__syscall(SYS_close, fd);

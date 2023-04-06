@@ -4,13 +4,24 @@
 static void dummy(FILE *f) { }
 weak_alias(dummy, __unlist_locked_file);
 
+//BB
+#include <emscripten.h>
+
 int fclose(FILE *f)
 {
 	int r;
 	
 	FLOCK(f);
 	r = fflush(f);
+
+	//BB
+  emscripten_log(EM_LOG_CONSOLE, "<-- fflush: r=%d", r);
+  
 	r |= f->close(f);
+
+	//BB
+  emscripten_log(EM_LOG_CONSOLE, "<-- f->close: %d", r);
+  
 	FUNLOCK(f);
 
 	/* Past this point, f is closed and any further explict access
