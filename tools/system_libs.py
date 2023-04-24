@@ -1083,7 +1083,7 @@ class libc(MuslInternalLibrary,
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/exit',
         # Modified by Benoit Baudaux 30/3/2023
-        filenames=['_Exit.c', 'atexit.c', 'exit.c'])
+        filenames=['_Exit.c', 'atexit.c', 'exit.c', 'abort_lock.c', 'abort.c'])
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/ldso',
@@ -1095,7 +1095,11 @@ class libc(MuslInternalLibrary,
           'block.c',
           'getitimer.c',
           'killpg.c',
+          'kill.c',
+          'raise.c',
+          'restore.c',
           'setitimer.c',
+          'sigaction.c',
           'sigorset.c',
           'sigandset.c',
           'sigaddset.c',
@@ -1118,9 +1122,9 @@ class libc(MuslInternalLibrary,
           'dynlink.c',
           'wasi-helpers.c',
           'emscripten_get_heap_size.c',
-          'raise.c',
-          'kill.c',
-          'sigaction.c',
+          #'raise.c',
+          #'kill.c',
+          #'sigaction.c',
           'sigtimedwait.c',
           'pthread_sigmask.c',
           'emscripten_console.c',

@@ -137,6 +137,9 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_exit_group',
   '__syscall_exit',
   '__syscall_lseek',
+  '__syscall_rt_sigaction',
+  '__syscall_rt_sigprocmask',
+  '__syscall_kill',
 ]
 
 # Target options

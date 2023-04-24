@@ -102,7 +102,7 @@ dependenciesFulfilled = function runCaller() {
 
     if (ENVIRONMENT_IS_WEB) {
 	
-	console.log = function() {};
+	//console.log = function() {};
 	
 	Module['fd_table'] = {};
 	Module['fd_table'].last_fd = 2;
@@ -126,10 +126,23 @@ dependenciesFulfilled = function runCaller() {
 
 	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
 
-	    if (Module['rcv_bc_channel'].handler) {
+	    let msg = messageEvent.data;
 
-		if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
-		    return;
+	    if (msg.buf[0] == 42) {  // KILL
+
+		//sig_handler = ...
+
+		let stack = Runtime.stackSave();
+		Runtime.dynCall('vi', sig_handler, []);
+		Runtime.stackRestore(stack);
+	    }
+	    else {
+
+		if (Module['rcv_bc_channel'].handler) {
+
+		    if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
+			return;
+		}
 	    }
 	};
 

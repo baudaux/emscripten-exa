@@ -128,3 +128,10 @@
 
 /* Modified by Benoit Baudaux 4/04/2023 */
 #define SYS_lseek               __syscall_lseek
+
+/* Modified by Benoit Baudaux 24/04/2023 */
+#define SYS_rt_sigaction        __syscall_rt_sigaction
+#define SYS_rt_sigprocmask      __syscall_rt_sigprocmask
+
+#define SYS_kill                __syscall_kill
+#define SYS_tkill               __syscall_tkill

@@ -152,6 +152,12 @@ void __syscall_exit_group(int status);
 
   /* Modified by Benoit Baudaux 04/04/2023 */
 int __syscall_lseek(int fd, int offset, int whence);
+
+  /* Modified by Benoit Baudaux 24/04/2023 */
+int __syscall_rt_sigaction(int signum, intptr_t act, intptr_t oldact, int sigsetsize);
+  int __syscall_rt_sigprocmask(int how, intptr_t set, intptr_t oldset, int sigsetsize);
+  int __syscall_kill(int pid, int sig);
+  int __syscall_tkill(int tid, int sig);
   
   
 #ifdef __cplusplus
