@@ -931,11 +931,11 @@ var SyscallsLibrary = {
 	    }
 	    else {
 
-		if (!Module['fd_table']) {
+		/*if (!Module['fd_table']) {
 
 		    Module['fd_table'] = {};
 		    Module['fd_table'].last_fd = 0;
-		}
+		}*/
 
 		Module['fd_table'].last_fd += 1;
 
@@ -3589,6 +3589,12 @@ var SyscallsLibrary = {
 
 			return 0;
 		    }
+		    else if (msg2.buf[0] == 42) { // Signal received and handled
+
+			wakeUp(-4); //EINTR
+
+			return 0;
+		    }
 		    else {
 
 			return -1;
@@ -3783,6 +3789,12 @@ var SyscallsLibrary = {
 			}
 			
 			wakeUp(bytes_read);
+
+			return 0;
+		    }
+		    else if (msg2.buf[0] == 42) { // Signal received and handled
+
+			wakeUp(-4); //EINTR
 
 			return 0;
 		    }
@@ -4173,7 +4185,7 @@ var SyscallsLibrary = {
     __syscall_pselect6__sig: 'iippppp',
     __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
 
-	//let end = -1;
+	//console.log("__syscall_pselect6: nfds="+nfds);
 
 	if (timeout) {
 
@@ -4295,7 +4307,7 @@ var SyscallsLibrary = {
 
 		// Stop select for readfds
 		
-		for (let readfd in readfds_array) {
+		for (let readfd of readfds_array) {
 
 		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
 
@@ -4305,7 +4317,7 @@ var SyscallsLibrary = {
 
 		// Stop select for writefds
 
-		for (let writefd in writefds_array) {
+		for (let writefd of writefds_array) {
 
 		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
 
@@ -4365,7 +4377,7 @@ var SyscallsLibrary = {
 
 	    // Start select for readfds
 	    
-	    for (let readfd in readfds_array) {
+	    for (let readfd of readfds_array) {
 
 		if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
 
@@ -4376,7 +4388,7 @@ var SyscallsLibrary = {
 	    
 	    // Start select for writefds
 
-	    for (let writefd in writefds_array) {
+	    for (let writefd of writefds_array) {
 
 		if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
 
@@ -4397,14 +4409,66 @@ var SyscallsLibrary = {
     __syscall_timerfd_create: function(clockid, flags) {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let add_timerfd = (fd) => {
+
+		var desc = {
+
+		    timerfd: fd,
+		    counter: 0,
+		    increase_counter: function() {
+
+			this.counter++;
+
+			if (this.notif_select)
+			    this.notif_select(this.select_fd, this.select_rw);
+		    },
+		    select: function (fd, rw, start_stop, notif_select) {
+
+			if (start_stop) {
+
+			    if (this.counter > 0) {
+
+				this.notif_select = null;
+				notif_select(fd, rw);
+			    }
+			    else {
+
+				this.select_fd = fd;
+				this.select_rw = rw;
+				this.notif_select = notif_select;
+			    }
+			}
+			else {
+
+			    this.notif_select = null;
+			}
+		    }
+		};
+
+		Module['fd_table'][fd] = desc;
+	    };
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    if (pid == 1) {  // Called by resmgr
+
+		Module['fd_table'].last_fd += 1;
+
+		let fd = Module['fd_table'].last_fd;
+		
+		add_timerfd(fd);
+
+		wakeUp(fd);
+		
+		return;
+	    }
 	    
 	    let buf_size = 20;
 	    
 	    let buf2 = new Uint8Array(buf_size);
 
 	    buf2[0] = 33; // TIMERFD_CREATE
-
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -4417,7 +4481,7 @@ var SyscallsLibrary = {
 	    buf2[13] = (clockid >> 8) & 0xff;
 	    buf2[14] = (clockid >> 16) & 0xff;
 	    buf2[15] = (clockid >> 24) & 0xff;
-
+	    
 	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		Module['rcv_bc_channel'].set_handler(null);
@@ -4428,41 +4492,7 @@ var SyscallsLibrary = {
 
 		    let fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-		    var desc = {
-
-			timerfd: fd,
-			counter: 0,
-			increase_counter: function() {
-
-			    this.counter++;
-
-			    if (this.notif_select)
-				this.notif_select(this.select_fd, this.select_rw);
-			},
-			select: function (fd, rw, start_stop, notif_select) {
-
-			    if (start_stop) {
-
-				if (this.counter > 0) {
-
-				    this.notif_select = null;
-				    notif_select(fd, rw);
-				}
-				else {
-
-				    this.select_fd = fd;
-				    this.select_rw = rw;
-				    this.notif_select = notif_select;
-				}
-			    }
-			    else {
-
-				this.notif_select = null;
-			    }
-			}
-		    };
-
-		    Module['fd_table'][fd] = desc;
+		    add_timerfd(fd);
 
 		    wakeUp(fd);
 
@@ -5071,6 +5101,74 @@ var SyscallsLibrary = {
     __syscall_tkill__sig: 'iii',
     __syscall_tkill: function (tid, sig) {
 
+    },
+
+    __syscall_setitimer__sig: 'iipp',
+    __syscall_setitimer: function (which, new_value, old_value) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 256;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 43; // SETITIMER
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	    
+	    buf2[12] = which & 0xff;
+	    buf2[13] = (which >> 8) & 0xff;
+	    buf2[14] = (which >> 16) & 0xff;
+	    buf2[15] = (which >> 24) & 0xff;
+
+	    buf2.set(Module.HEAPU8.slice(new_value, new_value+16), 16);
+
+	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		Module['rcv_bc_channel'].set_handler(null);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (43|0x80)) {
+
+		    if (old_value)
+			Module.HEAPU8.set(msg2.buf.slice(16, 16+16), old_value);
+		    
+		    wakeUp(0);
+
+		    return 0;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    },
+
+    __syscall_getitimer__sig: 'iip',
+    __syscall_getitimer: function (which, old_value) {
+
+	//TODO
     },
     
 };

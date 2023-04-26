@@ -140,6 +140,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_rt_sigaction',
   '__syscall_rt_sigprocmask',
   '__syscall_kill',
+  '__syscall_setitimer',
+  '__syscall_getitimer',
 ]
 
 # Target options

@@ -121,7 +121,7 @@ dependenciesFulfilled = function runCaller() {
 	};
 
 	Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
-
+	
 	//console.log("rcv_bc_channel created");
 
 	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
@@ -130,18 +130,35 @@ dependenciesFulfilled = function runCaller() {
 
 	    if (msg.buf[0] == 42) {  // KILL
 
-		//sig_handler = ...
+		console.log("--> KILL received from resmgr");
 
-		let stack = Runtime.stackSave();
-		Runtime.dynCall('vi', sig_handler, []);
-		Runtime.stackRestore(stack);
+		let signum = msg.buf[16] | (msg.buf[17] << 8) | (msg.buf[18] << 16) |  (msg.buf[18] << 24);
+
+		let sig_handler = msg.buf[20] | (msg.buf[21] << 8) | (msg.buf[22] << 16) |  (msg.buf[23] << 24);
+
+		let stack = stackSave();
+
+		//TODO: signature depends on signal/sigaction
+		
+		{{{ makeDynCall('vi', 'sig_handler') }}} (signum, 0, 0);
+
+		stackRestore(stack);
+
+		msg.buf[0] |= 0x80;
+		msg.from = Module['rcv_bc_channel'].name;
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+
+		msg.buf[0] &= 0x7f;
 	    }
-	    else {
+	    
+	    if (Module['rcv_bc_channel'].handler) {
 
-		if (Module['rcv_bc_channel'].handler) {
+		if (Module['rcv_bc_channel'].handler(messageEvent) == 0) {
 
-		    if (Module['rcv_bc_channel'].handler(messageEvent) == 0)
-			return;
+		    //Module['rcv_bc_channel'].handler = null;
 		}
 	    }
 	};
