@@ -121,6 +121,9 @@ dependenciesFulfilled = function runCaller() {
 	};
 
 	Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
+
+	Module['rcv_bc_channel'].handlers = [];
+	Module['rcv_bc_channel'].id = 0;
 	
 	//console.log("rcv_bc_channel created");
 
@@ -130,42 +133,58 @@ dependenciesFulfilled = function runCaller() {
 
 	    if (msg.buf[0] == 42) {  // KILL
 
-		console.log("--> KILL received from resmgr");
-
 		let signum = msg.buf[16] | (msg.buf[17] << 8) | (msg.buf[18] << 16) |  (msg.buf[18] << 24);
 
 		let sig_handler = msg.buf[20] | (msg.buf[21] << 8) | (msg.buf[22] << 16) |  (msg.buf[23] << 24);
 
-		let stack = stackSave();
+		Asyncify.stackTop = stackSave();
+		Asyncify.stackBase = _emscripten_stack_get_base();
+		Asyncify.stackEnd = _emscripten_stack_get_end();
 
-		//TODO: signature depends on signal/sigaction
-		
-		{{{ makeDynCall('vi', 'sig_handler') }}} (signum, 0, 0);
+		savedAsyncify = JSON.stringify(Asyncify);
 
-		stackRestore(stack);
+		_exa_signal_handler(sig_handler, signum);
 
-		msg.buf[0] |= 0x80;
-		msg.from = Module['rcv_bc_channel'].name;
-
-		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-
-		bc.postMessage(msg);
-
-		msg.buf[0] &= 0x7f;
+		return;
 	    }
 	    
-	    if (Module['rcv_bc_channel'].handler) {
+	    if (Module['rcv_bc_channel'].handlers) {
 
-		if (Module['rcv_bc_channel'].handler(messageEvent) == 0) {
+		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
 
-		    //Module['rcv_bc_channel'].handler = null;
-		}
+		if (ret > 0)
+		    Module['rcv_bc_channel'].unset_handler(ret);
 	    }
 	};
 
 	Module['rcv_bc_channel'].set_handler = (handler) => {
 
-	    Module['rcv_bc_channel'].handler = handler;
+	    if (handler) {
+
+		Module['rcv_bc_channel'].id += 1;
+		
+		Module['rcv_bc_channel'].handlers.push(
+		    {
+			id: Module['rcv_bc_channel'].id,
+			handler: handler
+		    }
+		);
+
+		return Module['rcv_bc_channel'].id;
+	    }
+
+	    return -1;
+	};
+	
+	Module['rcv_bc_channel'].unset_handler = (id) => {
+	    
+	    for (let i = 0; i < Module['rcv_bc_channel'].handlers.length; i += 1) {
+
+		if (Module['rcv_bc_channel'].handlers[i].id == id) {
+
+		    Module['rcv_bc_channel'].handlers.splice(i, 1);
+		}
+	    }
 	};
 
 	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
@@ -300,9 +319,7 @@ dependenciesFulfilled = function runCaller() {
 	    buf[14] = 0xff;
 	    buf[15] = 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -354,7 +371,12 @@ dependenciesFulfilled = function runCaller() {
 		    // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
 		    if (!calledRun) run();
 		    if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
-		    
+
+		    return hid;
+		}
+		else {
+
+		    return -1;
 		}
 	    });
 

@@ -15,12 +15,12 @@ int fclose(FILE *f)
 	r = fflush(f);
 
 	//BB
-  emscripten_log(EM_LOG_CONSOLE, "<-- fflush: r=%d", r);
+	//emscripten_log(EM_LOG_CONSOLE, "<-- fflush: r=%d", r);
   
 	r |= f->close(f);
 
 	//BB
-  emscripten_log(EM_LOG_CONSOLE, "<-- f->close: %d", r);
+	//emscripten_log(EM_LOG_CONSOLE, "<-- f->close: %d", r);
   
 	FUNLOCK(f);
 

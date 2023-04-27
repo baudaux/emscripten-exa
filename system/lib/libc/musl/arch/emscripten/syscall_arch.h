@@ -158,7 +158,10 @@ int __syscall_rt_sigaction(int signum, intptr_t act, intptr_t oldact, int sigset
   int __syscall_rt_sigprocmask(int how, intptr_t set, intptr_t oldset, int sigsetsize);
   int __syscall_kill(int pid, int sig);
   int __syscall_tkill(int tid, int sig);
-  
+
+  /* Modified by Benoit Baudaux 27/04/2023 */
+  int __syscall_exa_endofsignal(int sig);
+  int __syscall_exa_release_signal(int sig);
   
 #ifdef __cplusplus
 }

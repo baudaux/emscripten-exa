@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <wasi/api.h>
 
+#include <unistd.h>
+#include <emscripten.h>
+
+#include "syscall.h"
+
 __attribute__((__weak__)) void __wasm_call_ctors(void);
 
 int __main_void(void);
@@ -38,3 +43,21 @@ void _start(int argc, char *argv[]) {
   exit(__main_argc_argv(argc, argv));
 }
 
+int exa_release_signal(int signum) {
+
+  return __syscall(SYS_exa_release_signal, signum);
+}
+
+int exa_endofsignal(int signum) {
+
+  return __syscall(SYS_exa_endofsignal, signum);
+}
+
+EMSCRIPTEN_KEEPALIVE void exa_signal_handler(void (*sig_handler)(int), int signum) {
+
+  (*sig_handler)(signum);
+
+  exa_release_signal(signum);
+   
+  exa_endofsignal(signum);
+}

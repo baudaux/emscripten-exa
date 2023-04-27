@@ -202,10 +202,8 @@ var SyscallsLibrary = {
 
 	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 16);
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -218,7 +216,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(-_errno);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -296,9 +294,7 @@ var SyscallsLibrary = {
 	    buf2[18] = 0xff;
 	    buf2[19] = 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -312,7 +308,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(new_fd);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -366,9 +362,7 @@ var SyscallsLibrary = {
 	    buf2[18] = (new_fd >> 16) & 0xff;
 	    buf2[19] = (new_fd >> 24) & 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -382,7 +376,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(new_fd);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -580,9 +574,7 @@ var SyscallsLibrary = {
 		    buf2[27] = (argp >> 24) & 0xff;
 		}
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -654,7 +646,7 @@ var SyscallsLibrary = {
 			    break;
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -699,9 +691,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -734,13 +724,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_ioctl();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -870,9 +862,7 @@ var SyscallsLibrary = {
 		buf[26] = (protocol >> 16) & 0xff;
 		buf[27] = (protocol >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -914,7 +904,7 @@ var SyscallsLibrary = {
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 
 		    return -1;
@@ -1330,10 +1320,8 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -1372,7 +1360,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -1464,10 +1452,8 @@ var SyscallsLibrary = {
 
 	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 16);
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -1493,7 +1479,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -1566,10 +1552,8 @@ var SyscallsLibrary = {
 
 	    buf2.set(Module.HEAPU8.slice(path,path+path_len), 16);
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -1595,7 +1579,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -1651,9 +1635,7 @@ var SyscallsLibrary = {
 		buf2[14] = (remote_fd >> 16) & 0xff;
 		buf2[15] = (remote_fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -1676,7 +1658,7 @@ var SyscallsLibrary = {
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -1721,9 +1703,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -1756,13 +1736,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 			    
 			    do_fstat();
+
+			    return -1; // Do not reset handler as it is set by do_fstat
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -1837,10 +1819,8 @@ var SyscallsLibrary = {
 	    buf2[18] = (count >> 16) & 0xff;
 	    buf2[19] = (count >> 24) & 0xff;
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -1866,7 +1846,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -1980,9 +1960,7 @@ var SyscallsLibrary = {
 	    buf2[19] = (cmd >> 24) & 0xff;
 	    
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -1990,7 +1968,7 @@ var SyscallsLibrary = {
 		
 		    wakeUp(0); // TODO: size
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -2040,9 +2018,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -2075,13 +2051,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_fcntl();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -2263,10 +2241,8 @@ var SyscallsLibrary = {
 
 		buf2.set(Module.HEAPU8.slice(path,path+path_len), 140);
 		
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		    Module['rcv_bc_channel'].set_handler(null);
-		    
 		    //console.log(messageEvent);
 
 		    let msg2 = messageEvent.data;
@@ -2318,7 +2294,7 @@ var SyscallsLibrary = {
 				wakeUp(-_errno);
 			    }
 
-			return 0;
+			return hid;
 		    }
 
 		    return -1;
@@ -2630,7 +2606,7 @@ var SyscallsLibrary = {
 		buf[14] = 0x0;
 		buf[15] = 0x0;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    
 		    //console.log(messageEvent);
 
@@ -2638,13 +2614,11 @@ var SyscallsLibrary = {
 
 		    if (msg2.buf[0] == (7|0x80)) {
 
-			Module['rcv_bc_channel'].set_handler(null);
-
 			Module.child_pid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
 			do_fork();
 
-			return 0;
+			return hid;
 		    }
 
 		    return -1;
@@ -2822,10 +2796,8 @@ var SyscallsLibrary = {
 	    buf2[6] = (pid >> 16) & 0xff;
 	    buf2[7] = (pid >> 24) & 0xff;
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		Module['rcv_bc_channel'].set_handler(null);
-		
 		//console.log(messageEvent);
 
 		let msg2 = messageEvent.data;
@@ -2856,7 +2828,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -2918,9 +2890,7 @@ var SyscallsLibrary = {
 
 		buf2.set(HEAPU8.slice(buf,buf+len),20);
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -2930,7 +2900,7 @@ var SyscallsLibrary = {
 			
 			wakeUp(bytes_written);
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -2975,9 +2945,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3010,13 +2978,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_write();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3100,9 +3070,7 @@ var SyscallsLibrary = {
 		    iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
 		}
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3112,7 +3080,7 @@ var SyscallsLibrary = {
 			
 			wakeUp(bytes_written);
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3157,9 +3125,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3192,13 +3158,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_writev();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3255,9 +3223,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3270,7 +3236,7 @@ var SyscallsLibrary = {
 
 			wakeUp(-_errno);
 
-			return 0;
+			return hid;
 		    }
 
 		    return -1;
@@ -3313,9 +3279,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3348,13 +3312,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_close();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3403,9 +3369,7 @@ var SyscallsLibrary = {
 	    buf2[14] = 0;
 	    buf2[15] = 0;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -3419,7 +3383,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(sid);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -3472,9 +3436,7 @@ var SyscallsLibrary = {
 	    buf2[18] = 0;
 	    buf2[19] = 0;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -3486,7 +3448,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(sid);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -3511,7 +3473,7 @@ var SyscallsLibrary = {
     __syscall_read__sig: 'iipi',
     __syscall_read: function(fd, buf, count) {
 
-	console.log("__syscall_read: fd="+fd);
+	//console.log("__syscall_read: fd="+fd);
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -3571,11 +3533,11 @@ var SyscallsLibrary = {
 		buf2[18] = (len >> 16) & 0xff;
 		buf2[19] = (len >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
+
+		    //console.log("__syscall_read handler "+msg2.buf[0]);
 
 		    if (msg2.buf[0] == (12|0x80)) {
 
@@ -3587,13 +3549,15 @@ var SyscallsLibrary = {
 			
 			wakeUp(bytes_read);
 
-			return 0;
+			return hid;
 		    }
 		    else if (msg2.buf[0] == 42) { // Signal received and handled
 
+			//TODO: check flags
+			
 			wakeUp(-4); //EINTR
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3638,9 +3602,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3673,13 +3635,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_read();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3714,7 +3678,7 @@ var SyscallsLibrary = {
 		count += Module.HEAPU8[iov+8*i+4] | (Module.HEAPU8[iov+8*i+5] << 8) | (Module.HEAPU8[iov+8*i+6] << 16) |  (Module.HEAPU8[iov+8*i+7] << 24)
 	    }
 
-	    console.log("__syscall_readv: iovcnt="+iovcnt+", count="+count);
+	    //console.log("__syscall_readv: iovcnt="+iovcnt+", count="+count);
 
 	    let do_readv = () => {
 
@@ -3748,17 +3712,17 @@ var SyscallsLibrary = {
 		buf2[18] = (len >> 16) & 0xff;
 		buf2[19] = (len >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
+
+		    //console.log("__syscall_readv handler "+msg2.buf[0]);
 
 		    if (msg2.buf[0] == (12|0x80)) {
 
 			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-			console.log("__syscall_readv: bytes_read="+bytes_read);
+			//console.log("__syscall_readv: bytes_read="+bytes_read);
 
 			let offset = 0;
 
@@ -3766,11 +3730,11 @@ var SyscallsLibrary = {
 
 			    let len =  Module.HEAPU8[iov+8*i+4] | (Module.HEAPU8[iov+8*i+5] << 8) | (Module.HEAPU8[iov+8*i+6] << 16) |  (Module.HEAPU8[iov+8*i+7] << 24);
 
-			    console.log("__syscall_readv: "+i+", len="+len);
+			    //console.log("__syscall_readv: "+i+", len="+len);
 			    
 			    let len2 = ((offset+len) <= bytes_read)?len:bytes_read-offset;
 
-			    console.log("__syscall_readv: "+i+", len2="+len2);
+			    //console.log("__syscall_readv: "+i+", len2="+len2);
 
 			    if (len2 > 0) {
 				let ptr =  Module.HEAPU8[iov+8*i] | (Module.HEAPU8[iov+8*i+1] << 8) | (Module.HEAPU8[iov+8*i+2] << 16) |  (Module.HEAPU8[iov+8*i+3] << 24);
@@ -3790,13 +3754,15 @@ var SyscallsLibrary = {
 			
 			wakeUp(bytes_read);
 
-			return 0;
+			return hid;
 		    }
 		    else if (msg2.buf[0] == 42) { // Signal received and handled
 
+			//TODO: check flags
+			
 			wakeUp(-4); //EINTR
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3841,9 +3807,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -3876,13 +3840,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_readv();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -3911,8 +3877,9 @@ var SyscallsLibrary = {
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	    // TODO
+	    //console.log("__syscall_pause");
 	});
-				       
+	
 	return ret;
     },
     __syscall_getpgid__sig: 'ii',
@@ -3946,9 +3913,7 @@ var SyscallsLibrary = {
 	    buf2[18] = 0;
 	    buf2[19] = 0;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -3960,7 +3925,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(pgid);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4011,9 +3976,7 @@ var SyscallsLibrary = {
 	    buf2[18] = (pgid >> 16) & 0xff;
 	    buf2[19] = (pgid >> 24) & 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4023,7 +3986,7 @@ var SyscallsLibrary = {
 		    
 		    wakeUp(0);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4068,9 +4031,7 @@ var SyscallsLibrary = {
 	    buf2[14] = 0;
 	    buf2[15] = 0;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4082,7 +4043,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(ppid);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4142,9 +4103,7 @@ var SyscallsLibrary = {
 	    buf2[18] = (path_len >> 16) & 0xff;
 	    buf2[19] = (path_len >> 24) & 0xff;
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4160,7 +4119,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(len-1); // Remove last zero frol len
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4351,9 +4310,7 @@ var SyscallsLibrary = {
 		wakeUp(1);
 	    };
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 		
@@ -4365,7 +4322,7 @@ var SyscallsLibrary = {
 
 		    notif_select(fd, rw);
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -4482,9 +4439,7 @@ var SyscallsLibrary = {
 	    buf2[14] = (clockid >> 16) & 0xff;
 	    buf2[15] = (clockid >> 24) & 0xff;
 	    
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4496,7 +4451,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(fd);
 
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4564,7 +4519,7 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    console.log("__syscall_wait4: wpid="+wpid+", options="+options);
+	    //console.log("__syscall_wait4: wpid="+wpid+", options="+options);
 	    
 	    let buf_size = 24;
 	    
@@ -4592,9 +4547,7 @@ var SyscallsLibrary = {
 	    buf2[18] = (options >> 16) & 0xff;
 	    buf2[19] = (options >> 24) & 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4606,7 +4559,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(pid);
 		    
-		    return 0;
+		    return hid;
 		}
 
 		return -1;
@@ -4631,7 +4584,7 @@ var SyscallsLibrary = {
 
 	Asyncify.handleSleep(function (wakeUp) {
 
-	    console.log("__syscall_exit_group");
+	    //console.log("__syscall_exit_group");
 
 	    let buf_size = 20;
 	    
@@ -4671,7 +4624,7 @@ var SyscallsLibrary = {
 
 	Asyncify.handleSleep(function (wakeUp) {
 
-	    console.log("__syscall_exit");
+	    //console.log("__syscall_exit");
 
 	    let buf_size = 20;
 	    
@@ -4712,7 +4665,7 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    console.log("__syscall_lseek: off="+offset+", whence="+whence);
+	    //console.log("__syscall_lseek: off="+offset+", whence="+whence);
 
 	    let do_lseek = () => {
 
@@ -4750,9 +4703,7 @@ var SyscallsLibrary = {
 		buf2[22] = (whence >> 16) & 0xff;
 		buf2[23] = (whence >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -4773,7 +4724,7 @@ var SyscallsLibrary = {
 			    wakeUp(-_errno);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -4818,9 +4769,7 @@ var SyscallsLibrary = {
 		buf2[14] = (fd >> 16) & 0xff;
 		buf2[15] = (fd >> 24) & 0xff;
 
-		Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		    Module['rcv_bc_channel'].set_handler(null);
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		    let msg2 = messageEvent.data;
 
@@ -4853,13 +4802,15 @@ var SyscallsLibrary = {
 			    Module['fd_table'][fd] = desc;
 
 			    do_lseek();
+
+			    return hid;
 			}
 			else {
 
 			    wakeUp(-1);
 			}
 
-			return 0;
+			return hid;
 		    }
 		    else {
 
@@ -4911,9 +4862,7 @@ var SyscallsLibrary = {
 	    else
 		buf2.set(new UInt8Array(140), 16);
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -4933,7 +4882,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -4990,9 +4939,7 @@ var SyscallsLibrary = {
 	    else
 		buf2.set(new UInt8Array(sigsetsize), 20);
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -5012,7 +4959,7 @@ var SyscallsLibrary = {
 			wakeUp(-1);
 		    }
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -5064,9 +5011,7 @@ var SyscallsLibrary = {
 	    buf2[18] = (sig >> 16) & 0xff;
 	    buf2[19] = (sig >> 24) & 0xff;
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
 
@@ -5076,7 +5021,7 @@ var SyscallsLibrary = {
 
 		    wakeUp(-_errno);
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -5129,11 +5074,11 @@ var SyscallsLibrary = {
 
 	    buf2.set(Module.HEAPU8.slice(new_value, new_value+16), 16);
 
-	    Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		Module['rcv_bc_channel'].set_handler(null);
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
 		let msg2 = messageEvent.data;
+
+		//console.log("__syscall_setitimer "+msg2.buf[0]);
 
 		if (msg2.buf[0] == (43|0x80)) {
 
@@ -5142,7 +5087,7 @@ var SyscallsLibrary = {
 		    
 		    wakeUp(0);
 
-		    return 0;
+		    return hid;
 		}
 		else {
 
@@ -5169,6 +5114,126 @@ var SyscallsLibrary = {
     __syscall_getitimer: function (which, old_value) {
 
 	//TODO
+    },
+
+    __syscall_exa_release_signal__sig: 'ii',
+    __syscall_exa_release_signal: function(signum) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 16;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 45; // EXA_RELEASE_SIGNAL
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // signum
+	    buf2[12] = signum & 0xff;
+	    buf2[13] = (signum >> 8) & 0xff;
+	    buf2[14] = (signum >> 16) & 0xff;
+	    buf2[15] = (signum >> 24) & 0xff;
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (45|0x80)) {
+
+		    //console.log(messageEvent);
+		    
+		    wakeUp(0);
+
+		    return hid;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+				       
+	return ret;
+    },
+
+    __syscall_exa_endofsignal__sig: 'ii',
+    __syscall_exa_endofsignal: function(sig) {
+
+	//console.log("__syscall_exa_endofsignal");
+
+	setTimeout(() => {
+
+	    //console.log("Nb handlers="+Module['rcv_bc_channel'].handlers.length);
+
+	    let messageEvent = { data: {} };
+
+	    let msg = messageEvent.data;
+
+	    msg.buf = new Uint8Array(20);
+
+	    msg.buf[0] = 42;
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    msg.buf[4] = pid & 0xff;
+	    msg.buf[5] = (pid >> 8) & 0xff;
+	    msg.buf[6] = (pid >> 16) & 0xff;
+	    msg.buf[7] = (pid >> 24) & 0xff;
+	    
+	    msg.buf[12] = pid & 0xff;
+	    msg.buf[13] = (pid >> 8) & 0xff;
+	    msg.buf[14] = (pid >> 16) & 0xff;
+	    msg.buf[15] = (pid >> 24) & 0xff;
+
+	    msg.buf[16] = sig & 0xff;
+	    msg.buf[17] = (sig >> 8) & 0xff;
+	    msg.buf[18] = (sig >> 16) & 0xff;
+	    msg.buf[19] = (sig >> 24) & 0xff;
+	    
+	    msg.from = Module['rcv_bc_channel'].name;
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    let a = JSON.parse(savedAsyncify);
+	    
+	    Asyncify.callStackId = a.callStackId;
+	    Asyncify.callStackIdToName = a.callStackIdToName;
+	    Asyncify.callStackNameToId = a.callStackNameToId;
+	    Asyncify.currData = a.currData;
+	    Asyncify.handleSleepReturnValue = a.handleSleepReturnValue;
+	    Asyncify.state = a.state;
+	    Asyncify.exportCallStack = a.exportCallStack;
+	    
+	    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
+	    stackRestore(a.stackTop);
+
+	    if (Module['rcv_bc_channel'].handlers) {
+
+		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+
+		if (ret > 0)
+		    Module['rcv_bc_channel'].unset_handler(ret);
+	    }
+	});
+
+	return 0;
     },
     
 };

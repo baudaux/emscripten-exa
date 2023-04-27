@@ -16,9 +16,6 @@ ssize_t read(int fd, void *buf, size_t count)
 	}
 	return num;
 #else
-	//BB
-	emscripten_log(EM_LOG_CONSOLE, "musl::read.c : fd=%d count=%d", fd, count);
-  
 	ssize_t s = syscall_cp(SYS_read, fd, buf, count);
 
 	return s;

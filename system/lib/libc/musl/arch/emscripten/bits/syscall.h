@@ -135,3 +135,7 @@
 
 #define SYS_kill                __syscall_kill
 #define SYS_tkill               __syscall_tkill
+
+/* Modified by Benoit Baudaux 27/04/2023 */
+#define SYS_exa_endofsignal     __syscall_exa_endofsignal
+#define SYS_exa_release_signal  __syscall_exa_release_signal
