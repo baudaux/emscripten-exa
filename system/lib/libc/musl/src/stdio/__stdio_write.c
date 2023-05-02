@@ -4,8 +4,8 @@
 /* Modified by Benoit Baudaux 5/1/2023 */
 #undef __EMSCRIPTEN__
 
-//
-#include <emscripten.h>
+//BB
+//#include <emscripten.h>
 
 size_t __stdio_write(FILE *f, const unsigned char *buf, size_t len)
 {

@@ -9,6 +9,8 @@ weak_alias(dummy, __stderr_used);
 
 int fflush(FILE *f)
 {
+  //emscripten_log(EM_LOG_CONSOLE, "--> fflush");
+  
 	if (!f) {
 		int r = 0;
 		if (__stdout_used) r |= fflush(__stdout_used);

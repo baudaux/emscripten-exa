@@ -6,7 +6,13 @@
 int __toread(FILE *f)
 {
    //BB
-  //emscripten_log(EM_LOG_CONSOLE, "__toread: wpos=%d wbase=%d", f->wpos, f->wbase);
+  /*if (f->wpos != f->wbase) {
+    emscripten_log(EM_LOG_CONSOLE, "__toread: wpos=%d wbase=%d -> write", f->wpos, f->wbase);
+  }
+  else {
+
+    emscripten_log(EM_LOG_CONSOLE, "__toread: wpos=%d wbase=%d -> no write", f->wpos, f->wbase);
+    }*/
   
 	f->mode |= f->mode-1;
 	if (f->wpos != f->wbase) f->write(f, 0, 0);

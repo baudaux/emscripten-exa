@@ -8,7 +8,7 @@
 off_t __ftello_unlocked(FILE *f)
 {
   //BB
-	emscripten_log(EM_LOG_CONSOLE, "**** __ftello_unlocked");
+  //emscripten_log(EM_LOG_CONSOLE, "**** __ftello_unlocked");
 	
 	off_t pos = f->seek(f, 0,
 		(f->flags & F_APP) && f->wpos != f->wbase

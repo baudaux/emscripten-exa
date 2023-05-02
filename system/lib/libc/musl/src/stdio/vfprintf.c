@@ -11,6 +11,8 @@
 #include <math.h>
 #include <float.h>
 
+#include <emscripten.h>
+
 #ifndef EMSCRIPTEN_PRINTF_LONG_DOUBLE
 // XXX EMSCRIPTEN - while wasm32 has long double = float128, we don't support
 //                  printing at full precision by default. instead, we lower to
@@ -176,6 +178,8 @@ static void pop_arg(union arg *arg, int type, va_list *ap, pop_arg_long_double_t
 
 static void out(FILE *f, const char *s, size_t l)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> out: %s", s);
+  
 	if (!(f->flags & F_ERR)) __fwritex((void *)s, l, f);
 }
 
@@ -481,6 +485,8 @@ static int getint(char **s) {
 //                 force linking in of unnecessary floating-point code.
 static int printf_core(FILE *f, const char *fmt, va_list *ap, union arg *nl_arg, int *nl_type, fmt_fp_t fmt_fp, pop_arg_long_double_t pop_arg_long_double)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> printf_core");
+  
 	char *a, *z, *s=(char *)fmt;
 	unsigned l10n=0, fl;
 	int w, p, xp;
@@ -712,6 +718,8 @@ overflow:
 //                 force linking in of floating-point code.
 int __vfprintf_internal(FILE *restrict f, const char *restrict fmt, va_list ap, fmt_fp_t fmt_fp, pop_arg_long_double_t pop_arg_long_double)
 {
+  //emscripten_log(EM_LOG_CONSOLE, "--> vfprintf_internal");
+  
 	va_list ap2;
 	int nl_type[NL_ARGMAX+1] = {0};
 	union arg nl_arg[NL_ARGMAX+1];
@@ -744,26 +752,36 @@ int __vfprintf_internal(FILE *restrict f, const char *restrict fmt, va_list ap, 
 		f->buf_size = 0;
 		f->wpos = f->wbase = f->wend = 0;
 	}
+	
 	if (f->flags & F_ERR) ret = -1;
 	f->flags |= olderr;
 	FUNLOCK(f);
 	va_end(ap2);
+
+	//emscripten_log(EM_LOG_CONSOLE, "<-- vfprintf_internal: wpos=%d wend=%d ret=%d", f->wpos, f->wend, ret);
+	
 	return ret;
 }
 
 int vfprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> vfprintf");
+  
 	return __vfprintf_internal(f, fmt, ap, fmt_fp, pop_arg_long_double);
 }
 
 // XXX EMSCRIPTEN
 int vfiprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> vfiprintf: %s", fmt);
+  
 	return __vfprintf_internal(f, fmt, ap, NULL, NULL);
 }
 
 // XXX EMSCRIPTEN
 int __small_vfprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 {
+  emscripten_log(EM_LOG_CONSOLE,"--> small_vfprintf");
+  
 	return __vfprintf_internal(f, fmt, ap, fmt_fp, NULL);
 }

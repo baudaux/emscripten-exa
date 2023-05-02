@@ -2,8 +2,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <emscripten.h>
+
 int fprintf(FILE *restrict f, const char *restrict fmt, ...)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> fprintf");
+  
 	int ret;
 	va_list ap;
 	va_start(ap, fmt);
@@ -15,6 +19,8 @@ int fprintf(FILE *restrict f, const char *restrict fmt, ...)
 // XXX EMSCRIPTEN
 int fiprintf(FILE *restrict f, const char *restrict fmt, ...)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> fiprintf");
+  
 	int ret;
 	va_list ap;
 	va_start(ap, fmt);
@@ -25,6 +31,8 @@ int fiprintf(FILE *restrict f, const char *restrict fmt, ...)
 
 int __small_fprintf(FILE *restrict f, const char *restrict fmt, ...)
 {
+  //emscripten_log(EM_LOG_CONSOLE,"--> __small_fprintf");
+  
 	int ret;
 	va_list ap;
 	va_start(ap, fmt);

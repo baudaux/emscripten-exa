@@ -589,6 +589,8 @@ var SyscallsLibrary = {
 
 			let errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
+			//console.log("__syscall_ioctl: errno=" +errno);
+
 			switch(op2) {
 
 			case {{{ cDefine('TIOCGWINSZ') }}}:
@@ -2888,7 +2890,8 @@ var SyscallsLibrary = {
 		buf2[18] = (len >> 16) & 0xff;
 		buf2[19] = (len >> 24) & 0xff;
 
-		buf2.set(HEAPU8.slice(buf,buf+len),20);
+		if (buf && len > 0)
+		    buf2.set(HEAPU8.slice(buf, buf+len), 20);
 
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -3019,11 +3022,14 @@ var SyscallsLibrary = {
 	
 		let len = 0;
 
-		let iov2 = iov;
+		if (iov && (iovcnt > 0)) {
+		    
+		    let iov2 = iov;
 
-		for (var i = 0; i < iovcnt; i++) {
-		    len += {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
-		    iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+		    for (var i = 0; i < iovcnt; i++) {
+			len += {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+			iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+		    }
 		}
 
 		let buf_size = 20+len;
@@ -3056,18 +3062,24 @@ var SyscallsLibrary = {
 
 		buf_size = 20;
 
-		iov2 = iov;
+		if (iov && (iovcnt > 0)) {
+		    
+		    let iov2 = iov;
 
-		for (var i = 0; i < iovcnt; i++) {
-		    let ptr = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_base, '*') }}};
-		    let l = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
-		    
-		    if (l > 0)
-			buf2.set(HEAPU8.slice(ptr,ptr+l), buf_size);
-		    
-		    buf_size += l;
-		    
-		    iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+		    for (var i = 0; i < iovcnt; i++) {
+			
+			let ptr = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_base, '*') }}};
+			if (ptr) {
+			    let l = {{{ makeGetValue('iov2', C_STRUCTS.iovec.iov_len, '*') }}};
+			    
+			    if (l > 0)
+				buf2.set(HEAPU8.slice(ptr, ptr+l), buf_size);
+			    
+			    buf_size += l;
+			}
+
+			iov2 += {{{ C_STRUCTS.iovec.__size__ }}};
+		    }
 		}
 
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
@@ -5151,6 +5163,66 @@ var SyscallsLibrary = {
 		    
 		    wakeUp(0);
 
+		    //Module['rcv_bc_channel'].unset_handler(hid);
+
+		    return hid;
+
+		    let a = JSON.parse(savedAsyncify);
+	    
+		    Asyncify.callStackId = a.callStackId;
+		    Asyncify.callStackIdToName = a.callStackIdToName;
+		    Asyncify.callStackNameToId = a.callStackNameToId;
+		    Asyncify.currData = a.currData;
+		    Asyncify.handleSleepReturnValue = a.handleSleepReturnValue;
+		    Asyncify.state = a.state;
+		    Asyncify.exportCallStack = a.exportCallStack;
+		    
+		    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
+		    stackRestore(a.stackTop);
+
+		    /*Asyncify.state = Asyncify.State.Rewinding;
+			    
+		      asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);*/
+
+		    msg2.buf[0] = 42;
+
+		    //console.log("Nb handlers="+Module['rcv_bc_channel'].handlers.length);
+		    Module['rcv_bc_channel'].handlers.pop();
+
+		    
+		    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0)) {
+
+			let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+
+			if (ret > 0) {
+				
+			    Module['rcv_bc_channel'].unset_handler(ret);
+
+			    if (Module['rcv_bc_channel'].handlers.length > 0) {
+
+				let e = Module['rcv_bc_channel'].events.pop();
+
+				if (e) {
+
+				    console.log("Handle previous event !!");
+
+				    ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(e);
+
+				    console.log("Previous event handled !! "+ret);
+
+				    if (ret > 0) {
+					
+					Module['rcv_bc_channel'].unset_handler(ret);
+				    }
+				}
+			    }
+			}
+		    }
+		    else {
+
+			console.log("No handler");
+		    }
+
 		    return hid;
 		}
 
@@ -5224,13 +5296,42 @@ var SyscallsLibrary = {
 	    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
 	    stackRestore(a.stackTop);
 
-	    if (Module['rcv_bc_channel'].handlers) {
+	    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0)) {
 
-		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+		let e = Module['rcv_bc_channel'].events.pop();
 
-		if (ret > 0)
+		let ret;
+		
+		if (e)
+		    ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(e);
+		else
+		    ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+
+		if (ret > 0) {
+		    
 		    Module['rcv_bc_channel'].unset_handler(ret);
+		    
+		    /*if (Module['rcv_bc_channel'].handlers.length > 0) {
+
+			let e;
+			
+			while (e = Module['rcv_bc_channel'].events.pop()) {
+
+			    console.log("Handle previous event !!");
+
+			    ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(e);
+
+			    
+
+			    if (ret > 0) {
+				
+				Module['rcv_bc_channel'].unset_handler(ret);
+			    }
+			}
+		    }*/
+		}
 	    }
+	    
 	});
 
 	return 0;

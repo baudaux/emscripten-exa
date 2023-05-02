@@ -6,7 +6,7 @@
 int __fseeko_unlocked(FILE *f, off_t off, int whence)
 {
   //BB
-	emscripten_log(EM_LOG_CONSOLE, "**** __fseeko_unlocked: offset=%d, whence=%d", off, whence);
+  //emscripten_log(EM_LOG_CONSOLE, "**** __fseeko_unlocked: offset=%d, whence=%d", off, whence);
 	
 	/* Adjust relative offset for unread data in buffer, if any. */
 	if (whence == SEEK_CUR && f->rend) off -= f->rend - f->rpos;
@@ -33,7 +33,7 @@ int __fseeko_unlocked(FILE *f, off_t off, int whence)
 int __fseeko(FILE *f, off_t off, int whence)
 {
   //BB
-	emscripten_log(EM_LOG_CONSOLE, "**** __fseeko ****: offset=%d, whence=%d", off, whence);
+  //emscripten_log(EM_LOG_CONSOLE, "**** __fseeko ****: offset=%d, whence=%d", off, whence);
 	
 	int result;
 	FLOCK(f);
@@ -45,7 +45,7 @@ int __fseeko(FILE *f, off_t off, int whence)
 int fseek(FILE *f, long off, int whence)
 {
   //BB
-	emscripten_log(EM_LOG_CONSOLE, "**** fseek ****: offset=%d, whence=%d", off, whence);
+  //emscripten_log(EM_LOG_CONSOLE, "**** fseek ****: offset=%d, whence=%d", off, whence);
 	
 	return __fseeko(f, off, whence);
 }

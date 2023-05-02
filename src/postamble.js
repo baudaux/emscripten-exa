@@ -124,6 +124,7 @@ dependenciesFulfilled = function runCaller() {
 
 	Module['rcv_bc_channel'].handlers = [];
 	Module['rcv_bc_channel'].id = 0;
+	Module['rcv_bc_channel'].events = [];
 	
 	//console.log("rcv_bc_channel created");
 
@@ -137,23 +138,32 @@ dependenciesFulfilled = function runCaller() {
 
 		let sig_handler = msg.buf[20] | (msg.buf[21] << 8) | (msg.buf[22] << 16) |  (msg.buf[23] << 24);
 
-		Asyncify.stackTop = stackSave();
-		Asyncify.stackBase = _emscripten_stack_get_base();
-		Asyncify.stackEnd = _emscripten_stack_get_end();
+		if (sig_handler) {
 
-		savedAsyncify = JSON.stringify(Asyncify);
+		    Asyncify.stackTop = stackSave();
+		    Asyncify.stackBase = _emscripten_stack_get_base();
+		    Asyncify.stackEnd = _emscripten_stack_get_end();
 
-		_exa_signal_handler(sig_handler, signum);
+		    savedAsyncify = JSON.stringify(Asyncify);
 
-		return;
+		    _exa_signal_handler(sig_handler, signum);
+
+		    return;
+		}
 	    }
 	    
-	    if (Module['rcv_bc_channel'].handlers) {
+	    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0) ) {
 
 		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
 
-		if (ret > 0)
+		if (ret > 0) {
 		    Module['rcv_bc_channel'].unset_handler(ret);
+		}
+		else {
+		    //console.log("Push event !! "+messageEvent.data.buf[0]+", "+Module['rcv_bc_channel'].handlers.length);
+		    
+		    Module['rcv_bc_channel'].events.push(messageEvent);
+		}
 	    }
 	};
 

@@ -20,7 +20,7 @@ int __towrite(FILE *f)
 
 #ifdef __BB_DEBUG
 	// BB
-	emscripten_log(EM_LOG_CONSOLE,"<-- __towrite (0)");
+	emscripten_log(EM_LOG_CONSOLE,"<-- __towrite wpos=%d wend=%d", f->wpos, f->wend);
 #endif
 
 	return 0;

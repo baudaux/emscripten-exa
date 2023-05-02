@@ -13,7 +13,7 @@ size_t fread(void *restrict destv, size_t size, size_t nmemb, FILE *restrict f)
 	if (!size) nmemb = 0;
 
 	//BB
-	emscripten_log(EM_LOG_CONSOLE, "--> fread: fd=%d", f->fd);
+	//emscripten_log(EM_LOG_CONSOLE, "--> fread: fd=%d", f->fd);
   
 
 	FLOCK(f);
