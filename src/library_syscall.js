@@ -2437,6 +2437,97 @@ var SyscallsLibrary = {
 #if SYSCALL_DEBUG
     dbg('warning: untested syscall');
 #endif
+
+      let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  let buf_size = 1256;
+	  
+	  let buf2 = new Uint8Array(buf_size);
+	  
+	  buf2[0] = 46; // FACCESSAT
+	  
+	  let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  
+	  // pid
+	  buf2[4] = pid & 0xff;
+	  buf2[5] = (pid >> 8) & 0xff;
+	  buf2[6] = (pid >> 16) & 0xff;
+	  buf2[7] = (pid >> 24) & 0xff;
+	  
+	  // errno
+	  buf2[8] = 0x0;
+	  buf2[9] = 0x0;
+	  buf2[10] = 0x0;
+	  buf2[11] = 0x0;
+
+	  buf2[12] = dirfd & 0xff;
+	  buf2[13] = (dirfd >> 8) & 0xff;
+	  buf2[14] = (dirfd >> 16) & 0xff;
+	  buf2[15] = (dirfd >> 24) & 0xff;
+
+	  buf2[16] = amode & 0xff;
+	  buf2[17] = (amode >> 8) & 0xff;
+	  buf2[18] = (amode >> 16) & 0xff;
+	  buf2[19] = (amode >> 24) & 0xff;
+
+	  buf2[20] = flags & 0xff;
+	  buf2[21] = (flags >> 8) & 0xff;
+	  buf2[22] = (flags >> 16) & 0xff;
+	  buf2[23] = (flags >> 24) & 0xff;
+
+	    let path_len = 0;
+
+	    while (Module.HEAPU8[path+path_len]) {
+
+		path_len++;
+	    }
+
+	    path_len++;
+
+	    buf2[24] = path_len & 0xff;
+	    buf2[25] = (path_len >> 8) & 0xff;
+	    buf2[26] = (path_len >> 16) & 0xff;
+	    buf2[27] = (path_len >> 24) & 0xff;
+
+	    buf2.set(Module.HEAPU8.slice(path, path+path_len), 28);
+	    
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		//console.log(messageEvent);
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (46|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    //console.log("__syscall_stat64: _errno="+_errno);
+
+		    wakeUp(-_errno);
+
+		    return hid;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	    
+	    bc.postMessage(msg);
+
+	});
+
+	return ret;
+
+/* Modified by Benoit Baudaux 5/5/2023 */
+#if 0
     path = SYSCALLS.getStr(path);
 #if ASSERTIONS
     assert(flags === 0);
@@ -2458,7 +2549,8 @@ var SyscallsLibrary = {
     if (perms /* otherwise, they've just passed F_OK */ && FS.nodePermissions(node, perms)) {
       return -{{{ cDefine('EACCES') }}};
     }
-    return 0;
+      return 0;
+#endif
   },
   __syscall_utimensat__sig: 'iippi',
   __syscall_utimensat__deps: ['$readI53FromI64'],
@@ -2651,7 +2743,7 @@ var SyscallsLibrary = {
 
 	    let do_exec = (path) => {
 		
-		console.log("do_exec: "+path);
+		//console.log("do_exec: "+path);
 		
 		let buf_size = 1256;
 
@@ -3555,7 +3647,7 @@ var SyscallsLibrary = {
 
 			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
-			//console.log("bytes_read: "+bytes_read);
+			//console.log("__syscall_read: bytes_read="+bytes_read);
 
 			Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
 			
@@ -3735,6 +3827,11 @@ var SyscallsLibrary = {
 			let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
 			//console.log("__syscall_readv: bytes_read="+bytes_read);
+
+			/*for (let i=0;i<bytes_read; i+= 160) {
+			    
+			    console.log("* "+i+": "+msg2.buf[20+i]+" "+msg2.buf[20+i+1]+" "+msg2.buf[20+i+2]+" "+msg2.buf[20+i+3]);
+			}*/
 
 			let offset = 0;
 
@@ -4158,20 +4255,22 @@ var SyscallsLibrary = {
 
 	//console.log("__syscall_pselect6: nfds="+nfds);
 
+	let s = -1;
+	let ns = 0;
+
 	if (timeout) {
 
-	    let s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
+	    s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
 
-	    let ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
+	    ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
 
 	    //end = 1000*s + 1000000*ns;
 
 	    //console.log("__syscall_pselect6: timeout s="+s+", ns="+ns);
 	}
-	else {
-
-	    //console.log("__syscall_pselect6: no timeout");
-	}
+	
+	//console.log("__syscall_pselect6: s="+s+", ns="+ns);
+	//console.log(Module['fd_table']);
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -4276,6 +4375,9 @@ var SyscallsLibrary = {
 
 	    let notif_select = (fd, rw) => {
 
+		if (Module['select_timer'])
+		    clearTimeout(Module['select_timer']);
+		
 		// Stop select for readfds
 		
 		for (let readfd of readfds_array) {
@@ -4310,66 +4412,180 @@ var SyscallsLibrary = {
 		    }
 		}
 
-		if (rw && writefds) {
+		if (fd >= 0) {
 
-		    Module.HEAPU8[writefds+Math.floor(fd/8)] = 1 << (fd % 8);
-		}
-		else if (readfds) {
+		    if (rw && writefds) {
 
-		    Module.HEAPU8[readfds+Math.floor(fd/8)] = 1 << (fd % 8);
-		}
+			Module.HEAPU8[writefds+Math.floor(fd/8)] = 1 << (fd % 8);
+		    }
+		    else if (readfds) {
 
-		wakeUp(1);
-	    };
+			Module.HEAPU8[readfds+Math.floor(fd/8)] = 1 << (fd % 8);
+		    }
 
-	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		let msg2 = messageEvent.data;
-		
-		if (msg2.buf[0] == (31|0x80)) {
-
-		    let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
-
-		    let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-
-		    notif_select(fd, rw);
-
-		    return hid;
+		    wakeUp(1);
 		}
 		else {
 
-		    return -1;
+		    wakeUp(0);
+		}
+	    };
+
+	    let selectfds_array = [].concat(readfds_array, writefds_array);
+
+	    let check_unknown_fds = (fds, callback) => {
+
+		if (fds.length == 0) {
+		    callback();
+		    return;
+		}
+
+		let fd = fds.pop();
+
+		if ( !(fd in Module['fd_table']) || !Module['fd_table'][fd] ) {
+
+		    let buf_size = 256;
+
+		    let buf2 = new Uint8Array(buf_size);
+
+		    buf2[0] = 26; // IS_OPEN
+
+		    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		    // pid
+		    buf2[4] = pid & 0xff;
+		    buf2[5] = (pid >> 8) & 0xff;
+		    buf2[6] = (pid >> 16) & 0xff;
+		    buf2[7] = (pid >> 24) & 0xff;
+
+		    // fd
+		    buf2[12] = fd & 0xff;
+		    buf2[13] = (fd >> 8) & 0xff;
+		    buf2[14] = (fd >> 16) & 0xff;
+		    buf2[15] = (fd >> 24) & 0xff;
+
+		    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+			let msg2 = messageEvent.data;
+
+			if (msg2.buf[0] == (26|0x80)) {
+
+			    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			    if (!_errno) {
+
+				let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+				let type = msg2.buf[20];
+				let major = msg2.buf[22] | (msg2.buf[23] << 8);
+				let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+				var desc = {
+
+				    fd: fd,
+				    remote_fd: remote_fd,
+				    peer: peer,
+				    type: type,
+				    major: major,
+				    
+				    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				    peers: {},
+				    pending: [],
+				    recv_queue: [],
+				    name: null,
+				    bc: null,
+				};
+
+				Module['fd_table'][fd] = desc;
+			    }
+
+			    check_unknown_fds(fds, callback);
+			    
+			    return hid;
+			}
+			else {
+
+			    return -1;
+			}
+		    });
+
+		    let msg = {
+			
+			from: Module['rcv_bc_channel'].name,
+			buf: buf2,
+			len: buf_size
+		    };
+
+		    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		    bc.postMessage(msg);
+		}
+		else {
+		    check_unknown_fds(fds, callback);
+		}
+	    }
+
+	    check_unknown_fds(selectfds_array, () => {
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+		    
+		    if (msg2.buf[0] == (31|0x80)) {
+
+			let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			notif_select(fd, rw);
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let i = 0;
+
+		// Start select for readfds
+		
+		for (let readfd of readfds_array) {
+
+		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+			i++;
+			do_select(readfd, 0, 1);
+		    }
+		}
+		
+		// Start select for writefds
+
+		for (let writefd of writefds_array) {
+
+		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+			i++;
+			do_select(writefd, 1, 1);
+		    }
+		}
+
+		if (i == 0) { // no fd for select
+
+		    wakeUp(0);
+		}
+		else if (s >= 0) {
+
+		    if ((s == 0) && (ns == 0) )
+			ns = 5000000;
+
+		    Module['select_timer'] = setTimeout(() => {
+
+			notif_select(-1, -1);
+			
+		    }, Math.floor(s*1000+ns/1000000));
 		}
 	    });
-
-	    let i = 0;
-
-	    // Start select for readfds
 	    
-	    for (let readfd of readfds_array) {
-
-		if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
-
-		    i++;
-		    do_select(readfd, 0, 1);
-		}
-	    }
-	    
-	    // Start select for writefds
-
-	    for (let writefd of writefds_array) {
-
-		if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
-
-		    i++;
-		    do_select(writefd, 1, 1);
-		}
-	    }
-
-	    if (i == 0) { // no fd for select
-
-		wakeUp(0);
-	    }
 	});
 
 	return ret;
@@ -4872,7 +5088,7 @@ var SyscallsLibrary = {
 	    if (act)
 		buf2.set(Module.HEAPU8.slice(act, act+140), 16);
 	    else
-		buf2.set(new UInt8Array(140), 16);
+		buf2.set(new Uint8Array(140), 16);
 
 	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 

@@ -143,6 +143,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_setitimer',
   '__syscall_getitimer',
   '__syscall_exa_release_signal',
+  '__syscall_faccessat'
 ]
 
 # Target options
