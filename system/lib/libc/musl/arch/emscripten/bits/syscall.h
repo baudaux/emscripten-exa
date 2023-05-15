@@ -6,7 +6,7 @@
 #define SYS_sync		 __syscall_sync
 #define SYS_rmdir		 __syscall_rmdir
 #define SYS_dup		         __syscall_dup
-#define SYS_pipe		 __syscall_pipe
+//#define SYS_pipe		 __syscall_pipe
 #define SYS_acct		 __syscall_acct
 #define SYS_ioctl		 __syscall_ioctl
 #define SYS_setpgid		 __syscall_setpgid
@@ -139,3 +139,8 @@
 /* Modified by Benoit Baudaux 27/04/2023 */
 #define SYS_exa_endofsignal     __syscall_exa_endofsignal
 #define SYS_exa_release_signal  __syscall_exa_release_signal
+
+/* Modified by Benoit Baudaux 15/05/2023 */
+#define SYS_setuid32            __syscall_setuid32
+#define SYS_setgid32            __syscall_setgid32
+

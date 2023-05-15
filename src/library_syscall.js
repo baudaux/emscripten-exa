@@ -396,7 +396,7 @@ var SyscallsLibrary = {
 
 	return ret;
   },
-  __syscall_pipe__deps: ['$PIPEFS'],
+  /*__syscall_pipe__deps: ['$PIPEFS'],
   __syscall_pipe__sig: 'ip',
   __syscall_pipe: function(fdPtr) {
     if (fdPtr == 0) {
@@ -409,7 +409,78 @@ var SyscallsLibrary = {
     {{{ makeSetValue('fdPtr', 4, 'res.writable_fd', 'i32') }}};
 
     return 0;
-  },
+    },*/
+    __syscall_pipe2__sig: 'ipi',
+    __syscall_pipe2: function(fdPtr, flags) {
+
+	console.log("__syscall_pipe2");
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 24;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 47; // PIPE
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    // flags
+	    buf2[20] = flags & 0xff;
+	    buf2[21] = (flags >> 8) & 0xff;
+	    buf2[22] = (flags >> 16) & 0xff;
+	    buf2[23] = (flags >> 24) & 0xff;
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (47|0x80)) {
+
+		    //console.log(messageEvent);
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    //console.log("__syscall_stat64: _errno="+_errno);
+
+		    if (!_errno) {
+
+			// BB:TODO
+			//Module['fd_table'][new_fd] = Module['fd_table'][fd];
+			
+			Module.HEAPU8.set(msg2.buf.slice(12, 12+4), fdPtr);
+			Module.HEAPU8.set(msg2.buf.slice(16, 16+4), fdPtr+4);	
+		    }
+
+		    wakeUp(-_errno);
+
+		    return hid;
+		}
+		
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    },
+    
     __syscall_ioctl__sig: 'iiip',
     __syscall_ioctl: function(fd, op, varargs) {
 	/*
@@ -5550,6 +5621,18 @@ var SyscallsLibrary = {
 	    
 	});
 
+	return 0;
+    },
+    __syscall_setuid32__sig: 'ii',
+    __syscall_setuid32: function(uid) {
+
+	//TODO
+	return 0;
+    },
+    __syscall_setgid32__sig: 'ii',
+    __syscall_setgid32: function(gid) {
+
+	//TODO
 	return 0;
     },
     

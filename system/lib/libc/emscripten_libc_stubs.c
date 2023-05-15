@@ -177,7 +177,8 @@ pid_t vfork(void) {
   return -1;
 }*/
 
-int posix_spawn(pid_t *pid, const char *path,
+/* Modified by Benoit Baudaux 15/05/2023 */
+/*int posix_spawn(pid_t *pid, const char *path,
                        const posix_spawn_file_actions_t *file_actions,
                        const posix_spawnattr_t *attrp,
                        char *const argv[], char *const envp[]) {
@@ -193,7 +194,7 @@ FILE *popen(const char *command, const char *type) {
 int pclose(FILE *stream) {
   errno = ENOSYS;
   return -1;
-}
+  }*/
 
 int setgroups(size_t size, const gid_t *list) {
   // int setgroups(int ngroups, const gid_t *gidset);

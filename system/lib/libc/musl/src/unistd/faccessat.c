@@ -27,6 +27,7 @@ static int checker(void *p)
 
 int faccessat(int fd, const char *filename, int amode, int flag)
 {
+  //BB: TODO
 #ifdef __EMSCRIPTEN__
 	return syscall(SYS_faccessat, fd, filename, amode, flag);
 #else

@@ -1295,8 +1295,8 @@ int __syscall_ioctl(int fd, int request, ...) {
     }
   }
 }
-
-int __syscall_pipe(intptr_t fd) {
+  // Modified by Benoit Baudaux 15/05/2023
+  /*int __syscall_pipe(intptr_t fd) {
   auto* fds = (__wasi_fd_t*)fd;
 
   // Make a pipe: Two PipeFiles that share a single data source between them, so
@@ -1316,7 +1316,7 @@ int __syscall_pipe(intptr_t fd) {
   fds[1] = fileTable.addEntry(openWriter);
 
   return 0;
-}
+  }*/
 
 // int poll(struct pollfd* fds, nfds_t nfds, int timeout);
 int __syscall_poll(intptr_t fds_, int nfds, int timeout) {

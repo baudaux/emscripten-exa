@@ -269,7 +269,8 @@ int __syscall_setsockopt(int sockfd, int level, int optname, intptr_t optval, si
 
 UNIMPLEMENTED(acct, (intptr_t filename))
 UNIMPLEMENTED(mincore, (intptr_t addr, size_t length, intptr_t vec))
-UNIMPLEMENTED(pipe2, (intptr_t fds, int flags))
+  /* Modified by Benoit Baudaux 15/05/2023 */
+/*UNIMPLEMENTED(pipe2, (intptr_t fds, int flags))*/
 /* Modified by Benoit Baudaux 22/02/2023 */
 /*UNIMPLEMENTED(pselect6, (int nfds, intptr_t readfds, intptr_t writefds, intptr_t exceptfds, intptr_t timeout, intptr_t sigmaks))*/
 UNIMPLEMENTED(recvmmsg, (int sockfd, intptr_t msgvec, size_t vlen, int flags, ...))

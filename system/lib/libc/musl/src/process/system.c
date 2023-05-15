@@ -6,6 +6,9 @@
 #include <errno.h>
 #include "pthread_impl.h"
 
+//BB
+#include <emscripten.h>
+
 extern char **__environ;
 
 int system(const char *cmd)
@@ -15,6 +18,8 @@ int system(const char *cmd)
 	struct sigaction sa = { .sa_handler = SIG_IGN }, oldint, oldquit;
 	int status = -1, ret;
 	posix_spawnattr_t attr;
+
+	emscripten_log(EM_LOG_CONSOLE, "--> system: %s", cmd);
 
 	pthread_testcancel();
 

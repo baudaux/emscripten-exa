@@ -4,7 +4,7 @@
 #include "syscall.h"
 
 // BB
-#include <emscripten.h>
+//#include <emscripten.h>
 
 int ttyname_r(int fd, char *name, size_t size)
 {
@@ -16,23 +16,23 @@ int ttyname_r(int fd, char *name, size_t size)
 
 	__procfdname(procname, fd);
 
-	emscripten_log(EM_LOG_CONSOLE, "__procfdname: %s", procname);
+	//emscripten_log(EM_LOG_CONSOLE, "__procfdname: %s", procname);
 	
 	l = readlink(procname, name, size);
 
-	emscripten_log(EM_LOG_CONSOLE, "readlink: %d %s", l, name);
+	//emscripten_log(EM_LOG_CONSOLE, "readlink: %d %s", l, name);
 
 	if (l < 0) return errno;
 	else if (l == size) return ERANGE;
 
 	name[l] = 0;
 
-	emscripten_log(EM_LOG_CONSOLE, "%d %d", stat(name, &st1), fstat(fd, &st2));
+	//emscripten_log(EM_LOG_CONSOLE, "%d %d", stat(name, &st1), fstat(fd, &st2));
 
 	if (stat(name, &st1) || fstat(fd, &st2))
 		return errno;
 
-	emscripten_log(EM_LOG_CONSOLE, "%d %d %lld %lld", st1.st_dev, st2.st_dev, st1.st_ino, st2.st_ino);
+	//emscripten_log(EM_LOG_CONSOLE, "%d %d %lld %lld", st1.st_dev, st2.st_dev, st1.st_ino, st2.st_ino);
 	
 	if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
 		return ENODEV;
