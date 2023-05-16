@@ -10,6 +10,9 @@
 #include "pthread_impl.h"
 #include "fdop.h"
 
+//BB
+#include <emscripten.h>
+
 struct args {
 	int p[2];
 	sigset_t oldmask;
@@ -205,8 +208,8 @@ int posix_spawn(pid_t *restrict res, const char *restrict path,
 	UNLOCK(__abort_lock);
 
 	if (pid > 0) {
-		if (read(args.p[0], &ec, sizeof ec) != sizeof ec) ec = 0;
-		else waitpid(pid, &(int){0}, 0);
+	  if (read(args.p[0], &ec, sizeof ec) != sizeof ec) ec = 0;
+	  else waitpid(pid, &(int){0}, 0);
 	} else {
 		ec = -pid;
 	}

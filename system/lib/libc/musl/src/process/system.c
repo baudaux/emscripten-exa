@@ -46,6 +46,8 @@ int system(const char *cmd)
 	sigaction(SIGQUIT, &oldquit, NULL);
 	sigprocmask(SIG_SETMASK, &old, NULL);
 
+	emscripten_log(EM_LOG_CONSOLE, "<-- system: %s", cmd);
+
 	if (ret) errno = ret;
 	return status;
 }

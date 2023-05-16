@@ -413,8 +413,6 @@ var SyscallsLibrary = {
     __syscall_pipe2__sig: 'ipi',
     __syscall_pipe2: function(fdPtr, flags) {
 
-	console.log("__syscall_pipe2");
-
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	    let buf_size = 24;
@@ -447,13 +445,58 @@ var SyscallsLibrary = {
 
 		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    //console.log("__syscall_stat64: _errno="+_errno);
-
 		    if (!_errno) {
 
-			// BB:TODO
-			//Module['fd_table'][new_fd] = Module['fd_table'][fd];
-			
+			let read_fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+			let remote_read_fd = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+			let write_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			let remote_write_fd = msg2.buf[28] | (msg2.buf[29] << 8) | (msg2.buf[30] << 16) |  (msg2.buf[31] << 24);
+
+			let type = msg2.buf[32];
+			let major = msg2.buf[34] | (msg2.buf[35] << 8);
+			let minor = msg2.buf[36] | (msg2.buf[37] << 8);
+			let peer = UTF8ArrayToString(msg2.buf, 38, 108);
+
+			let read_desc = {
+
+			    fd: read_fd,
+			    remote_fd: remote_read_fd,
+			    peer: peer,
+			    type: type,
+			    major: major,
+			    minor: minor,
+			    
+			    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+			    peers: {},
+			    pending: [],
+			    recv_queue: [],
+			    name: null,
+			    bc: null,
+			};
+
+			Module['fd_table'][read_fd] = read_desc;
+
+			let write_desc = {
+
+			    fd: write_fd,
+			    remote_fd: remote_write_fd,
+			    peer: peer,
+			    type: type,
+			    major: major,
+			    minor: minor,
+			    
+			    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+			    peers: {},
+			    pending: [],
+			    recv_queue: [],
+			    name: null,
+			    bc: null,
+			};
+
+			Module['fd_table'][write_fd] = write_desc;
+
+			//console.log(JSON.parse(JSON.stringify(Module['fd_table'])));
+
 			Module.HEAPU8.set(msg2.buf.slice(12, 12+4), fdPtr);
 			Module.HEAPU8.set(msg2.buf.slice(16, 16+4), fdPtr+4);	
 		    }
@@ -1996,162 +2039,103 @@ var SyscallsLibrary = {
     return 0;
 #else
 
-      //console.log("__syscall_fcntl: cmd="+cmd);
+      //console.log("__syscall_fcntl: varargs="+varargs);
+
+      var argp = SYSCALLS.get();
 
       let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	  let do_fcntl = () => {
-	
-	    let buf_size = 256;
+	  let buf_size = 256;
 
-	    let buf2 = new Uint8Array(buf_size);
+	  let buf2 = new Uint8Array(buf_size);
 
-	    buf2[0] = 17; // FCNTL
+	  buf2[0] = 17; // FCNTL
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
+	  // pid
+	  buf2[4] = pid & 0xff;
+	  buf2[5] = (pid >> 8) & 0xff;
+	  buf2[6] = (pid >> 16) & 0xff;
+	  buf2[7] = (pid >> 24) & 0xff;
 
-	      //console.log(Module['fd_table'][fd]);
+	  // fd
+	  buf2[12] = fd & 0xff;
+	  buf2[13] = (fd >> 8) & 0xff;
+	  buf2[14] = (fd >> 16) & 0xff;
+	  buf2[15] = (fd >> 24) & 0xff;
 
-	    let remote_fd = (fd >= 0)? Module['fd_table'][fd].remote_fd : -1;
+	  //cmd
+	  buf2[16] = cmd & 0xff;
+	  buf2[17] = (cmd >> 8) & 0xff;
+	  buf2[18] = (cmd >> 16) & 0xff;
+	  buf2[19] = (cmd >> 24) & 0xff;
 
-	    // remote_fd
-	    buf2[12] = remote_fd & 0xff;
-	    buf2[13] = (remote_fd >> 8) & 0xff;
-	    buf2[14] = (remote_fd >> 16) & 0xff;
-	    buf2[15] = (remote_fd >> 24) & 0xff;
+	  if (cmd == {{{ cDefine('F_SETFD') }}})  {
 
-	    //cmd
-	    buf2[16] = cmd & 0xff;
-	    buf2[17] = (cmd >> 8) & 0xff;
-	    buf2[18] = (cmd >> 16) & 0xff;
-	    buf2[19] = (cmd >> 24) & 0xff;
-	    
-
-	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
-		let msg2 = messageEvent.data;
-
-		if (msg2.buf[0] == (17|0x80)) {
-		
-		    wakeUp(0); // TODO: size
-
-		    return hid;
-		}
-		else {
-
-		    return -1;
-		}
-	    });
-
-	    let msg = {
-
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
-	    };
-
-	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
-	    
-	    driver_bc.postMessage(msg);
-	};
-
-	  if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
-
-	      //console.log("__syscall_fcntl: "+fd+" found in fd_table");
-
-		do_fcntl();
-	    }
+	      len = 4; // arg is an int
+	  }
 	  else {
+	      len = 0;
+	  }
 
-	      //console.log("__syscall_fcntl: "+fd+" not found in fd_table");
-	      
-		let buf_size = 256;
+	  buf2[24] = len & 0xff;
+	  buf2[25] = (len >> 8) & 0xff;
+	  buf2[26] = (len >> 16) & 0xff;
+	  buf2[27] = (len >> 24) & 0xff;
 
-		let buf2 = new Uint8Array(buf_size);
+	  if (len == 4) {
 
-		buf2[0] = 26; // IS_OPEN
+	      buf2[28] = argp & 0xff;
+	      buf2[29] = (argp >> 8) & 0xff;
+	      buf2[30] = (argp >> 16) & 0xff;
+	      buf2[31] = (argp >> 24) & 0xff;
+	  }
+	  else if (len > 4) {
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+	      buf2.set(Module.HEAPU8.slice(argp, argp+len), 28);
+	  }
+	  
+	  const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		// pid
-		buf2[4] = pid & 0xff;
-		buf2[5] = (pid >> 8) & 0xff;
-		buf2[6] = (pid >> 16) & 0xff;
-		buf2[7] = (pid >> 24) & 0xff;
+	      let msg2 = messageEvent.data;
 
-		// fd
-		buf2[12] = fd & 0xff;
-		buf2[13] = (fd >> 8) & 0xff;
-		buf2[14] = (fd >> 16) & 0xff;
-		buf2[15] = (fd >> 24) & 0xff;
+	      if (msg2.buf[0] == (17|0x80)) {
 
-		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		  //console.log("<-- __syscall_fcntl64");
 
-		    let msg2 = messageEvent.data;
+		  let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    if (msg2.buf[0] == (26|0x80)) {
+		  if (!_errno) {
 
-			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+		      let _ret = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
 
-			if (!_errno) {
+		      wakeUp(_ret);
+		  }
+		  else {
+		  
+		      wakeUp(-_errno);
+		  }
 
-			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
-			    let type = msg2.buf[20];
-			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
-			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
-			    var desc = {
+		  return hid;
+	      }
+	      else {
 
-				fd: fd,
-				remote_fd: remote_fd,
-				peer: peer,
-				type: type,
-				major: major,
-				
-				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
-				peers: {},
-				pending: [],
-				recv_queue: [],
-				name: null,
-				bc: null,
-			    };
+		  return -1;
+	      }
+	  });
 
-			    Module['fd_table'][fd] = desc;
+	  let msg = {
 
-			    do_fcntl();
+	      from: Module['rcv_bc_channel'].name,
+	      buf: buf2,
+	      len: buf_size
+	  };
 
-			    return hid;
-			}
-			else {
-
-			    wakeUp(-1);
-			}
-
-			return hid;
-		    }
-		    else {
-
-			return -1;
-		    }
-		});
-
-		let msg = {
-		    
-		    from: Module['rcv_bc_channel'].name,
-		    buf: buf2,
-		    len: buf_size
-		};
-
-		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-
-		bc.postMessage(msg);
-	    }
-	});
+	  let driver_bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	  
+	  driver_bc.postMessage(msg);
+      });
     
     return ret;
 
@@ -4737,6 +4721,12 @@ var SyscallsLibrary = {
 	    buf2[13] = (clockid >> 8) & 0xff;
 	    buf2[14] = (clockid >> 16) & 0xff;
 	    buf2[15] = (clockid >> 24) & 0xff;
+
+	    // flags
+	    buf2[16] = flags & 0xff;
+	    buf2[17] = (flags >> 8) & 0xff;
+	    buf2[18] = (flags >> 16) & 0xff;
+	    buf2[19] = (flags >> 24) & 0xff;
 	    
 	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
@@ -4744,7 +4734,7 @@ var SyscallsLibrary = {
 
 		if (msg2.buf[0] == (33|0x80)) {
 
-		    let fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+		    let fd = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
 
 		    add_timerfd(fd);
 
