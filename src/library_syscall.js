@@ -1186,7 +1186,7 @@ var SyscallsLibrary = {
     // sendto an address
     return sock.sock_ops.sendmsg(sock, {{{ heapAndOffset('HEAP8', 'message') }}}, length, dest.addr, dest.port);*/
 
-      let uint8 = Module.HEAPU8.slice(message,message+length);
+      let uint8 = Module.HEAPU8.slice(message, message+length);
       
       return sock.sock_ops.sendto(sock, uint8, length, flags, dest.addr, dest.port);
   },

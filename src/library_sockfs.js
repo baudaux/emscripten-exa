@@ -131,7 +131,8 @@ mergeInto(LibraryManager.library, {
 
 	      sock.name = addr;
 
-	      sock.bc = new BroadcastChannel(addr);
+	      //sock.bc = new BroadcastChannel(addr);
+	      sock.bc = Module.get_broadcast_channel(addr);
 	      
 	      sock.bc.onmessage = (messageEvent) => {
 
@@ -155,7 +156,8 @@ mergeInto(LibraryManager.library, {
 
 	      if (window.frameElement.getAttribute('pid') != "1") {
 
-		  let bc = new BroadcastChannel("/var/resmgr.peer");
+		  //let bc = new BroadcastChannel("/var/resmgr.peer");
+		  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
 		  let buf = Module._malloc(256);
 
@@ -273,10 +275,11 @@ mergeInto(LibraryManager.library, {
 
 	      //console.log("sockfs: sendto "+addr);
 
-	      let bc = new BroadcastChannel(addr);
+	      //let bc = new BroadcastChannel(addr);
+	      let bc = Module.get_broadcast_channel(addr);
 
 	      let msg = {
-
+		  
 		  from: sock.name,
 		  buf: buf,
 		  len: len
