@@ -3415,7 +3415,20 @@ var SyscallsLibrary = {
 
 	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
-		do_close();
+		if (Module['fd_table'][fd].timerfd && Module['fd_table'][fd].timeout_id) {
+
+		    clearTimeout(Module['fd_table'][fd].timeout_id);
+		}
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		if (pid > 1) {
+		    do_close();
+		}
+		else {
+		    Module['fd_table'][fd] = null;
+		    wakeUp(0);
+		}
 	    }
 	    else {
 		let buf_size = 256;
