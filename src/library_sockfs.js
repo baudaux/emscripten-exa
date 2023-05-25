@@ -142,15 +142,21 @@ mergeInto(LibraryManager.library, {
 		      sock.wakeUp(0);
 		  }
 		  else {
+
+		      //if (messageEvent.data.buf[0] == 43)
+		      //	  return ;
+		      
 		      sock.recv_queue.push(messageEvent.data);
 
-		      //console.log(messageEvent);
-		      
-		      if (sock.notif)
-			  sock.notif();
+		      if (sock.notif_select) {
 
-		      if (sock.notif_select)
+			  //debugger;
+			  
 			  sock.notif_select(sock.select_fd, sock.select_rw);
+		      }
+		      else if (sock.notif) {
+			  sock.notif();
+		      }
 		  }
 	      };
 
@@ -224,6 +230,9 @@ mergeInto(LibraryManager.library, {
 
 	      //console.log(msg);
 
+	      //if (msg.buf[0] == 43)
+		//  debugger;
+
 	      {{{ makeSetValue('addr', C_STRUCTS.sockaddr_un.sun_family, '1', 'i16') }}}; // family: AF_UNIX (1)
 	      stringToUTF8(msg.from, addr + {{{ C_STRUCTS.sockaddr_un.sun_path }}}, 108);
 	      {{{ makeSetValue('addrlen', 0, C_STRUCTS.sockaddr_un.__size__, 'i32') }}};
@@ -291,12 +300,11 @@ mergeInto(LibraryManager.library, {
 	  },
 	  select: function(sock, fd, rw, start_stop, notif_select) {
 
-	      //console.log("sockfs: select "+start_stop);
+	      //console.log("sockfs: select -> start_stop="+start_stop);
+	      //console.log("sockfs: select -> fd="+fd);
 	      //console.log(sock);
 
 	      if (start_stop) {
-
-		  //console.log("sockfs: select start "+sock.recv_queue.length);
 
 		  if (sock.recv_queue.length > 0) {
 

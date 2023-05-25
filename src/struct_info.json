@@ -273,6 +273,8 @@
             "F_GETOWN", 
             "F_GETOWN_EX",
             "F_SETFD",
+	    "F_DUPFD",
+	    "F_DUPFD_CLOEXEC",
             "O_EXCL",
             "F_GETFL",
             "O_LARGEFILE",

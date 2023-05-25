@@ -6,6 +6,9 @@
 #include "stdio_impl.h"
 #include "syscall.h"
 
+//BB
+#include <emscripten.h>
+
 extern char **__environ;
 
 FILE *popen(const char *cmd, const char *mode)
@@ -31,6 +34,12 @@ FILE *popen(const char *cmd, const char *mode)
 		__syscall(SYS_close, p[1]);
 		return NULL;
 	}
+	else {
+
+	  //BB
+	  emscripten_log(EM_LOG_CONSOLE, "popen: fdopen succeeds: p[0]=%d p[1]=%d", p[0],p[1]);
+	}
+	
 	FLOCK(f);
 
 	/* If the child's end of the pipe happens to already be on the final

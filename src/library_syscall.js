@@ -2071,7 +2071,9 @@ var SyscallsLibrary = {
 	  buf2[18] = (cmd >> 16) & 0xff;
 	  buf2[19] = (cmd >> 24) & 0xff;
 
-	  if (cmd == {{{ cDefine('F_SETFD') }}})  {
+	  if ( (cmd == {{{ cDefine('F_SETFD') }}}) ||
+	       (cmd == {{{ cDefine('F_DUPFD') }}}) ||
+	       (cmd == {{{ cDefine('F_DUPFD_CLOEXEC') }}}) ) {
 
 	      len = 4; // arg is an int
 	  }
@@ -4406,16 +4408,20 @@ var SyscallsLibrary = {
 
 		if (Module['fd_table'][fd].timerfd) { // timerfd
 
-		    Module['fd_table'][fd].select(fd, rw, start, function(fd, rw) {
+		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
 
-			notif_select(fd, rw);
+			//console.log("timerfd notif_select _fd="+_fd);
+			
+			notif_select(_fd, rw);
 		    });
 		}
 		else if (Module['fd_table'][fd].sock_ops) { // socket
 
-		    Module['fd_table'][fd].sock_ops.select(getSocketFromFD(fd), fd, rw, start, function(fd, rw) {
+		    Module['fd_table'][fd].sock_ops.select(getSocketFromFD(fd), fd, rw, start, function(_fd, rw) {
 
-			notif_select(fd, rw);
+			//console.log("sock notif_select _fd="+_fd);
+
+			notif_select(_fd, rw);
 		    });
 		}
 		else { // any other type of fd (remote)
@@ -4442,6 +4448,8 @@ var SyscallsLibrary = {
 	    };
 
 	    let notif_select = (fd, rw) => {
+
+		//console.log("notify_select: fd="+fd);
 
 		if (Module['select_timer'])
 		    clearTimeout(Module['select_timer']);
