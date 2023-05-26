@@ -268,62 +268,153 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    let buf_size = 20;
-	
-	    let buf2 = new Uint8Array(buf_size);
+	    let do_dup = () => {
 
-	    buf2[0] = 19; // DUP
+		let buf_size = 20;
+		
+		let buf2 = new Uint8Array(buf_size);
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+		buf2[0] = 19; // DUP
 
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    // fd
-	    buf2[12] = fd & 0xff;
-	    buf2[13] = (fd >> 8) & 0xff;
-	    buf2[14] = (fd >> 16) & 0xff;
-	    buf2[15] = (fd >> 24) & 0xff;
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
 
-	    // new_fd
-	    buf2[16] = 0xff;
-	    buf2[17] = 0xff;
-	    buf2[18] = 0xff;
-	    buf2[19] = 0xff;
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
 
-	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		// new_fd
+		buf2[16] = 0xff;
+		buf2[17] = 0xff;
+		buf2[18] = 0xff;
+		buf2[19] = 0xff;
 
-		let msg2 = messageEvent.data;
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		if (msg2.buf[0] == (19|0x80)) {
+		    let msg2 = messageEvent.data;
 
-		    //console.log(messageEvent);
+		    if (msg2.buf[0] == (19|0x80)) {
+
+			//console.log(messageEvent);
+			
+			let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			Module['fd_table'][new_fd] = Module['fd_table'][fd];
+			
+			wakeUp(new_fd);
+
+			return hid;
+		    }
+
+		    return -1;
+		});
+
+		let msg = {
+
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+
+		do_dup();
+	    }
+	    else {
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_dup();
+
+			    return hid;
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
 		    
-		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
 
-		    Module['fd_table'][new_fd] = Module['fd_table'][fd];
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-		    wakeUp(new_fd);
+		bc.postMessage(msg);
+	    }
 
-		    return hid;
-		}
-
-		return -1;
-	    });
-
-	    let msg = {
-
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
-	    };
-
-	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-
-	    bc.postMessage(msg);
+	    
 	});
 
 	return ret;
@@ -336,62 +427,168 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
+	    let do_dup2 = () => {
+
 	    let buf_size = 20;
 	
-	    let buf2 = new Uint8Array(buf_size);
+		let buf2 = new Uint8Array(buf_size);
 
-	    buf2[0] = 19; // DUP
+		buf2[0] = 19; // DUP
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
 
-	    // pid
-	    buf2[4] = pid & 0xff;
-	    buf2[5] = (pid >> 8) & 0xff;
-	    buf2[6] = (pid >> 16) & 0xff;
-	    buf2[7] = (pid >> 24) & 0xff;
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
 
-	    // fd
-	    buf2[12] = fd & 0xff;
-	    buf2[13] = (fd >> 8) & 0xff;
-	    buf2[14] = (fd >> 16) & 0xff;
-	    buf2[15] = (fd >> 24) & 0xff;
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
 
-	    // new_fd
-	    buf2[16] = new_fd & 0xff;
-	    buf2[17] = (new_fd >> 8) & 0xff;
-	    buf2[18] = (new_fd >> 16) & 0xff;
-	    buf2[19] = (new_fd >> 24) & 0xff;
+		// new_fd
+		buf2[16] = new_fd & 0xff;
+		buf2[17] = (new_fd >> 8) & 0xff;
+		buf2[18] = (new_fd >> 16) & 0xff;
+		buf2[19] = (new_fd >> 24) & 0xff;
 
-	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-		let msg2 = messageEvent.data;
+		    let msg2 = messageEvent.data;
 
-		if (msg2.buf[0] == (19|0x80)) {
+		    if (msg2.buf[0] == (19|0x80)) {
 
-		    //console.log(messageEvent);
+			//console.log(messageEvent);
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (_errno) {
+
+			    wakeUp(-_errno);
+
+			    return hid;
+			}
+			else if (new_fd != fd) {
+			    
+			    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			    Module['fd_table'][new_fd] = Module['fd_table'][fd];
+			    Module['fd_table'][new_fd].fd = new_fd;
+			}
+
+			console.log("*** Return of DUP2 ***");
+			console.log(JSON.stringify(Module['fd_table'][new_fd]));
+
+			wakeUp(new_fd);
+
+			return hid;
+		    }
+
+		    return -1;
+		});
+
+		let msg = {
+
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+
+		do_dup2();
+	    }
+	    else {
+		let buf_size = 20;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_dup2();
+
+			    return hid;
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
 		    
-		    let new_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
 
-		    Module['fd_table'][new_fd] = Module['fd_table'][fd];
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
-		    wakeUp(new_fd);
+		bc.postMessage(msg);
+	    }
+	
 
-		    return hid;
-		}
-
-		return -1;
-	    });
-
-	    let msg = {
-
-		from: Module['rcv_bc_channel'].name,
-		buf: buf2,
-		len: buf_size
-	    };
-
-	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-
-	    bc.postMessage(msg);
 	});
 
 	return ret;
