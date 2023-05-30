@@ -52,15 +52,10 @@ static mode_t g_umask = S_IRWXU | S_IRWXG | S_IRWXO;
 #define STR(s) STRINGIFY(s)
 
 /* Modified by Benoit Baudaux 19/1/2023 */
-// TODO: ask resmgr
-int __syscall_uname(intptr_t buf) {
+/*int __syscall_uname(intptr_t buf) {
   if (!buf) {
     return -EFAULT;
   }
-  /* Modified by Benoit Baudaux 19/1/2023 */
-  /*const char* full_version = STR(__EMSCRIPTEN_major__) "."	\
-                             STR(__EMSCRIPTEN_minor__) "." \
-                             STR(__EMSCRIPTEN_tiny__);*/
 
   const char* full_version = STR(__EXA_major__) "."	\
                              STR(__EXA_minor__) "." \
@@ -78,7 +73,7 @@ int __syscall_uname(intptr_t buf) {
   strcpy(utsname->machine, "wasm32");
 #endif
   return 0;
-}
+}*/
 
 /*int __syscall_setpgid(int pid, int pgid) {
   if (pid && pid != g_pid) {

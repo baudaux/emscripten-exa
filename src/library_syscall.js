@@ -5843,6 +5843,67 @@ var SyscallsLibrary = {
 	//TODO
 	return 0;
     },
+    __syscall_uname__sig: 'ip',
+    __syscall_uname: function(buf) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 12;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 48; // UNAME
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	  
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (48|0x80)) {
+
+		    if (buf) {
+
+			let len = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+			
+			Module.HEAPU8.set(msg2.buf.slice(16, 16+len), buf);
+			wakeUp(0);
+		    }
+		    else {
+
+			wakeUp(-14); //EFAULT
+		    }
+
+		    return hid;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    },
+    
     
 };
 

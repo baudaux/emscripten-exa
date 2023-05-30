@@ -145,6 +145,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_exa_release_signal',
   '__syscall_faccessat',
   '__syscall_pipe2',
+  '__syscall_uname',
 ]
 
 # Target options
