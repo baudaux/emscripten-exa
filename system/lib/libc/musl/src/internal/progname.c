@@ -5,7 +5,8 @@
  * found in the LICENSE file.
  */
 
-#ifdef __EMSCRIPTEN__
+// Modified by Benoit Baudaux 31/05/2023
+#ifdef __EMSCRIPTEN__EXA
 #include <limits.h>
 #include <string.h>
 

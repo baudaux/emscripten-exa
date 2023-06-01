@@ -479,9 +479,6 @@ var SyscallsLibrary = {
 			    Module['fd_table'][new_fd].fd = new_fd;
 			}
 
-			console.log("*** Return of DUP2 ***");
-			console.log(JSON.stringify(Module['fd_table'][new_fd]));
-
 			wakeUp(new_fd);
 
 			return hid;
@@ -941,6 +938,38 @@ var SyscallsLibrary = {
 			    if (!errno) {
 
 				let len = 4;
+				
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
+				wakeUp(0);
+			    }
+			    else {
+
+				wakeUp(-1);
+			    }
+			    
+			    break;
+
+			case 0x4600:   // FBIOGET_VSCREENINFO
+
+			    if (!errno) {
+
+				let len = 32; // TODO
+				
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
+				wakeUp(0);
+			    }
+			    else {
+
+				wakeUp(-1);
+			    }
+			    
+			    break;
+
+			case 0x4602:   // FBIOGET_FSCREENINFO
+
+			    if (!errno) {
+
+				let len = 68; // TODO
 				
 				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
 				wakeUp(0);
@@ -2541,7 +2570,78 @@ var SyscallsLibrary = {
 
 				Module['fd_table'][fd] = desc;
 
-				//console.log(Module['fd_table']);
+				if (peer == "/var/fb.peer") { // fb has been opened successfully
+				    
+				    let m = {
+	    
+					type: 5,   // show iframe
+					pid: pid
+				    };
+
+				    window.parent.postMessage(m);
+
+				    document.body.style.margin = 0;
+				    document.body.style.border = 0;
+				    document.body.style.width = "100vw";
+				    document.body.style.height = "100vh";
+
+				    const canvas = document.createElement("canvas");
+				    
+				    document.body.appendChild(canvas);
+
+				    const ctx = canvas.getContext('2d');
+
+				    const scale = window.devicePixelRatio;
+				    
+				    canvas.width = Math.floor(/*window.innerWidth*/800 * scale);
+				    canvas.height = Math.floor(/*window.innerHeight*/600 * scale);
+
+				    canvas.style.width = "100%";
+				    canvas.style.height = "100%";
+
+				    ctx.scale(scale, scale);
+
+				    const width = canvas.width;
+				    const height = canvas.height;
+
+				    const fb_size = width * height * 4;
+
+				    const fb = Module._malloc(fb_size);
+
+				    const pixels = new Uint8ClampedArray(Module.HEAPU8.buffer, fb, fb_size);
+
+				    const imageData = new ImageData(pixels, width, height);
+
+				    Module['fd_table'][fd].ctx = ctx;
+				    Module['fd_table'][fd].fb = fb;
+				    Module['fd_table'][fd].pixels = pixels;
+				    Module['fd_table'][fd].imageData = imageData;
+
+				    let nb_frames = 0;
+				    let start = Date.now();
+				    
+				    let render = function() {
+
+					nb_frames++;
+
+					
+					if (nb_frames%200 == 0) {
+
+					    fps = 1000.0*nb_frames/(Date.now()-start);
+
+					    console.log(fps.toFixed(2).toString() + " fps");
+
+					    nb_frames = 0;
+					    start = Date.now();
+					}
+
+					ctx.putImageData(imageData, 0, 0);
+
+					window.requestAnimationFrame(render);
+				    }
+
+				    window.requestAnimationFrame(render);
+				}
 
 				wakeUp(fd);
 			    }
@@ -5903,7 +6003,55 @@ var SyscallsLibrary = {
 
 	return ret;
     },
-    
+    __syscall_utimensat__sig: 'iippi',
+    __syscall_utimensat: function(dirFD, path_, times_, flags) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    wakeUp(0);
+	});
+
+	return ret;
+    },
+    __syscall_mmap2__sig: 'ppiiiii',
+    __syscall_mmap2: function(addr, len, prot, flags, fd, off) {
+
+	if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) && Module['fd_table'][fd].fb) {
+
+	    return Module['fd_table'][fd].fb+off;
+	    
+	}
+	else {
+
+	    return -1;
+	}
+    },
+
+    __syscall_nanosleep__sig: 'ipp',
+    __syscall_nanosleep: function(req, rem) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    const int_sec = Module.HEAPU8[req] | (Module.HEAPU8[req+1] << 8) | (Module.HEAPU8[req+2] << 16) |  (Module.HEAPU8[req+3] << 24);
+	    const int_nsec = Module.HEAPU8[req+8] | (Module.HEAPU8[req+9] << 8) | (Module.HEAPU8[req+10] << 16) |  (Module.HEAPU8[req+11] << 24);
+
+	    const int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
+
+	    setTimeout(() => {
+
+		wakeUp(0);
+		
+	    }, int_msec);
+	});
+
+	return ret;
+    },
+    __syscall_clock_nanosleep_time32__sig: 'iiipp',
+    __syscall_clock_nanosleep_time32: function(clk, flags, req, rem) {
+
+	//TODO
+	return 0;
+    },
     
 };
 

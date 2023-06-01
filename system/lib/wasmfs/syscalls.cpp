@@ -1089,7 +1089,8 @@ int __syscall_readlinkat(int dirfd, intptr_t path, intptr_t buf, size_t bufsize)
 }
 
 // TODO: Test this with non-AT_FDCWD values.
-int __syscall_utimensat(int dirFD, intptr_t path_, intptr_t times_, int flags) {
+  // Modified by Benoit Baudaux 31/05/2023
+/*int __syscall_utimensat(int dirFD, intptr_t path_, intptr_t times_, int flags) {
   const char* path = (const char*)path_;
   const struct timespec* times = (const struct timespec*)times_;
   if (flags & ~AT_SYMLINK_NOFOLLOW) {
@@ -1120,7 +1121,7 @@ int __syscall_utimensat(int dirFD, intptr_t path_, intptr_t times_, int flags) {
   locked.setMTime(mSeconds);
 
   return 0;
-}
+  }*/
 
 // TODO: Test this with non-AT_FDCWD values.
 int __syscall_fchmodat(int dirfd, intptr_t path, int mode, ...) {

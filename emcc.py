@@ -146,6 +146,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_faccessat',
   '__syscall_pipe2',
   '__syscall_uname',
+  '__syscall_utimensat',
+  '__syscall_nanosleep',
 ]
 
 # Target options

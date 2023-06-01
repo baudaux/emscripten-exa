@@ -144,3 +144,6 @@
 #define SYS_setuid32            __syscall_setuid32
 #define SYS_setgid32            __syscall_setgid32
 
+/* Modified by Benoit Baudaux 1/06/2023 */
+#define SYS_nanosleep                 __syscall_nanosleep
+#define SYS_clock_nanosleep_time32    __syscall_clock_nanosleep_time32

@@ -43,7 +43,7 @@ int _mmap_js(size_t length,
              int* allocated,
              void** addr);
 int _munmap_js(intptr_t addr, size_t length, int prot, int flags, int fd, size_t offset);
-int _msync_js(
+/*int _msync_js(
   intptr_t addr, size_t length, int prot, int flags, int fd, size_t offset);
 
 static struct map* find_mapping(intptr_t addr, struct map** prev) {
@@ -162,4 +162,4 @@ intptr_t __syscall_mmap2(intptr_t addr, size_t len, int prot, int flags, int fd,
   UNLOCK(lock);
 
   return (long)new_map->addr;
-}
+  }*/

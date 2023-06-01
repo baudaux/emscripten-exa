@@ -1,7 +1,8 @@
 #include <time.h>
 #include <errno.h>
+#include <syscall_arch.h>
 #include "syscall.h"
-#if __EMSCRIPTEN__
+#if __EMSCRIPTEN__EXA
 #include <errno.h>
 #include <emscripten/threading.h>
 #endif
@@ -12,7 +13,8 @@
 int __clock_nanosleep(clockid_t clk, int flags, const struct timespec *req, struct timespec *rem)
 {
 	if (clk == CLOCK_THREAD_CPUTIME_ID) return EINVAL;
-#if __EMSCRIPTEN__
+//Modified by Benoit Baudaux 1/06/2023
+#if __EMSCRIPTEN__EXA
 	if (!req || req->tv_nsec < 0 || req->tv_nsec > 999999999L || req->tv_sec < 0) {
 		return EINVAL;
 	}

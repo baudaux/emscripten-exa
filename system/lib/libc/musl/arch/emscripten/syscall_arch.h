@@ -162,6 +162,11 @@ int __syscall_rt_sigaction(int signum, intptr_t act, intptr_t oldact, int sigset
   /* Modified by Benoit Baudaux 27/04/2023 */
   int __syscall_exa_endofsignal(int sig);
   int __syscall_exa_release_signal(int sig);
+
+  /* Modified by Benoit Baudaux 1/06/2023 */
+  int __syscall_nanosleep(intptr_t req, intptr_t rem);
+  int __syscall_clock_nanosleep_time32(int clk, int flags, intptr_t req, intptr_t rem);
+  
   
 #ifdef __cplusplus
 }
