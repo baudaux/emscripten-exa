@@ -6026,6 +6026,13 @@ var SyscallsLibrary = {
 	    return -1;
 	}
     },
+    __syscall_munmap__sig: 'ipi',
+    __syscall_munmap: function(addr, length) {
+
+	// TODO
+
+	return 0;
+    },
 
     __syscall_nanosleep__sig: 'ipp',
     __syscall_nanosleep: function(req, rem) {
