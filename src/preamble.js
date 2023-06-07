@@ -286,8 +286,6 @@ function preMain() {
 
 #if EXIT_RUNTIME
 function exitRuntime() {
-
-    console.log(">>> exitRuntime  !!!!");
     
 #if RUNTIME_DEBUG
   dbg('exitRuntime');
@@ -460,6 +458,10 @@ function removeRunDependency(id) {
 
 /** @param {string|number=} what */
 function abort(what) {
+
+    //BB
+    debugger;
+    
 #if expectToReceiveOnModule('onAbort')
 #if USE_PTHREADS
   // When running on a pthread, none of the incoming parameters on the module

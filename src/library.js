@@ -3583,7 +3583,7 @@ mergeInto(LibraryManager.library, {
       try {
 #if USE_PTHREADS
         if (ENVIRONMENT_IS_PTHREAD) __emscripten_thread_exit(EXITSTATUS);
-        else
+        //else
 #endif
 	    //BB
         //_exit(EXITSTATUS);

@@ -102,7 +102,7 @@ dependenciesFulfilled = function runCaller() {
 
     if (ENVIRONMENT_IS_WEB) {
 	
-	//console.log = function() {};
+	console.log = function() {};
 	
 	Module['fd_table'] = {};
 	Module['fd_table'].last_fd = 2;
@@ -130,7 +130,14 @@ dependenciesFulfilled = function runCaller() {
 
 	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
 
+	    /*if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 1) ) {
+
+		debugger;
+	    }*/
+
 	    let msg = messageEvent.data;
+
+	    //console.log(msg.buf);
 
 	    if (msg.buf[0] == 42) {  // KILL
 

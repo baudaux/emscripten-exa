@@ -174,7 +174,7 @@ int posix_spawn(pid_t *restrict res, const char *restrict path,
 	int ec=0, cs;
 	struct args args;
 
-	emscripten_log(EM_LOG_CONSOLE, "--> posix_spawn: %s", path);
+	//emscripten_log(EM_LOG_CONSOLE, "--> posix_spawn: %s", path);
 
 	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cs);
 

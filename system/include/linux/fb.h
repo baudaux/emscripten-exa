@@ -8,6 +8,13 @@
 #define FBIOPUTCMAP		0x4605
 #define FBIOPAN_DISPLAY		0x4606
 
+struct fb_bitfield {
+
+  uint32_t offset;           /* beginning of bitfield    */
+  uint32_t length;           /* length of bitfield       */
+  uint32_t msb_right;        /* != 0 : Most significant bit is */ 
+};
+
 struct fb_var_screeninfo {
 
   uint32_t xres;			/* visible resolution		*/
@@ -20,6 +27,14 @@ struct fb_var_screeninfo {
   uint32_t bits_per_pixel;		/* guess what			*/
   uint32_t grayscale;		/* 0 = color, 1 = grayscale,	*/
 					/* >1 = FOURCC			*/
+
+  struct fb_bitfield 	red;
+  struct fb_bitfield 	green;
+  struct fb_bitfield 	blue;
+  struct fb_bitfield 	transp;
+
+  uint32_t width;			
+  uint32_t height;
 	
 };
 

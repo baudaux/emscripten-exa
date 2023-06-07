@@ -37,7 +37,7 @@ FILE *popen(const char *cmd, const char *mode)
 	else {
 
 	  //BB
-	  emscripten_log(EM_LOG_CONSOLE, "popen: fdopen succeeds: p[0]=%d p[1]=%d", p[0],p[1]);
+	  //emscripten_log(EM_LOG_CONSOLE, "popen: fdopen succeeds: p[0]=%d p[1]=%d", p[0],p[1]);
 	}
 	
 	FLOCK(f);

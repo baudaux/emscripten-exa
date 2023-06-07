@@ -143,6 +143,8 @@ mergeInto(LibraryManager.library, {
 		  }
 		  else {
 
+		      //console.log(messageEvent.data.buf);
+
 		      //if (messageEvent.data.buf[0] == 43)
 		      //	  return ;
 		      
@@ -281,9 +283,7 @@ mergeInto(LibraryManager.library, {
 	      return 0;
 	  },
 	  sendto: function(sock, buf, len, flags, addr, port) {
-
-	      //console.log("sockfs: sendto "+addr);
-
+	      
 	      //let bc = new BroadcastChannel(addr);
 	      let bc = Module.get_broadcast_channel(addr);
 

@@ -19,7 +19,7 @@ int system(const char *cmd)
 	int status = -1, ret;
 	posix_spawnattr_t attr;
 
-	emscripten_log(EM_LOG_CONSOLE, "--> system: %s", cmd);
+	//emscripten_log(EM_LOG_CONSOLE, "--> system: %s", cmd);
 
 	pthread_testcancel();
 
@@ -46,7 +46,7 @@ int system(const char *cmd)
 	sigaction(SIGQUIT, &oldquit, NULL);
 	sigprocmask(SIG_SETMASK, &old, NULL);
 
-	emscripten_log(EM_LOG_CONSOLE, "<-- system: %s", cmd);
+	//emscripten_log(EM_LOG_CONSOLE, "<-- system: %s", cmd);
 
 	if (ret) errno = ret;
 	return status;

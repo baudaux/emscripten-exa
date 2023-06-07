@@ -810,7 +810,8 @@ var LibraryPThread = {
   // that the entire process should exit.
   // This function is always called from a pthread, but is executed on the
   // main thread due the __proxy attribute.
-  $exitOnMainThread__deps: ['exit',
+    $exitOnMainThread__deps: [
+	//'exit',
 #if !MINIMAL_RUNTIME
     '$handleException',
 #endif

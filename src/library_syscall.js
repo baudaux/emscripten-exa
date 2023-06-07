@@ -953,7 +953,7 @@ var SyscallsLibrary = {
 
 			    if (!errno) {
 
-				let len = 32; // TODO
+				let len = 88; // Todo
 				
 				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
 				wakeUp(0);
@@ -2255,7 +2255,7 @@ var SyscallsLibrary = {
     FS.llseek(stream, idx * struct_size, {{{ cDefine('SEEK_SET') }}});
     return pos;*/
   },
-  __syscall_fcntl64__deps: ['$setErrNo'],
+  //__syscall_fcntl64__deps: ['$setErrNo'],
   __syscall_fcntl64__sig: 'iiip',
   __syscall_fcntl64: function(fd, cmd, varargs) {
 #if SYSCALLS_REQUIRE_FILESYSTEM == 0
@@ -2360,14 +2360,16 @@ var SyscallsLibrary = {
 	      len: buf_size
 	  };
 
-	  let driver_bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 	  
-	  driver_bc.postMessage(msg);
+	  bc.postMessage(msg);
       });
     
     return ret;
 
       /* Modified by Benoit Baudaux 17/1/2023 */
+
+      #if 0
       /* Following code is not executed */
     var stream = SYSCALLS.getStreamFromFD(fd);
     switch (cmd) {
@@ -2420,6 +2422,9 @@ var SyscallsLibrary = {
         return -{{{ cDefine('EINVAL') }}};
       }
     }
+
+#endif
+      
 #endif // SYSCALLS_REQUIRE_FILESYSTEM
   },
 
@@ -2592,17 +2597,20 @@ var SyscallsLibrary = {
 				    const ctx = canvas.getContext('2d');
 
 				    const scale = window.devicePixelRatio;
+
+				    const w = Math.floor(/*window.innerWidth*/800 * scale);
+				    const h = Math.floor(/*window.innerHeight*/600 * scale);
 				    
-				    canvas.width = Math.floor(/*window.innerWidth*/800 * scale);
-				    canvas.height = Math.floor(/*window.innerHeight*/600 * scale);
+				    const width = Math.floor((w+3)/4)*4;
+				    const height = Math.floor((h+3)/4)*4;
+				    
+				    canvas.width = width;
+				    canvas.height = height;
 
 				    canvas.style.width = "100%";
 				    canvas.style.height = "100%";
-
+				    
 				    ctx.scale(scale, scale);
-
-				    const width = canvas.width;
-				    const height = canvas.height;
 
 				    const fb_size = width * height * 4;
 
@@ -3690,7 +3698,23 @@ var SyscallsLibrary = {
 			//console.log(messageEvent);
 			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-			Module['fd_table'][fd] = null;
+			if (!_errno) {
+			    
+			    if (Module['fd_table'][fd].peer == "/var/fb.peer") { // fb has been opened successfully
+				    
+				let m = {
+				    
+				    type: 6,   // hide iframe
+				    pid: pid
+				};
+
+				const canvas = document.getElementsByTagName("canvas")[0];
+				    
+				document.body.removeChild(canvas);
+			    }
+
+			    Module['fd_table'][fd] = null;
+			}
 
 			wakeUp(-_errno);
 
@@ -6059,7 +6083,156 @@ var SyscallsLibrary = {
 	//TODO
 	return 0;
     },
+    __syscall_fsync__sig: 'ii',
+    __syscall_fsync: function(fd) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let do_fsync = () => {
+
+		let buf_size = 16;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 49; // FSYNC
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+
+		    //console.log("__syscall_readv handler "+msg2.buf[0]);
+
+		    if (msg2.buf[0] == (49|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+			
+			wakeUp(-_errno);
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+		driver_bc.postMessage(msg);
+	    };
+
+	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+
+		do_fsync();
+	    }
+	    else {
+		let buf_size = 256;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 26; // IS_OPEN
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (26|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
+
+				fd: fd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
+
+			    Module['fd_table'][fd] = desc;
+
+			    do_fsync();
+
+			    return hid;
+			}
+			else {
+
+			    wakeUp(-1);
+			}
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
+	});
     
+	return ret;
+    },
 };
 
 function wrapSyscallFunction(x, library, isWasi) {
