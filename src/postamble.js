@@ -102,7 +102,7 @@ dependenciesFulfilled = function runCaller() {
 
     if (ENVIRONMENT_IS_WEB) {
 	
-	console.log = function() {};
+	//console.log = function() {};
 	
 	Module['fd_table'] = {};
 	Module['fd_table'].last_fd = 2;
@@ -161,13 +161,16 @@ dependenciesFulfilled = function runCaller() {
 	    
 	    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0) ) {
 
+		
+
 		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
 
 		if (ret > 0) {
 		    Module['rcv_bc_channel'].unset_handler(ret);
 		}
 		else {
-		    //console.log("Push event !! "+messageEvent.data.buf[0]+", "+Module['rcv_bc_channel'].handlers.length);
+		    
+		    //console.log("!!!!!! Push event !! "+messageEvent.data.buf[0]+", "+Module['rcv_bc_channel'].handlers.length);
 		    
 		    Module['rcv_bc_channel'].events.push(messageEvent);
 		}
@@ -194,13 +197,25 @@ dependenciesFulfilled = function runCaller() {
 	};
 	
 	Module['rcv_bc_channel'].unset_handler = (id) => {
+
+	    //console.log("!!!!!! unset_handler "+id+" len="+Module['rcv_bc_channel'].handlers.length);
+
+	    let handler_removed = 0;
 	    
-	    for (let i = 0; i < Module['rcv_bc_channel'].handlers.length; i += 1) {
+	    for (let i = 0; i < Module['rcv_bc_channel'].handlers.length; i++) {
 
 		if (Module['rcv_bc_channel'].handlers[i].id == id) {
 
 		    Module['rcv_bc_channel'].handlers.splice(i, 1);
+		    handler_removed = 1;
+		    break;
 		}
+	    }
+
+	    if (!handler_removed) {
+
+		//console.log("!!!!!! CANNOT REMOVE HANDLER !!!!!!!");
+		//debugger;
 	    }
 	};
 
@@ -267,7 +282,7 @@ dependenciesFulfilled = function runCaller() {
 			    } catch (err) {
 				
 				console.log(err);
-				debugger;
+				//debugger;
 				
 				asyncWasmReturnValue = err;
 				isError = true;
@@ -384,6 +399,7 @@ dependenciesFulfilled = function runCaller() {
 
 		    //console.log(Module['env']);
 
+		    //Module['rcv_bc_channel'].unset_handler(hid); // Handler is unset here, exception for exec
 		    
 		    // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
 		    if (!calledRun) run();

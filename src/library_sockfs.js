@@ -163,7 +163,7 @@ mergeInto(LibraryManager.library, {
 	      };
 
 	      if (window.frameElement.getAttribute('pid') != "1") {
-
+		  
 		  //let bc = new BroadcastChannel("/var/resmgr.peer");
 		  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
@@ -241,22 +241,36 @@ mergeInto(LibraryManager.library, {
 
 	      if (msg.len <= len) {
 
-		  Module.HEAPU8.set(msg.buf,buf);
+		  //console.log("recvfrom_sync: "+msg.len+" <= "+len);
+		  //console.log(msg.buf);
+
+		  Module.HEAPU8.set(msg.buf, buf);
 
 		  sock.wakeUp(msg.len);
 	      }
 	      else {
 
-		  let b = msg.buf.slice(0,len);
+		  let b = msg.buf.slice(0, len);
 
-		  Module.HEAPU8.set(msg.buf,buf);
+		  Module.HEAPU8.set(b, buf);
 
 		  let b2 = msg.buf.slice(len);
 
-		  msg.buf = b2;
-		  msg.len = msg.len - len;
+		  //console.log("recvfrom_sync: "+msg.len+" > "+len);
+		  //console.log(msg.buf);
+		  //console.log(b);
 
-		  sock.recv_queue.unshift(msg);
+		  let msg2 = {
+		  
+		      from: msg.from,
+		      buf: b2,
+		      len: b2.length
+		  };
+
+		  //console.log(msg2.buf);
+		  //console.log("recvfrom_sync: unshift");
+
+		  sock.recv_queue.unshift(msg2);
 
 		  sock.wakeUp(len);
 	      }
@@ -290,9 +304,12 @@ mergeInto(LibraryManager.library, {
 	      let msg = {
 		  
 		  from: sock.name,
-		  buf: buf,
+		  buf: buf.slice(0, len),
 		  len: len
 	      };
+
+	      //console.log("Send:");
+	      //console.log(msg.buf);
 	      
 	      bc.postMessage(msg);
 
