@@ -1,7 +1,7 @@
 #include "stdio_impl.h"
 
 //BB
-#include <emscripten.h>
+//#include <emscripten.h>
 
 int __fseeko_unlocked(FILE *f, off_t off, int whence)
 {

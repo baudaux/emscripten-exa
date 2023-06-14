@@ -2154,6 +2154,8 @@ var SyscallsLibrary = {
 	    buf2[10] = 0x0;
 	    buf2[11] = 0x0;
 
+	    //TODO check if fd is in the table
+	    
 	    let remote_fd = Module['fd_table'][fd].remote_fd;
 	       
 	    // remote_fd
