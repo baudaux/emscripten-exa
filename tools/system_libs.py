@@ -945,10 +945,11 @@ class libc(MuslInternalLibrary,
 
     # individual files
     ignore += [
-        'memcpy.c', 'memset.c', 'memmove.c', 'getaddrinfo.c', 'getnameinfo.c',
-        'res_query.c', 'res_querydomain.c',
-        'proto.c', 'gethostbyaddr.c', 'gethostbyaddr_r.c', 'gethostbyname.c',
-        'gethostbyname2_r.c', 'gethostbyname_r.c', 'gethostbyname2.c',
+        'memcpy.c', 'memset.c', 'memmove.c',
+      #'getaddrinfo.c', 'getnameinfo.c',
+      #  'res_query.c', 'res_querydomain.c',
+      #  'proto.c', 'gethostbyaddr.c', 'gethostbyaddr_r.c', 'gethostbyname.c',
+      #  'gethostbyname2_r.c', 'gethostbyname_r.c', 'gethostbyname2.c',
         'alarm.c', 'syscall.c',
       #'popen.c', 'pclose.c',
         'getgrouplist.c', 'initgroups.c', 'wordexp.c', 'timer_create.c',
@@ -1119,6 +1120,7 @@ class libc(MuslInternalLibrary,
           'sigwait.c',
           'sigwaitinfo.c',
         ])
+    
 
     libc_files += files_in_path(
         path='system/lib/libc',
@@ -1149,6 +1151,21 @@ class libc(MuslInternalLibrary,
                  ])
 
     libc_files += glob_in_path('system/lib/libc/compat', '*.c')
+
+    #Modified by Benoit Baudaux 16/06/2023
+    libc_files += files_in_path(
+        path='system/lib/libc/musl/src/network',
+        filenames=[
+          'gethostbyname.c',
+          'gethostbyname2.c',
+          'gethostbyname2_r.c',
+          'gethostbyname_r.c',
+          'hstrerror.c',
+          'htonl.c',
+          'htons.c',
+          'ntohl.c',
+          'ntohs.c',
+        ])
 
     # Check for missing file in non_lto_files list.  Do this here
     # rather than in the constructor so it only happens when the

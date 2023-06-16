@@ -1136,15 +1136,18 @@ var SyscallsLibrary = {
     return socket;
   },
   /** @param {boolean=} allowNull */
-  $getSocketAddress__deps: ['$readSockaddr', '$FS', '$DNS'],
+    $getSocketAddress__deps: ['$readSockaddr'],
+    //, '$FS', '$DNS'],
   $getSocketAddress__docs: '/** @param {boolean=} allowNull */',
   $getSocketAddress: function(addrp, addrlen, allowNull) {
     if (allowNull && addrp === 0) return null;
       var info = readSockaddr(addrp, addrlen);
       if (info.errno) throw new FS.ErrnoError(info.errno);
       /* Modified by Benoit Baudaux 26/12/2022 */
+      #if 0
       if (info.family != {{{ cDefine('AF_UNIX') }}} )
 	  info.addr = DNS.lookup_addr(info.addr) || info.addr;
+      #endif
 #if SYSCALL_DEBUG
     dbg('    (socketaddress: "' + [info.addr, info.port] + '")');
 #endif
@@ -1309,24 +1312,26 @@ var SyscallsLibrary = {
 
 	return ret;
   },
-  __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
+    __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr'],
+    //, '$DNS'],
   __syscall_getsockname: function(fd, addr, addrlen) {
     err("__syscall_getsockname " + fd);
     var sock = getSocketFromFD(fd);
     // TODO: sock.saddr should never be undefined, see TODO in websocket_sock_ops.getname
-    var errno = writeSockaddr(addr, sock.family, DNS.lookup_name(sock.saddr || '0.0.0.0'), sock.sport, addrlen);
+    var errno = writeSockaddr(addr, sock.family, /*DNS.lookup_name(sock.saddr || '0.0.0.0')*/'0.0.0.0', sock.sport, addrlen);
 #if ASSERTIONS
     assert(!errno);
 #endif
     return 0;
   },
-  __syscall_getpeername__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
+    __syscall_getpeername__deps: ['$getSocketFromFD', '$writeSockaddr'],
+    //, '$DNS'],
   __syscall_getpeername: function(fd, addr, addrlen) {
     var sock = getSocketFromFD(fd);
     if (!sock.daddr) {
       return -{{{ cDefine('ENOTCONN') }}}; // The socket is not connected.
     }
-    var errno = writeSockaddr(addr, sock.family, DNS.lookup_name(sock.daddr), sock.dport, addrlen);
+      var errno = writeSockaddr(addr, sock.family, /*DNS.lookup_name(sock.daddr)*/'0.0.0.0', sock.dport, addrlen);
 #if ASSERTIONS
     assert(!errno);
 #endif
@@ -1345,12 +1350,13 @@ var SyscallsLibrary = {
     getSocketFromFD(fd);
     return -{{{ cDefine('ENOSYS') }}}; // unsupported feature
   },
-  __syscall_accept4__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
+    __syscall_accept4__deps: ['$getSocketFromFD', '$writeSockaddr'],
+    //, '$DNS'],
   __syscall_accept4: function(fd, addr, addrlen, flags) {
     var sock = getSocketFromFD(fd);
     var newsock = sock.sock_ops.accept(sock);
     if (addr) {
-      var errno = writeSockaddr(addr, newsock.family, DNS.lookup_name(newsock.daddr), newsock.dport, addrlen);
+      var errno = writeSockaddr(addr, newsock.family, /*DNS.lookup_name(newsock.daddr)*/'0.0.0.0', newsock.dport, addrlen);
 #if ASSERTIONS
       assert(!errno);
 #endif
@@ -1381,7 +1387,8 @@ var SyscallsLibrary = {
     sock.sock_ops.listen(sock, backlog);
     return 0;
   },
-  __syscall_recvfrom__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
+    __syscall_recvfrom__deps: ['$getSocketFromFD', '$writeSockaddr'],
+//, '$DNS'],
     __syscall_recvfrom: function(fd, buf, len, flags, addr, addrlen) {
 	/* Modified by Benoit Baudaux 26/12/2022 */
     var sock = getSocketFromFD(fd);
@@ -1440,7 +1447,8 @@ var SyscallsLibrary = {
     }
     return -{{{ cDefine('ENOPROTOOPT') }}}; // The option is unknown at the level indicated.
   },
-  __syscall_sendmsg__deps: ['$getSocketFromFD', '$readSockaddr', '$DNS'],
+    __syscall_sendmsg__deps: ['$getSocketFromFD', '$readSockaddr'],
+			      //, '$DNS'],
   __syscall_sendmsg: function(fd, message, flags) {
     var sock = getSocketFromFD(fd);
     var iov = {{{ makeGetValue('message', C_STRUCTS.msghdr.msg_iov, '*') }}};
@@ -1453,7 +1461,7 @@ var SyscallsLibrary = {
       var info = readSockaddr(name, namelen);
       if (info.errno) return -info.errno;
       port = info.port;
-      addr = DNS.lookup_addr(info.addr) || info.addr;
+      addr = /*DNS.lookup_addr(info.addr) ||*/ info.addr;
     }
     // concatenate scatter-gather arrays into one message buffer
     var total = 0;
@@ -1472,7 +1480,8 @@ var SyscallsLibrary = {
     // write the buffer
     return sock.sock_ops.sendmsg(sock, view, 0, total, addr, port);
   },
-  __syscall_recvmsg__deps: ['$getSocketFromFD', '$writeSockaddr', '$DNS'],
+    __syscall_recvmsg__deps: ['$getSocketFromFD', '$writeSockaddr'],
+    //, '$DNS'],
   __syscall_recvmsg: function(fd, message, flags) {
     var sock = getSocketFromFD(fd);
     var iov = {{{ makeGetValue('message', C_STRUCTS.msghdr.msg_iov, POINTER_TYPE) }}};
@@ -1497,7 +1506,7 @@ var SyscallsLibrary = {
     // write the source address out
     var name = {{{ makeGetValue('message', C_STRUCTS.msghdr.msg_name, '*') }}};
     if (name) {
-      var errno = writeSockaddr(name, sock.family, DNS.lookup_name(msg.addr), msg.port);
+      var errno = writeSockaddr(name, sock.family, /*DNS.lookup_name(msg.addr)*/'0.0.0.0', msg.port);
 #if ASSERTIONS
       assert(!errno);
 #endif

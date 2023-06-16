@@ -15,6 +15,9 @@
 #include "stdio_impl.h"
 #include "syscall.h"
 
+//BB
+#include <emscripten.h>
+
 static int is_valid_hostname(const char *host)
 {
 	const unsigned char *s;
@@ -211,12 +214,19 @@ static int name_from_dns_search(struct address buf[static MAXADDRS], char canon[
 			memcpy(canon+l+1, p, z-p);
 			canon[z-p+1+l] = 0;
 			int cnt = name_from_dns(buf, canon, canon, family, &conf);
+
+			emscripten_log(EM_LOG_CONSOLE, "name_from_dns_search: name_from_dns=%d", cnt);
+			
 			if (cnt) return cnt;
 		}
 	}
 
 	canon[l] = 0;
-	return name_from_dns(buf, canon, name, family, &conf);
+	int ret = name_from_dns(buf, canon, name, family, &conf);
+	
+	emscripten_log(EM_LOG_CONSOLE, "name_from_dns_search: (2) name_from_dns=%d (%s %s %d)", ret, name, canon, family);
+	
+	return ret;
 }
 
 static const struct policy {
@@ -295,6 +305,8 @@ static int addrcmp(const void *_a, const void *_b)
 
 int __lookup_name(struct address buf[static MAXADDRS], char canon[static 256], const char *name, int family, int flags)
 {
+   emscripten_log(EM_LOG_CONSOLE, "--> __lookup_name: %s", name);
+  
 	int cnt = 0, i, j;
 
 	*canon = 0;
@@ -316,10 +328,19 @@ int __lookup_name(struct address buf[static MAXADDRS], char canon[static 256], c
 
 	/* Try each backend until there's at least one result. */
 	cnt = name_from_null(buf, name, family, flags);
+
+	emscripten_log(EM_LOG_CONSOLE, "__lookup_name: name_from_null cnt=%d", cnt);
+	
 	if (!cnt) cnt = name_from_numeric(buf, name, family);
+
+	emscripten_log(EM_LOG_CONSOLE, "__lookup_name: name_from_numeric cnt=%d", cnt);
 	if (!cnt && !(flags & AI_NUMERICHOST)) {
 		cnt = name_from_hosts(buf, canon, name, family);
+
+		emscripten_log(EM_LOG_CONSOLE, "__lookup_name: name_from_hosts cnt=%d", cnt);
 		if (!cnt) cnt = name_from_dns_search(buf, canon, name, family);
+
+		emscripten_log(EM_LOG_CONSOLE, "__lookup_name: name_from_dns_search cnt=%d", cnt);
 	}
 	if (cnt<=0) return cnt ? cnt : EAI_NONAME;
 

@@ -1581,7 +1581,8 @@ mergeInto(LibraryManager.library, {
   // ==========================================================================
   // netdb.h
   // ==========================================================================
-
+//BB
+    #if 0
   $inetPton4: function(str) {
     var b = str.split('.');
     for (var i = 0; i < 4; i++) {
@@ -1747,8 +1748,9 @@ mergeInto(LibraryManager.library, {
     }
     return str;
   },
-
-  $readSockaddr__deps: ['$Sockets', '$inetNtop4', '$inetNtop6', 'ntohs'],
+#endif
+    $readSockaddr__deps: ['$Sockets'],
+    //, '$inetNtop4', '$inetNtop6', 'ntohs'],
   $readSockaddr: function (sa, salen) {
     // family / port offsets are common to both sockaddr_in and sockaddr_in6
       var family = {{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_family, 'i16') }}};
@@ -1762,7 +1764,9 @@ mergeInto(LibraryManager.library, {
               return { errno: {{{ cDefine('EINVAL') }}} };
           }
 	  addr = UTF8ToString(sa+2);
-        break;
+          break;
+	  //BB
+	  #if 0
       case {{{ cDefine('AF_INET') }}}:
 	  port = _ntohs({{{ makeGetValue('sa', C_STRUCTS.sockaddr_in.sin_port, 'u16') }}});
         if (salen !== {{{ C_STRUCTS.sockaddr_in.__size__ }}}) {
@@ -1783,7 +1787,8 @@ mergeInto(LibraryManager.library, {
           {{{ makeGetValue('sa', C_STRUCTS.sockaddr_in6.sin6_addr.__in6_union.__s6_addr+12, 'i32') }}}
         ];
         addr = inetNtop6(addr);
-        break;
+          break;
+	  #endif
       default:
         return { errno: {{{ cDefine('EAFNOSUPPORT') }}} };
     }
@@ -1791,9 +1796,12 @@ mergeInto(LibraryManager.library, {
     return { family: family, addr: addr, port: port };
   },
   $writeSockaddr__docs: '/** @param {number=} addrlen */',
-  $writeSockaddr__deps: ['$Sockets', '$inetPton4', '$inetPton6', '$zeroMemory'],
+    $writeSockaddr__deps: ['$Sockets'],
+    //, '$inetPton4', '$inetPton6', '$zeroMemory'],
   $writeSockaddr: function (sa, family, addr, port, addrlen) {
-    switch (family) {
+      switch (family) {
+	  //BB
+	#if 0
       case {{{ cDefine('AF_INET') }}}:
         addr = inetPton4(addr);
         zeroMemory(sa, {{{ C_STRUCTS.sockaddr_in.__size__ }}});
@@ -1817,12 +1825,16 @@ mergeInto(LibraryManager.library, {
         {{{ makeSetValue('sa', C_STRUCTS.sockaddr_in6.sin6_addr.__in6_union.__s6_addr+12, 'addr[3]', 'i32') }}};
         {{{ makeSetValue('sa', C_STRUCTS.sockaddr_in6.sin6_port, '_htons(port)', 'i16') }}};
         break;
+	#endif
       default:
         return {{{ cDefine('EAFNOSUPPORT') }}};
     }
     return 0;
   },
 
+    //BB
+#if 0
+    
   // We can't actually resolve hostnames in the browser, so instead
   // we're generating fake IP addresses with lookup_name that we can
   // resolve later on with lookup_addr.
@@ -2235,6 +2247,7 @@ mergeInto(LibraryManager.library, {
     var result = Protocols.map[number];
     return result;
   },
+    #endif
 
   // ==========================================================================
   // sockets. Note that the implementation assumes all sockets are always

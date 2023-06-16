@@ -14,9 +14,11 @@
 #include "syscall.h"
 #include "lookup.h"
 
+#include <emscripten.h>
+
 static void cleanup(void *p)
 {
-#ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__EXA
 	__wasi_fd_close((intptr_t)p);
 #else
 	__syscall(SYS_close, (intptr_t)p);
@@ -35,6 +37,9 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	const int *qlens, unsigned char *const *answers, int *alens, int asize,
 	const struct resolvconf *conf)
 {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> __res_msend_rc: nqueries=%d", nqueries);
+  
 	int fd;
 	int timeout, attempts, retry_interval, servfail_retry;
 	union {
