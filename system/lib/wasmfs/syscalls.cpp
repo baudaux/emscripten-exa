@@ -1320,7 +1320,8 @@ int __syscall_ioctl(int fd, int request, ...) {
   }*/
 
 // int poll(struct pollfd* fds, nfds_t nfds, int timeout);
-int __syscall_poll(intptr_t fds_, int nfds, int timeout) {
+  // Modified by Benoit Baudaux 19/06/2023
+/*int __syscall_poll(intptr_t fds_, int nfds, int timeout) {
   struct pollfd* fds = (struct pollfd*)fds_;
   auto fileTable = wasmFS.getFileTable().locked();
 
@@ -1369,7 +1370,8 @@ int __syscall_poll(intptr_t fds_, int nfds, int timeout) {
   //       pthreads and asyncify).
   return nonzero;
 }
-
+*/
+  
 int __syscall_fallocate(int fd, int mode, uint64_t off, uint64_t len) {
   assert(mode == 0); // TODO, but other modes were never supported in the old FS
 

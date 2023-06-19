@@ -151,6 +151,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_fsync',
   '__syscall_unlinkat',
   '__syscall_renameat',
+  '__syscall_sendto',
+  '__syscall_poll',
 ]
 
 # Target options

@@ -202,7 +202,7 @@ mergeInto(LibraryManager.library, {
 		  Module.HEAPU8[buf+16] = 0x1; // AF_UNIX
 		  Module.HEAPU8[buf+17] = 0x0;
 
-		  // sun_path
+b		  // sun_path
 		  stringToUTF8(sock.name, buf+18, 108);
 
 		  let buf2 = Module.HEAPU8.slice(buf, buf+256);
