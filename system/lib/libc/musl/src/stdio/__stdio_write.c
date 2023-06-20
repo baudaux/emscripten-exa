@@ -20,7 +20,7 @@ size_t __stdio_write(FILE *f, const unsigned char *buf, size_t len)
 
 #ifdef __BB_DEBUG
 	// BB
-	emscripten_log(EM_LOG_CONSOLE,"__stdio_write: %d;%d;%d",iov[0].iov_len,iov[1].iov_len,buf[0]);
+	//emscripten_log(EM_LOG_CONSOLE,"__stdio_write: %d;%d;%d",iov[0].iov_len,iov[1].iov_len,buf[0]);
 #endif
 	
 	

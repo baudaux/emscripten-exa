@@ -1520,6 +1520,12 @@ var SyscallsLibrary = {
 		buf2[22] = (len >> 16) & 0xff;
 		buf2[23] = (len >> 24) & 0xff;
 
+		// addr_len
+		buf2[24] = addrlen & 0xff;
+		buf2[25] = (addrlen >> 8) & 0xff;
+		buf2[26] = (addrlen >> 16) & 0xff;
+		buf2[27] = (addrlen >> 24) & 0xff;
+
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    let msg2 = messageEvent.data;
 
@@ -1527,10 +1533,23 @@ var SyscallsLibrary = {
 
 			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-			/*if (!_errno)
+			if (!_errno) {
+
+			    let addrlen2 = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+
+			    if (addr && (addrlen2 > 0))
+			    Module.HEAPU8.set(msg2.buf.slice(28, 28+addrlen2), addr);
+			    let length = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
+			    
+			    if (buf && (length > 0))
+				Module.HEAPU8.set(msg2.buf.slice(156, 156+length), buf);
+			    
 			    wakeUp(length);
-			else
-			    wakeUp(-_errno);*/
+			}
+			else {
+			    
+			    wakeUp(-_errno);
+			}
 			
 			return hid;
 		    }
@@ -1883,8 +1902,6 @@ var SyscallsLibrary = {
     }
     return nonzero;*/
 
-      console.log("--> __syscall_poll: "+nfds);
-
       let ret = Asyncify.handleSleep(function (wakeUp) {
 
 	  let readfds_array = [];
@@ -1899,10 +1916,10 @@ var SyscallsLibrary = {
 		  let events = Module.HEAPU8[fds+i*8+4] | (Module.HEAPU8[fds+i*8+5] << 8);
 
 		  if ((events & 0x01) == 0x01)  // POLLIN
-		      readfds_array.push(i);
+		      readfds_array.push(fd);
 
 		  if ((events & 0x04) == 0x04)  //POLLOUT
-		      writefds_array.push(i);
+		      writefds_array.push(fd);
 
 		  Module.HEAPU8[fds+i*8+6] = 0;
 		  Module.HEAPU8[fds+i*8+7] = 0;

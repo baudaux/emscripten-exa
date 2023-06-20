@@ -2,14 +2,10 @@
 #include <string.h>
 #include <time.h>
 
-#include <emscripten.h>
-
 int __res_mkquery(int op, const char *dname, int class, int type,
 	const unsigned char *data, int datalen,
 	const unsigned char *newrr, unsigned char *buf, int buflen)
 {
-
-  emscripten_log(EM_LOG_CONSOLE, "--> __res_mkquery: op=%d dname=%s class=%d type=%d", op, dname, class, type);
   
 	int id, i, j;
 	unsigned char q[280];
@@ -43,8 +39,6 @@ int __res_mkquery(int op, const char *dname, int class, int type,
 	q[1] = id;
 
 	memcpy(buf, q, n);
-
-	emscripten_log(EM_LOG_CONSOLE, "<-- __res_mkquery: n=%d", n);
 	
 	return n;
 }

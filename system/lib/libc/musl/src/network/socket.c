@@ -3,15 +3,9 @@
 #include <errno.h>
 #include "syscall.h"
 
-#include <emscripten.h>
-
 int socket(int domain, int type, int protocol)
 {
-  emscripten_log(EM_LOG_CONSOLE, "--> socket %d %d %d", domain, type, protocol);
-  
 	int s = __socketcall(socket, domain, type, protocol, 0, 0, 0);
-	
-	emscripten_log(EM_LOG_CONSOLE, "__socketcall %d", s);
 	
 	if ((s==-EINVAL || s==-EPROTONOSUPPORT)
 	    && (type&(SOCK_CLOEXEC|SOCK_NONBLOCK))) {

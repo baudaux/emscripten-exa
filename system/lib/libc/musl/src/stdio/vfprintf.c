@@ -781,7 +781,7 @@ int vfiprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 // XXX EMSCRIPTEN
 int __small_vfprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 {
-  emscripten_log(EM_LOG_CONSOLE,"--> small_vfprintf");
+  //emscripten_log(EM_LOG_CONSOLE,"--> small_vfprintf");
   
 	return __vfprintf_internal(f, fmt, ap, fmt_fp, NULL);
 }

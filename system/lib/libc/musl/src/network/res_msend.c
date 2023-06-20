@@ -14,8 +14,6 @@
 #include "syscall.h"
 #include "lookup.h"
 
-#include <emscripten.h>
-
 static void cleanup(void *p)
 {
 #ifdef __EMSCRIPTEN__EXA
@@ -37,9 +35,6 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	const int *qlens, unsigned char *const *answers, int *alens, int asize,
 	const struct resolvconf *conf)
 {
-
-  emscripten_log(EM_LOG_CONSOLE, "--> __res_msend_rc: nqueries=%d", nqueries);
-  
 	int fd;
 	int timeout, attempts, retry_interval, servfail_retry;
 	union {
@@ -61,8 +56,6 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	timeout = 1000*conf->timeout;
 	attempts = conf->attempts;
 
-	emscripten_log(EM_LOG_CONSOLE, "__res_msend_rc: timeout=%d attempts=%d", timeout, attempts);
-
 	for (nns=0; nns<conf->nns; nns++) {
 		const struct address *iplit = &conf->ns[nns];
 		if (iplit->family == AF_INET) {
@@ -81,8 +74,6 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	/* Get local address and open/bind a socket */
 	sa.sin.sin_family = family;
 	fd = socket(family, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
-
-	emscripten_log(EM_LOG_CONSOLE, "__res_msend_rc: socket=%d", fd);
 
 	/* Handle case where system lacks IPv6 support */
 	if (fd < 0 && family == AF_INET6 && errno == EAFNOSUPPORT) {
@@ -126,8 +117,6 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	t0 = t2 = mtime();
 	t1 = t2 - retry_interval;
 
-	emscripten_log(EM_LOG_CONSOLE, "__res_msend_rc: before sendto timeout=%d nns=%d", timeout, nns);
-
 	for (; t2-t0 < timeout; t2=mtime()) {
 		if (t2-t1 >= retry_interval) {
 			/* Query all configured namservers in parallel */
@@ -141,25 +130,25 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 			servfail_retry = 2 * nqueries;
 		}
 
-		emscripten_log(EM_LOG_CONSOLE, "__res_msend_rc: before poll");
-
 		/* Wait for a response, or until time to retry */
 		if (poll(&pfd, 1, t1+retry_interval-t2) <= 0) continue;
 
 		while ((rlen = recvfrom(fd, answers[next], asize, 0,
 		  (void *)&sa, (socklen_t[1]){sl})) >= 0) {
-
+		  
 			/* Ignore non-identifiable packets */
 			if (rlen < 4) continue;
 
 			/* Ignore replies from addresses we didn't send to */
 			for (j=0; j<nns && memcmp(ns+j, &sa, sl); j++);
+			
 			if (j==nns) continue;
-
+			
 			/* Find which query this answer goes with, if any */
 			for (i=next; i<nqueries && (
 				answers[next][0] != queries[i][0] ||
 				answers[next][1] != queries[i][1] ); i++);
+
 			if (i==nqueries) continue;
 			if (alens[i]) continue;
 
@@ -192,8 +181,6 @@ int __res_msend_rc(int nqueries, const unsigned char *const *queries,
 	}
 out:
 	pthread_cleanup_pop(1);
-
-	emscripten_log(EM_LOG_CONSOLE, "<-- __res_msend_rc");
 
 	return 0;
 }
