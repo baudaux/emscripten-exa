@@ -1352,10 +1352,81 @@ var SyscallsLibrary = {
   __syscall_connect__deps: ['$getSocketFromFD', '$getSocketAddress'],
   __syscall_connect__sig: 'iipi',
   __syscall_connect: function(fd, addr, addrlen) {
-    var sock = getSocketFromFD(fd);
+    /*var sock = getSocketFromFD(fd);
     var info = getSocketAddress(addr, addrlen);
     sock.sock_ops.connect(sock, info.addr, info.port);
-    return 0;
+    return 0;*/
+
+      let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  if (Module['fd_table'][fd].family == 1) {
+
+	      //TODO
+	  }
+	  else {
+
+	      let buf_size = 20+40;
+
+	      let buf2 = new Uint8Array(buf_size);
+
+	      buf2[0] = 55; // CONNECT
+
+	      let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	      // pid
+	      buf2[4] = pid & 0xff;
+	      buf2[5] = (pid >> 8) & 0xff;
+	      buf2[6] = (pid >> 16) & 0xff;
+	      buf2[7] = (pid >> 24) & 0xff;
+
+	      let remote_fd = Module['fd_table'][fd].remote_fd;
+
+	      // remote_fd
+	      buf2[12] = remote_fd & 0xff;
+	      buf2[13] = (remote_fd >> 8) & 0xff;
+	      buf2[14] = (remote_fd >> 16) & 0xff;
+	      buf2[15] = (remote_fd >> 24) & 0xff;
+
+	      // addrlen
+	      buf2[16] = addrlen & 0xff;
+	      buf2[17] = (addrlen >> 8) & 0xff;
+	      buf2[18] = (addrlen >> 16) & 0xff;
+	      buf2[19] = (addrlen >> 24) & 0xff;
+
+	      // addr
+	      if (addr && addrlen > 0)
+		  buf2.set(HEAPU8.slice(addr, addr+addrlen), 20);
+
+	      const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		  let msg2 = messageEvent.data;
+
+		  if (msg2.buf[0] == (55|0x80)) {
+
+		      let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		      wakeUp(-_errno);
+
+		      return hid;
+		  }
+
+		  return -1;
+	      });
+
+	      let msg = {
+		  
+		  from: Module['rcv_bc_channel'].name,
+		  buf: buf2,
+		  len: buf_size
+	      };
+
+	      let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	      
+	      driver_bc.postMessage(msg);
+	      
+	  }
+      });
+
+      return ret;
   },
   __syscall_shutdown__deps: ['$getSocketFromFD'],
   __syscall_shutdown: function(fd, how) {
@@ -1542,7 +1613,7 @@ var SyscallsLibrary = {
 			    let length = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
 			    
 			    if (buf && (length > 0))
-				Module.HEAPU8.set(msg2.buf.slice(156, 156+length), buf);
+				Module.HEAPU8.set(msg2.buf.slice(68, 68+length), buf);
 			    
 			    wakeUp(length);
 			}
@@ -1597,7 +1668,7 @@ var SyscallsLibrary = {
 
 	    let ret = Asyncify.handleSleep(function (wakeUp) {
 
-		let buf_size = 28+128+length;
+		let buf_size = 28+40+length;
 
 		let buf2 = new Uint8Array(buf_size);
 
@@ -1636,14 +1707,14 @@ var SyscallsLibrary = {
 		    buf2.set(HEAPU8.slice(addr, addr+addr_len), 24);
 
 		// length
-		buf2[152] = length & 0xff;
-		buf2[153] = (length >> 8) & 0xff;
-		buf2[154] = (length >> 16) & 0xff;
-		buf2[155] = (length >> 24) & 0xff;
+		buf2[64] = length & 0xff;
+		buf2[65] = (length >> 8) & 0xff;
+		buf2[66] = (length >> 16) & 0xff;
+		buf2[67] = (length >> 24) & 0xff;
 
 		// message
 		if (message && length > 0)
-		    buf2.set(HEAPU8.slice(message, message+length), 156);
+		    buf2.set(HEAPU8.slice(message, message+length), 68);
 
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    let msg2 = messageEvent.data;

@@ -153,6 +153,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_renameat',
   '__syscall_sendto',
   '__syscall_poll',
+  '__syscall_connect',
 ]
 
 # Target options
