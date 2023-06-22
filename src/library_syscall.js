@@ -2951,8 +2951,9 @@ var SyscallsLibrary = {
 
 	  if ( (cmd == {{{ cDefine('F_SETFD') }}}) ||
 	       (cmd == {{{ cDefine('F_DUPFD') }}}) ||
-	       (cmd == {{{ cDefine('F_DUPFD_CLOEXEC') }}}) ) {
-
+	       (cmd == {{{ cDefine('F_DUPFD_CLOEXEC') }}}) ||
+	       (cmd == {{{ cDefine('F_SETFL') }}}) ) {
+	      
 	      len = 4; // arg is an int
 	  }
 	  else {
