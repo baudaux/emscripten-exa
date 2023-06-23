@@ -904,7 +904,7 @@ var SyscallsLibrary = {
 			    return -1;
 			}
 
-			let errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
 			//console.log("__syscall_ioctl: errno=" +errno);
 
@@ -912,7 +912,7 @@ var SyscallsLibrary = {
 
 			case {{{ cDefine('TIOCGWINSZ') }}}:
 
-			    if (!errno) {
+			    if (!_errno) {
 
 				let len = 8;
 				
@@ -928,7 +928,7 @@ var SyscallsLibrary = {
 
 			case {{{ cDefine('TCGETS') }}}:
 
-			    if (!errno) {
+			    if (!_errno) {
 
 				let len = 60; // 4*4+4+32+2*4;
 				
@@ -944,7 +944,7 @@ var SyscallsLibrary = {
 
 			case {{{ cDefine('TIOCGPGRP') }}}:
 
-			    if (!errno) {
+			    if (!_errno) {
 
 				let len = 4;
 				
@@ -960,7 +960,7 @@ var SyscallsLibrary = {
 
 			case 0x4600:   // FBIOGET_VSCREENINFO
 
-			    if (!errno) {
+			    if (!_errno) {
 
 				let len = 88; // Todo
 				
@@ -976,7 +976,7 @@ var SyscallsLibrary = {
 
 			case 0x4602:   // FBIOGET_FSCREENINFO
 
-			    if (!errno) {
+			    if (!_errno) {
 
 				let len = 68; // TODO
 				
@@ -1323,7 +1323,9 @@ var SyscallsLibrary = {
 	});
 
 	return ret;
-  },
+    },
+    //TODO
+    
     __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr'],
     //, '$DNS'],
   __syscall_getsockname: function(fd, addr, addrlen) {
