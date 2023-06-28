@@ -1328,7 +1328,9 @@ var SyscallsLibrary = {
     
     __syscall_getsockname__deps: ['$getSocketFromFD', '$writeSockaddr'],
     //, '$DNS'],
-  __syscall_getsockname: function(fd, addr, addrlen) {
+    __syscall_getsockname: function(fd, addr, addrlen) {
+
+#if 0
     err("__syscall_getsockname " + fd);
     var sock = getSocketFromFD(fd);
     // TODO: sock.saddr should never be undefined, see TODO in websocket_sock_ops.getname
@@ -1336,11 +1338,93 @@ var SyscallsLibrary = {
 #if ASSERTIONS
     assert(!errno);
 #endif
-    return 0;
+      return 0;
+
+#endif
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (Module['fd_table'][fd].family == 1) {
+
+		//TODO
+	    }
+	    else {
+
+		let buf_size = 20+40;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 56; // GETSOCKNAME
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// addrlen
+		buf2.set(Module.HEAPU8.slice(addrlen, addrlen+4), 16);
+
+		let len = Module.HEAPU8[addrlen] | (Module.HEAPU8[addrlen+1] << 8) | (Module.HEAPU8[addrlen+2] << 16) |  (Module.HEAPU8[addrlen+3] << 24);
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		  let msg2 = messageEvent.data;
+
+		  if (msg2.buf[0] == (56|0x80)) {
+
+		      let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		      if (!_errno) {
+
+			  Module.HEAPU8.set(msg2.buf.slice(16, 16+4), addrlen);
+
+			  let len2 = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			  if (len2 < len)
+			      len = len2;
+			  
+			  Module.HEAPU8.set(msg2.buf.slice(20, 20+len), addr);
+		      }
+
+		      wakeUp(-_errno);
+
+		      return hid;
+		  }
+
+		  return -1;
+	      });
+
+	      let msg = {
+		  
+		  from: Module['rcv_bc_channel'].name,
+		  buf: buf2,
+		  len: buf_size
+	      };
+
+	      let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	      
+	      driver_bc.postMessage(msg);
+		
+	    }
+	});
+
+	return ret;
   },
     __syscall_getpeername__deps: ['$getSocketFromFD', '$writeSockaddr'],
     //, '$DNS'],
-  __syscall_getpeername: function(fd, addr, addrlen) {
+    __syscall_getpeername: function(fd, addr, addrlen) {
+
+#if 0
     var sock = getSocketFromFD(fd);
     if (!sock.daddr) {
       return -{{{ cDefine('ENOTCONN') }}}; // The socket is not connected.
@@ -1349,7 +1433,87 @@ var SyscallsLibrary = {
 #if ASSERTIONS
     assert(!errno);
 #endif
-    return 0;
+	return 0;
+
+#endif
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (Module['fd_table'][fd].family == 1) {
+
+		//TODO
+	    }
+	    else {
+
+		let buf_size = 20+40;
+
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 57; // GETPEERNAME
+
+		let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		// remote_fd
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		// addrlen
+		buf2.set(Module.HEAPU8.slice(addrlen, addrlen+4), 16);
+
+		let len = Module.HEAPU8[addrlen] | (Module.HEAPU8[addrlen+1] << 8) | (Module.HEAPU8[addrlen+2] << 16) |  (Module.HEAPU8[addrlen+3] << 24);
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		  let msg2 = messageEvent.data;
+
+		  if (msg2.buf[0] == (57|0x80)) {
+
+		      let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		      if (!_errno) {
+
+			  Module.HEAPU8.set(msg2.buf.slice(16, 16+4), addrlen);
+
+			  let len2 = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			  if (len2 < len)
+			      len = len2;
+			  
+			  Module.HEAPU8.set(msg2.buf.slice(20, 20+len), addr);
+		      }
+
+		      wakeUp(-_errno);
+
+		      return hid;
+		  }
+
+		  return -1;
+	      });
+
+	      let msg = {
+		  
+		  from: Module['rcv_bc_channel'].name,
+		  buf: buf2,
+		  len: buf_size
+	      };
+
+	      let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+	      
+	      driver_bc.postMessage(msg);
+		
+	    }
+	});
+
+	return ret;
   },
   __syscall_connect__deps: ['$getSocketFromFD', '$getSocketAddress'],
   __syscall_connect__sig: 'iipi',
@@ -1706,7 +1870,7 @@ var SyscallsLibrary = {
 
 		// addr
 		if (addr && addr_len > 0)
-		    buf2.set(HEAPU8.slice(addr, addr+addr_len), 24);
+		    buf2.set(Module.HEAPU8.slice(addr, addr+addr_len), 24);
 
 		// length
 		buf2[64] = length & 0xff;
@@ -1716,7 +1880,7 @@ var SyscallsLibrary = {
 
 		// message
 		if (message && length > 0)
-		    buf2.set(HEAPU8.slice(message, message+length), 68);
+		    buf2.set(Module.HEAPU8.slice(message, message+length), 68);
 
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 		    let msg2 = messageEvent.data;
