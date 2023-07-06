@@ -257,10 +257,11 @@ int __syscall_ugetrlimit(int resource, intptr_t rlim) {
   return 0; // just report no limits
 }
 
-int __syscall_setsockopt(int sockfd, int level, int optname, intptr_t optval, size_t optlen, int dummy) {
+/* Modified by Benoit Baudaux 05/07/2023 */
+/*int __syscall_setsockopt(int sockfd, int level, int optname, intptr_t optval, size_t optlen, int dummy) {
   REPORT(setsockopt);
   return -ENOPROTOOPT; // The option is unknown at the level indicated.
-}
+  }*/
 
 UNIMPLEMENTED(acct, (intptr_t filename))
 UNIMPLEMENTED(mincore, (intptr_t addr, size_t length, intptr_t vec))

@@ -156,6 +156,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_connect',
   '__syscall_getsockname',
   '__syscall_getpeername',
+  '__syscall_setsockopt',
 ]
 
 # Target options

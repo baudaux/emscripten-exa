@@ -866,7 +866,8 @@ var SyscallsLibrary = {
 
 		    len = 60; // 4*4+4+32+2*4;
 		}
-		else if (op == {{{ cDefine('TIOCSPGRP') }}}) {
+		else if ( (op == {{{ cDefine('TIOCSPGRP') }}}) ||
+			  (op == {{{ cDefine('FIONBIO') }}}) ) {
 
 		    len = 4;
 		}
@@ -5816,7 +5817,7 @@ var SyscallsLibrary = {
 
 	    let notif_select = (fd, rw) => {
 
-		//console.log("notify_select: fd="+fd);
+		//console.log("__syscall_pselect6: notify_select: fd="+fd);
 
 		if (Module['select_timer'])
 		    clearTimeout(Module['select_timer']);
@@ -5852,6 +5853,13 @@ var SyscallsLibrary = {
 		    for (let i=0; i < nfds; i++) {
 
 			Module.HEAPU8[writefds+Math.floor(i/8)] = 0;
+		    }
+		}
+
+		if (exceptfds) {
+		    for (let i=0; i < nfds; i++) {
+
+			Module.HEAPU8[exceptfds+Math.floor(i/8)] = 0;
 		    }
 		}
 
@@ -5978,6 +5986,8 @@ var SyscallsLibrary = {
 
 			let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
+			//console.log("__syscall_pselect6: return of fd="+fd+", rw="+rw);
+			
 			notif_select(fd, rw);
 
 			return hid;
@@ -6887,7 +6897,7 @@ var SyscallsLibrary = {
 		    }
 		    else {
 
-			console.log("No handler");
+			//console.log("No handler");
 		    }
 
 		    return hid;
@@ -7279,6 +7289,86 @@ var SyscallsLibrary = {
 	    }
 	});
     
+	return ret;
+    },
+    __syscall_setsockopt__sig: 'iiiipii',
+    __syscall_setsockopt: function(fd, level, optname, optval, optlen) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let buf_size = 28+optlen;
+
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 59; // SETSOCKOPT
+
+	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    let remote_fd = Module['fd_table'][fd].remote_fd;
+
+	    // remote_fd
+	    buf2[12] = remote_fd & 0xff;
+	    buf2[13] = (remote_fd >> 8) & 0xff;
+	    buf2[14] = (remote_fd >> 16) & 0xff;
+	    buf2[15] = (remote_fd >> 24) & 0xff;
+
+	    // level
+	    buf2[16] = level & 0xff;
+	    buf2[17] = (level >> 8) & 0xff;
+	    buf2[18] = (level >> 16) & 0xff;
+	    buf2[19] = (level >> 24) & 0xff;
+
+	    // optname
+	    buf2[20] = optname & 0xff;
+	    buf2[21] = (optname >> 8) & 0xff;
+	    buf2[22] = (optname >> 16) & 0xff;
+	    buf2[23] = (optname >> 24) & 0xff;
+
+	    // optlen
+	    buf2[24] = optlen & 0xff;
+	    buf2[25] = (optlen >> 8) & 0xff;
+	    buf2[26] = (optlen >> 16) & 0xff;
+	    buf2[27] = (optlen >> 24) & 0xff;
+
+	    buf2.set(Module.HEAPU8.slice(optval, optval+optlen), 28);
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (59|0x80)) {
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    wakeUp(-_errno);
+
+		    return hid;
+		}
+		else {
+
+		    return -1;
+		}
+	    });
+
+	    let msg = {
+		
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+	    driver_bc.postMessage(msg);
+	    
+	});
+
 	return ret;
     },
 };

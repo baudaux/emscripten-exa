@@ -1119,6 +1119,7 @@ class libc(MuslInternalLibrary,
           'sigrtmin.c',
           'sigwait.c',
           'sigwaitinfo.c',
+          'sigsuspend.c',
         ])
     
 
@@ -1165,6 +1166,7 @@ class libc(MuslInternalLibrary,
           'htons.c',
           'ntohl.c',
           'ntohs.c',
+          'setsockopt.c',
         ])
 
     # Check for missing file in non_lto_files list.  Do this here

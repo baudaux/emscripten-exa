@@ -111,6 +111,12 @@ var ENVIRONMENT_IS_NODE = typeof process == 'object' && typeof process.versions 
 var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
 #endif // ENVIRONMENT
 
+// Added by Benoit Baudaux 29/06/2023
+/*if (ENVIRONMENT_IS_NODE || ENVIRONMENT_IS_SHELL) {
+
+    process.exit(-1); // For detecting cross compiling
+}*/
+
 #if ASSERTIONS
 if (Module['ENVIRONMENT']) {
   throw new Error('Module.ENVIRONMENT has been deprecated. To force the environment, use the ENVIRONMENT compile-time option (for example, -sENVIRONMENT=web or -sENVIRONMENT=node)');

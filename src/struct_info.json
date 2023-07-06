@@ -306,6 +306,7 @@
         "file": "bits/ioctl.h",
         "defines": [
             "FIONREAD",
+	    "FIONBIO",
             "TCGETA",
             "TCGETS",
             "TCSETA",
