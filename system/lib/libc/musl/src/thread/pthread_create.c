@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stddef.h>
 
+//BB
+#include <emscripten.h>
+
 static void dummy_0()
 {
 }
@@ -232,6 +235,10 @@ static void init_file_lock(FILE *f)
 
 int __pthread_create(pthread_t *restrict res, const pthread_attr_t *restrict attrp, void *(*entry)(void *), void *restrict arg)
 {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> thread::__pthread_create");
+  
+  
 	int ret, c11 = (attrp == __ATTRP_C11_THREAD);
 	size_t size, guard;
 	struct pthread *self, *new;

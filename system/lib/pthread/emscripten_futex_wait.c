@@ -61,6 +61,9 @@ static int futex_wait_busy(volatile void *addr, uint32_t val, double timeout) {
       // We were told to stop waiting, so stop.
       break;
     }
+
+    emscripten_log(EM_LOG_CONSOLE, "--> futex_wait_busy");
+    
     _emscripten_yield();
 
     // Check the value, as if we were starting the futex all over again.
@@ -112,6 +115,8 @@ int emscripten_futex_wait(volatile void *addr, uint32_t val, double max_wait_ms)
   if ((((intptr_t)addr)&3) != 0) {
     return -EINVAL;
   }
+
+  emscripten_log(EM_LOG_CONSOLE, "--> emscripten_futex_wait");
 
   _emscripten_yield();
 

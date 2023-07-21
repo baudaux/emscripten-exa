@@ -24,7 +24,8 @@
 
 // See musl's pthread_create.c
 
-int __pthread_create_js(struct pthread *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+/* Modified by Benoit Baudaux 21/07/2023 */
+int __pthread_create_js(struct pthread *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg, int tid);
 int _emscripten_default_pthread_stack_size();
 void __set_thread_state(pthread_t ptr, int is_main, int is_runtime, int can_block);
 
@@ -63,10 +64,10 @@ static void init_file_lock(FILE *f) {
 static pid_t next_tid = 0;
 
 // In case the stub syscall is not linked it
-static int dummy_getpid(void) {
+/*static int dummy_getpid(void) {
   return 42;
 }
-weak_alias(dummy_getpid, __syscall_getpid);
+weak_alias(dummy_getpid, __syscall_getpid);*/
 
 /* pthread_key_create.c overrides this */
 static volatile size_t dummy = 0;
@@ -85,11 +86,17 @@ int __pthread_create(pthread_t* restrict res,
     return EINVAL;
   }
 
+  emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_create");
+
   // Create threads with monotonically increasing TID starting with the main
   // thread which has TID == PID.
   if (!next_tid) {
-    next_tid = getpid() + 1;
-  }
+    /* Modified by Benoit Baudaux 21/07/2023 */
+    /* 1 is for main thread */
+    next_tid = 2/*getpid() + 1*/;
+    }
+
+  emscripten_log(EM_LOG_CONSOLE, "next_tid = %d", next_tid);
 
   if (!libc.threaded) {
     for (FILE *f=*__ofl_lock(); f; f=f->next)
@@ -194,7 +201,8 @@ int __pthread_create(pthread_t* restrict res,
   // want libc.need_locks to be set from the moment it starts.
   if (!libc.threads_minus_1++) libc.need_locks = 1;
 
-  int rtn = __pthread_create_js(new, &attr, entry, arg);
+  //BB
+  int rtn = __pthread_create_js(new, &attr, entry, arg, new->tid);
   if (rtn != 0) {
     if (!--libc.threads_minus_1) libc.need_locks = 0;
     return rtn;

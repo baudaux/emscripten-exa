@@ -5,6 +5,9 @@
 
 #include <emscripten/threading.h>
 
+//BB
+#include <emscripten.h>
+
 static _Atomic bool thread_crashed = false;
 
 void _emscripten_thread_crashed() {
@@ -23,6 +26,9 @@ weak_alias(dummy, _emscripten_thread_sync_code);
  * tasks.
  */
 void _emscripten_yield() {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_yield");
+  
   int is_runtime_thread = emscripten_is_main_runtime_thread();
 
   // When a secondary thread crashes, we need to be able to interrupt the main

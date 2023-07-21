@@ -27,7 +27,7 @@ struct pthread {
 	uintptr_t *dtv;
 #endif
 	// TODO(sbc): Implement circular list of threads
-  // Modified by Benoit Baudaux 20/11/2020
+  // Modified by Benoit Baudaux 20/11/2022
 	struct pthread *prev, *next; /* non-ABI */
 	uintptr_t sysinfo;
 #ifndef TLS_ABOVE_TP

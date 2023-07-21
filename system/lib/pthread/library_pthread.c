@@ -679,7 +679,8 @@ void __emscripten_init_main_thread(void) {
   __main_pthread.robust_list.head = &__main_pthread.robust_list.head;
   // Main thread ID is always 1.  It can't be 0 because musl assumes
   // tid is always non-zero.
-  __main_pthread.tid = getpid();
+  /* Modified by Benoit Baudaux 21/07/2023 */
+  __main_pthread.tid = 1/*getpid()*/;
   __main_pthread.locale = &libc.global_locale;
   // TODO(sbc): Implement circular list of threads
   //__main_pthread.next = __main_pthread.prev = &__main_pthread;

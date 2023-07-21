@@ -4502,8 +4502,10 @@ var SyscallsLibrary = {
 		let buf2 = new Uint8Array(buf_size);
 
 		buf2[0] = 13; // WRITE
+		
+		let pid = Module.getpid();
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		console.log("writev: tid="+pid);
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -4597,7 +4599,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -7126,7 +7128,29 @@ var SyscallsLibrary = {
 
 	    const int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
 
+	    /*if (int_msec == 10000) {
+
+		console.log(Module);
+		//debugger;
+	    }
+	    else if (int_msec == 1000) {
+
+		console.log(Module);
+	    }*/
+
 	    setTimeout(() => {
+
+		//console.log("__syscall_nanosleep: "+int_msec);
+
+		/*if (int_msec == 10000) {
+
+		    console.log(Module);
+		    debugger;
+		}
+		else if (int_msec == 1000) {
+
+		    console.log(Module);
+		}*/
 
 		wakeUp(0);
 		
@@ -7465,8 +7489,10 @@ function wrapSyscallFunction(x, library, isWasi) {
   // instead of synchronously, and marked with
   //  __proxy: 'async'
   // (but essentially all syscalls do have return values).
-  if (library[x + '__proxy'] === undefined) {
-    library[x + '__proxy'] = 'sync';
+    if (library[x + '__proxy'] === undefined) {
+	/* Modified by Benoit Baudaux 21/07/2023 */
+	/* no proxy by default because of async calls in parallel */
+    library[x + '__proxy'] = /*'sync'*/false;
   }
 #endif
 }

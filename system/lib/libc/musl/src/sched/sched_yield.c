@@ -7,6 +7,10 @@
 
 int sched_yield()
 {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> sched_yield");
+  
+  //BB: TODO
 #if __EMSCRIPTEN__
 	// SharedArrayBuffer and wasm threads do not support explicit yielding.
 	// For now we at least call `emscripten_yield` which processes the event queue

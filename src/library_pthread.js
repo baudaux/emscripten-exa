@@ -234,7 +234,8 @@ var LibraryPThread = {
     // onFinishedLoading: A callback function that will be called once all of
     //                    the workers have been initialized and are
     //                    ready to host pthreads.
-    loadWasmModuleToWorker: function(worker, onFinishedLoading) {
+      loadWasmModuleToWorker: function(worker, onFinishedLoading) {
+	  
       worker.onmessage = (e) => {
         var d = e['data'];
         var cmd = d['cmd'];
@@ -536,6 +537,9 @@ var LibraryPThread = {
     assert(threadParams.pthread_ptr, 'Internal error, no pthread ptr!');
 #endif
 
+      //BB
+      console.log("--> spawnThread");
+
     var worker = PThread.getNewWorker();
     if (!worker) {
       // No available workers in the PThread pool.
@@ -556,6 +560,9 @@ var LibraryPThread = {
         'start_routine': threadParams.startRoutine,
         'arg': threadParams.arg,
         'pthread_ptr': threadParams.pthread_ptr,
+	/* Added by Benoit Baudaux 21/07/2023 */
+	'tid': threadParams.full_tid,
+	'fd_table': threadParams.fd_table,
     };
 #if OFFSCREENCANVAS_SUPPORT
     // Note that we do not need to quote these names because they are only used
@@ -586,7 +593,9 @@ var LibraryPThread = {
     return navigator['hardwareConcurrency'];
   },
 
-  __emscripten_init_main_thread_js: function(tb) {
+    __emscripten_init_main_thread_js: function(tb) {
+
+	
     // Pass the thread address to the native code where they stored in wasm
     // globals which act as a form of TLS. Global constructors trying
     // to access this value will read the wrong value, but that is UB anyway.
@@ -599,7 +608,10 @@ var LibraryPThread = {
       /*start_profiling=*/true
 #endif
     );
-    PThread.threadInitTLS();
+	PThread.threadInitTLS();
+
+	/* Modified by Benoit Baudaux 21/07/2023 */
+	Module['PThread'].tid = (1 << 16) | parseInt(window.frameElement.getAttribute('pid'));
   },
 
   $pthreadCreateProxied__internal: true,
@@ -617,9 +629,15 @@ var LibraryPThread = {
   // pthread's internal allocations as leaks.  If/when we remove all the
   // allocations from __pthread_create_js we could also remove this.
   __pthread_create_js__noleakcheck: true,
-  __pthread_create_js__sig: 'iiiii',
+  __pthread_create_js__sig: 'iiiiii',
   __pthread_create_js__deps: ['$spawnThread', 'pthread_self', '$pthreadCreateProxied'],
-  __pthread_create_js: function(pthread_ptr, attr, startRoutine, arg) {
+    __pthread_create_js: function(pthread_ptr, attr, startRoutine, arg, tid) {
+
+	//BB
+	console.log("--> __pthread_create_js: tid="+tid);
+
+	//debugger;
+	
     if (typeof SharedArrayBuffer == 'undefined') {
       err('Current environment does not support SharedArrayBuffer, pthreads are not available!');
       return {{{ cDefine('EAGAIN') }}};
@@ -750,6 +768,11 @@ var LibraryPThread = {
     }
 #endif
 
+	const fd_table = Module['fd_table'];
+
+	// full tid = tid + pid
+	const full_tid = (tid << 16) | (Module['PThread'].tid & 0xffff);
+	
     var threadParams = {
       startRoutine,
       pthread_ptr,
@@ -758,7 +781,10 @@ var LibraryPThread = {
       moduleCanvasId,
       offscreenCanvases,
 #endif
-      transferList,
+	transferList,
+	/* Added by Benoit Baudaux 21/07/2023 */
+	full_tid,
+	fd_table
     };
 
     if (ENVIRONMENT_IS_PTHREAD) {
@@ -771,7 +797,7 @@ var LibraryPThread = {
       // creation synchronously today, so we have to assume success and return 0.
       return 0;
     }
-
+	
     // We are the main thread, so we have the pthread warmup pool in this
     // thread and can fire off JS thread creation directly ourselves.
     return spawnThread(threadParams);
@@ -883,7 +909,8 @@ var LibraryPThread = {
   emscripten_receive_on_main_thread_js__deps: [
     'emscripten_proxy_to_main_thread_js',
     'emscripten_receive_on_main_thread_js_callArgs'],
-  emscripten_receive_on_main_thread_js: function(index, numCallArgs, args) {
+    emscripten_receive_on_main_thread_js: function(index, numCallArgs, args) {
+	
 #if WASM_BIGINT
     numCallArgs /= 2;
 #endif

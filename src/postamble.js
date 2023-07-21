@@ -220,6 +220,29 @@ dependenciesFulfilled = function runCaller() {
 	};
 
 	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
+
+	Module.getpid = function() {
+
+	    let pid = Module.pid;
+
+	    if (pid)
+		return pid;
+
+	    if ( ('PThread' in Module) && Module['PThread'].tid) {
+		
+		pid = Module['PThread'].tid;
+
+		if ( (pid & 0xffff0000) == 0x00010000) // main thread
+		    pid = pid & 0xffff;
+	    }
+	    else {
+		pid = parseInt(window.frameElement.getAttribute('pid'));
+	    }
+
+	    Module.pid = pid;
+
+	    return pid;
+	};
 	
 	// Added by Benoit Baudaux 02/12/2022
 	if (window.name == "child") {

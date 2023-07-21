@@ -218,7 +218,142 @@ self.onmessage = (e) => {
       // Also call inside JS module to set up the stack frame for this pthread in JS module scope
       Module['establishStackSpace']();
       Module['PThread'].receiveObjectTransfer(e.data);
-      Module['PThread'].threadInitTLS();
+	Module['PThread'].threadInitTLS();
+
+	/* Modified by Benoit Baudaux 21/07/2023 */
+	Module['PThread'].tid = e.data.tid;
+
+	console.log("worker.js: Module['PThread'].tid = "+Module['PThread'].tid);
+	
+	Module['fd_table'] = e.data.fd_table;
+
+	Module['bc_channels'] = {};
+	Module['get_broadcast_channel'] = (name) => {
+
+	    if (name in Module['bc_channels']) {
+		return Module['bc_channels'][name];
+	    }
+	    else {
+
+		Module['bc_channels'][name] = new BroadcastChannel(name);
+		return Module['bc_channels'][name];
+	    }
+	};
+
+	Module['rcv_bc_channel'] = new BroadcastChannel("channel.process."+Module['PThread'].tid);
+	
+	Module['rcv_bc_channel'].handlers = [];
+	Module['rcv_bc_channel'].id = 0;
+	Module['rcv_bc_channel'].events = [];
+	
+	//console.log("rcv_bc_channel created");
+
+	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
+
+	    /*if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 1) ) {
+
+		debugger;
+	    }*/
+
+	    let msg = messageEvent.data;
+
+	    //console.log(msg.buf);
+
+	    if (msg.buf[0] == 42) {  // KILL
+
+		let signum = msg.buf[16] | (msg.buf[17] << 8) | (msg.buf[18] << 16) |  (msg.buf[18] << 24);
+
+		let sig_handler = msg.buf[20] | (msg.buf[21] << 8) | (msg.buf[22] << 16) |  (msg.buf[23] << 24);
+
+		if (sig_handler) {
+
+		    Asyncify.stackTop = stackSave();
+		    Asyncify.stackBase = _emscripten_stack_get_base();
+		    Asyncify.stackEnd = _emscripten_stack_get_end();
+
+		    savedAsyncify = JSON.stringify(Asyncify);
+
+		    _exa_signal_handler(sig_handler, signum);
+
+		    return;
+		}
+	    }
+	    
+	    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0) ) {
+
+		
+
+		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+
+		if (ret > 0) {
+		    Module['rcv_bc_channel'].unset_handler(ret);
+		}
+		else {
+		    
+		    //console.log("!!!!!! Push event !! "+messageEvent.data.buf[0]+", "+Module['rcv_bc_channel'].handlers.length);
+		    
+		    Module['rcv_bc_channel'].events.push(messageEvent);
+		}
+	    }
+	};
+
+	Module['rcv_bc_channel'].set_handler = (handler) => {
+
+	    if (handler) {
+
+		Module['rcv_bc_channel'].id += 1;
+		
+		Module['rcv_bc_channel'].handlers.push(
+		    {
+			id: Module['rcv_bc_channel'].id,
+			handler: handler
+		    }
+		);
+
+		return Module['rcv_bc_channel'].id;
+	    }
+
+	    return -1;
+	};
+	
+	Module['rcv_bc_channel'].unset_handler = (id) => {
+
+	    //console.log("!!!!!! unset_handler "+id+" len="+Module['rcv_bc_channel'].handlers.length);
+
+	    let handler_removed = 0;
+	    
+	    for (let i = 0; i < Module['rcv_bc_channel'].handlers.length; i++) {
+
+		if (Module['rcv_bc_channel'].handlers[i].id == id) {
+
+		    Module['rcv_bc_channel'].handlers.splice(i, 1);
+		    handler_removed = 1;
+		    break;
+		}
+	    }
+
+	    if (!handler_removed) {
+
+		//console.log("!!!!!! CANNOT REMOVE HANDLER !!!!!!!");
+		//debugger;
+	    }
+	};
+
+	Module['rcv_bc_channel'].onmessage = Module['rcv_bc_channel'].default_handler;
+
+	Module.getpid = function() {
+
+	    let pid = Module.pid;
+
+	    if (pid)
+		return pid;
+	    
+	    pid = Module['PThread'].tid;
+	    
+	    Module.pid = pid;
+
+	    return pid;
+	};
 
       if (!initializedJS) {
 #if EMBIND
