@@ -157,6 +157,9 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_getsockname',
   '__syscall_getpeername',
   '__syscall_setsockopt',
+  'emscripten_receive_on_main_thread_js',
+  '__pthread_create_js',
+  '__pthread_exit_js',
 ]
 
 # Target options

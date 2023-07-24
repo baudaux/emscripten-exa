@@ -25,9 +25,11 @@
 // See musl's pthread_create.c
 
 /* Modified by Benoit Baudaux 21/07/2023 */
-int __pthread_create_js(struct pthread *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg, int tid);
+int __pthread_create_js(struct pthread *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg, int tid, int proxied);
 int _emscripten_default_pthread_stack_size();
 void __set_thread_state(pthread_t ptr, int is_main, int is_runtime, int can_block);
+
+int __pthread_exit_js(int status);
 
 static void dummy_0() {}
 weak_alias(dummy_0, __pthread_tsd_run_dtors);
@@ -202,7 +204,7 @@ int __pthread_create(pthread_t* restrict res,
   if (!libc.threads_minus_1++) libc.need_locks = 1;
 
   //BB
-  int rtn = __pthread_create_js(new, &attr, entry, arg, new->tid);
+  int rtn = __pthread_create_js(new, &attr, entry, arg, new->tid, 0);
   if (rtn != 0) {
     if (!--libc.threads_minus_1) libc.need_locks = 0;
     return rtn;
@@ -253,8 +255,11 @@ void _emscripten_thread_free_data(pthread_t t) {
 }
 
 void _emscripten_thread_exit(void* result) {
+  
   struct pthread *self = __pthread_self();
   assert(self);
+
+  emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_thread_exit: %d (%d %d)", (int)result, self, emscripten_main_browser_thread_id());
 
   self->canceldisable = PTHREAD_CANCEL_DISABLE;
   self->cancelasync = PTHREAD_CANCEL_DEFERRED;
@@ -294,22 +299,50 @@ void _emscripten_thread_exit(void* result) {
   if (state == DT_DETACHED) {
     __emscripten_thread_cleanup(self);
   } else {
+
+    emscripten_log(EM_LOG_CONSOLE, "_emscripten_thread_exit: wake joiner");
+    
     // Mark the thread as no longer running, so it can be joined.
     // Once we publish this, any threads that are waiting to join with us can
     // proceed and this worker can be recycled and used on another thread.
     a_store(&self->detach_state, DT_EXITED);
     __wake(&self->detach_state, 1, 1); // Wake any joiner.
   }
+  
+  __pthread_exit_js((int)result);
+}
+
+/* Modified by Benoit Baudaux 22/07/2023 */
+/* Function added to be sure _emscripten_thread_exit is called at the end of thread execution */
+
+void EMSCRIPTEN_KEEPALIVE _emscripten_thread_start(int (*func)(int), int arg) {
+
+  int status = (*func)(arg);
+
+  _emscripten_thread_exit((void *)status);
 }
 
 // Mark as `no_sanitize("address"` since emscripten_pthread_exit destroys
 // the current thread and runs its exit handlers.  Without this asan injects
 // a call to __asan_handle_no_return before emscripten_unwind_to_js_event_loop
 // which seem to cause a crash later down the line.
-__attribute__((no_sanitize("address")))
+
+/* Modified by Benoit Baudaux 23/07/2023 */
+
+/*__attribute__((no_sanitize("address")))*/
 _Noreturn void __pthread_exit(void* retval) {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_exit");
+  
   _emscripten_thread_exit(retval);
-  emscripten_unwind_to_js_event_loop();
+
+  /* Modified by Benoit Baudaux 23/07/2023 */
+  /* Is it really needed ? */
+  //emscripten_unwind_to_js_event_loop();
+
+  while (1) {
+    
+  }
 }
 
 weak_alias(__pthread_create, emscripten_builtin_pthread_create);

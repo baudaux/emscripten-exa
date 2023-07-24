@@ -4681,7 +4681,7 @@ var SyscallsLibrary = {
     __syscall_getpid__sig: 'i',
     __syscall_getpid: function() {
 
-	return parseInt(window.frameElement.getAttribute('pid'));
+	return Module.getpid() & 0xffff;
     },
     /* Modified by Benoit Baudaux 11/1/2023 */
     __syscall_close__sig: 'ii',
@@ -7123,10 +7123,15 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    const int_sec = Module.HEAPU8[req] | (Module.HEAPU8[req+1] << 8) | (Module.HEAPU8[req+2] << 16) |  (Module.HEAPU8[req+3] << 24);
-	    const int_nsec = Module.HEAPU8[req+8] | (Module.HEAPU8[req+9] << 8) | (Module.HEAPU8[req+10] << 16) |  (Module.HEAPU8[req+11] << 24);
+	    let int_msec = 0;
 
-	    const int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
+	    if (req) {
+
+		const int_sec = Module.HEAPU8[req] | (Module.HEAPU8[req+1] << 8) | (Module.HEAPU8[req+2] << 16) |  (Module.HEAPU8[req+3] << 24);
+		const int_nsec = Module.HEAPU8[req+8] | (Module.HEAPU8[req+9] << 8) | (Module.HEAPU8[req+10] << 16) |  (Module.HEAPU8[req+11] << 24);
+
+		int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
+	    }
 
 	    /*if (int_msec == 10000) {
 

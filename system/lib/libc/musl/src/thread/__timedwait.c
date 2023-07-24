@@ -87,6 +87,7 @@ int __timedwait_cp(volatile int *addr, int val,
 			if (msecsToSleep > max_ms_slice_to_sleep)
 				msecsToSleep = max_ms_slice_to_sleep;
 			r = -emscripten_futex_wait((void*)addr, val, msecsToSleep);
+			  
 		} while (r == ETIMEDOUT);
 	} else {
 		// Can wait in one go.

@@ -62,7 +62,7 @@ static int futex_wait_busy(volatile void *addr, uint32_t val, double timeout) {
       break;
     }
 
-    emscripten_log(EM_LOG_CONSOLE, "--> futex_wait_busy");
+    //emscripten_log(EM_LOG_CONSOLE, "--> futex_wait_busy");
     
     _emscripten_yield();
 
@@ -116,7 +116,7 @@ int emscripten_futex_wait(volatile void *addr, uint32_t val, double max_wait_ms)
     return -EINVAL;
   }
 
-  emscripten_log(EM_LOG_CONSOLE, "--> emscripten_futex_wait");
+  //emscripten_log(EM_LOG_CONSOLE, "--> emscripten_futex_wait");
 
   _emscripten_yield();
 

@@ -9,6 +9,9 @@ weak_alias(dummy1, __tl_sync);
 
 static int __pthread_timedjoin_np(pthread_t t, void **res, const struct timespec *at)
 {
+
+  emscripten_log(EM_LOG_CONSOLE, "--> __pthread_timedjoin_np: %d %d", t, __pthread_self());
+  
 #ifdef __EMSCRIPTEN__
 	// Attempt to join a thread which does not point to a valid thread, or
 	// does not exist anymore.
@@ -55,7 +58,9 @@ static int __pthread_timedjoin_np(pthread_t t, void **res, const struct timespec
 
 int __pthread_join(pthread_t t, void **res)
 {
-#ifdef __EMSCRIPTEN__ // XXX Emscripten check whether blocking is allowed.
+  emscripten_log(EM_LOG_CONSOLE, "--> __pthread_join");
+  
+#ifdef __EMSCRIPTEN__EXA // XXX Emscripten check whether blocking is allowed.
 	emscripten_check_blocking_allowed();
 #endif
 	return __pthread_timedjoin_np(t, res, 0);

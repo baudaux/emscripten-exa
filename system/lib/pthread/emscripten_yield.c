@@ -27,7 +27,7 @@ weak_alias(dummy, _emscripten_thread_sync_code);
  */
 void _emscripten_yield() {
 
-  emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_yield");
+  //emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_yield");
   
   int is_runtime_thread = emscripten_is_main_runtime_thread();
 
@@ -46,6 +46,9 @@ void _emscripten_yield() {
     // Assist other threads by executing proxied operations that are effectively
     // singlethreaded.
     emscripten_main_thread_process_queued_calls();
+
+    /* Modified by Benoit Baudaux 24/07/2023 */
+    nanosleep(NULL, NULL);
   }
 
   _emscripten_thread_sync_code();

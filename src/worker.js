@@ -379,7 +379,8 @@ self.onmessage = (e) => {
       try {
         Module['invokeEntryPoint'](e.data.start_routine, e.data.arg);
       } catch(ex) {
-        if (ex != 'unwind') {
+	  /* Modified by Benoit Baudaux 23/07/2023 */
+        /*if (ex != 'unwind') {
           // ExitStatus not present in MINIMAL_RUNTIME
 #if !MINIMAL_RUNTIME
           if (ex instanceof Module['ExitStatus']) {
@@ -407,7 +408,7 @@ self.onmessage = (e) => {
           // else e == 'unwind', and we should fall through here and keep the pthread alive for asynchronous events.
           err('Pthread 0x' + Module['_pthread_self']().toString(16) + ' completed its main entry point with an `unwind`, keeping the worker alive for asynchronous operation.');
 #endif
-        }
+        }*/
       }
     } else if (e.data.cmd === 'cancel') { // Main thread is asking for a pthread_cancel() on this thread.
       if (Module['_pthread_self']()) {

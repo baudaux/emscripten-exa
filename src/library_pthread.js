@@ -579,7 +579,7 @@ var LibraryPThread = {
       worker.runPthread();
       delete worker.runPthread;
     }
-    return 0;
+      return 0;
   },
 
   emscripten_has_threading_support: function() {
@@ -617,8 +617,8 @@ var LibraryPThread = {
   $pthreadCreateProxied__internal: true,
   $pthreadCreateProxied__proxy: 'sync',
   $pthreadCreateProxied__deps: ['__pthread_create_js'],
-  $pthreadCreateProxied: function(pthread_ptr, attr, startRoutine, arg) {
-    return ___pthread_create_js(pthread_ptr, attr, startRoutine, arg);
+    $pthreadCreateProxied: function(pthread_ptr, attr, startRoutine, arg, tid) {
+	return ___pthread_create_js(pthread_ptr, attr, startRoutine, arg, tid, 1);
   },
 
   // ASan wraps the emscripten_builtin_pthread_create call in
@@ -631,177 +631,310 @@ var LibraryPThread = {
   __pthread_create_js__noleakcheck: true,
   __pthread_create_js__sig: 'iiiiii',
   __pthread_create_js__deps: ['$spawnThread', 'pthread_self', '$pthreadCreateProxied'],
-    __pthread_create_js: function(pthread_ptr, attr, startRoutine, arg, tid) {
+    __pthread_create_js: function(pthread_ptr, attr, startRoutine, arg, tid, proxied) {
 
-	//BB
-	console.log("--> __pthread_create_js: tid="+tid);
-
-	//debugger;
-	
-    if (typeof SharedArrayBuffer == 'undefined') {
-      err('Current environment does not support SharedArrayBuffer, pthreads are not available!');
-      return {{{ cDefine('EAGAIN') }}};
-    }
+	let do_pthread_create = () => {
+	    
+	    if (typeof SharedArrayBuffer == 'undefined') {
+		err('Current environment does not support SharedArrayBuffer, pthreads are not available!');
+		return {{{ cDefine('EAGAIN') }}};
+	    }
 #if PTHREADS_DEBUG
-    dbg("createThread: " + ptrToString(pthread_ptr));
+	    dbg("createThread: " + ptrToString(pthread_ptr));
 #endif
 
-    // List of JS objects that will transfer ownership to the Worker hosting the thread
-    var transferList = [];
-    var error = 0;
+	    // List of JS objects that will transfer ownership to the Worker hosting the thread
+	    var transferList = [];
+	    var error = 0;
 
 #if OFFSCREENCANVAS_SUPPORT
-    // Deduce which WebGL canvases (HTMLCanvasElements or OffscreenCanvases) should be passed over to the
-    // Worker that hosts the spawned pthread.
-    // Comma-delimited list of CSS selectors that must identify canvases by IDs: "#canvas1, #canvas2, ..."
-    var transferredCanvasNames = attr ? {{{ makeGetValue('attr', C_STRUCTS.pthread_attr_t._a_transferredcanvases, POINTER_TYPE) }}} : 0;
+	    // Deduce which WebGL canvases (HTMLCanvasElements or OffscreenCanvases) should be passed over to the
+	    // Worker that hosts the spawned pthread.
+	    // Comma-delimited list of CSS selectors that must identify canvases by IDs: "#canvas1, #canvas2, ..."
+	    var transferredCanvasNames = attr ? {{{ makeGetValue('attr', C_STRUCTS.pthread_attr_t._a_transferredcanvases, POINTER_TYPE) }}} : 0;
 #if OFFSCREENCANVASES_TO_PTHREAD
-    // Proxied canvases string pointer -1 is used as a special token to fetch
-    // whatever canvases were passed to build in -s
-    // OFFSCREENCANVASES_TO_PTHREAD= command line.
-    if (transferredCanvasNames == (-1 >>> 0)) transferredCanvasNames = '{{{ OFFSCREENCANVASES_TO_PTHREAD }}}';
-    else
+	    // Proxied canvases string pointer -1 is used as a special token to fetch
+	    // whatever canvases were passed to build in -s
+	    // OFFSCREENCANVASES_TO_PTHREAD= command line.
+	    if (transferredCanvasNames == (-1 >>> 0)) transferredCanvasNames = '{{{ OFFSCREENCANVASES_TO_PTHREAD }}}';
+	    else
 #endif
-    if (transferredCanvasNames) transferredCanvasNames = UTF8ToString(transferredCanvasNames).trim();
-    if (transferredCanvasNames) transferredCanvasNames = transferredCanvasNames.split(',');
+		if (transferredCanvasNames) transferredCanvasNames = UTF8ToString(transferredCanvasNames).trim();
+	    if (transferredCanvasNames) transferredCanvasNames = transferredCanvasNames.split(',');
 #if GL_DEBUG
-    dbg('pthread_create: transferredCanvasNames="' + transferredCanvasNames + '"');
+	    dbg('pthread_create: transferredCanvasNames="' + transferredCanvasNames + '"');
 #endif
 
-    var offscreenCanvases = {}; // Dictionary of OffscreenCanvas objects we'll transfer to the created thread to own
-    var moduleCanvasId = Module['canvas'] ? Module['canvas'].id : '';
-    // Note that transferredCanvasNames might be null (so we cannot do a for-of loop).  
-    for (var i in transferredCanvasNames) {
-      var name = transferredCanvasNames[i].trim();
-      var offscreenCanvasInfo;
-      try {
-        if (name == '#canvas') {
-          if (!Module['canvas']) {
-            err('pthread_create: could not find canvas with ID "' + name + '" to transfer to thread!');
-            error = {{{ cDefine('EINVAL') }}};
-            break;
-          }
-          name = Module['canvas'].id;
-        }
+	    var offscreenCanvases = {}; // Dictionary of OffscreenCanvas objects we'll transfer to the created thread to own
+	    var moduleCanvasId = Module['canvas'] ? Module['canvas'].id : '';
+	    // Note that transferredCanvasNames might be null (so we cannot do a for-of loop).  
+	    for (var i in transferredCanvasNames) {
+		var name = transferredCanvasNames[i].trim();
+		var offscreenCanvasInfo;
+		try {
+		    if (name == '#canvas') {
+			if (!Module['canvas']) {
+			    err('pthread_create: could not find canvas with ID "' + name + '" to transfer to thread!');
+			    error = {{{ cDefine('EINVAL') }}};
+			    break;
+			}
+			name = Module['canvas'].id;
+		    }
 #if ASSERTIONS
-        assert(typeof GL == 'object', 'OFFSCREENCANVAS_SUPPORT assumes GL is in use (you can force-include it with \'-sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$GL\')');
+		    assert(typeof GL == 'object', 'OFFSCREENCANVAS_SUPPORT assumes GL is in use (you can force-include it with \'-sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$GL\')');
 #endif
-        if (GL.offscreenCanvases[name]) {
-          offscreenCanvasInfo = GL.offscreenCanvases[name];
-          GL.offscreenCanvases[name] = null; // This thread no longer owns this canvas.
-          if (Module['canvas'] instanceof OffscreenCanvas && name === Module['canvas'].id) Module['canvas'] = null;
-        } else if (!ENVIRONMENT_IS_PTHREAD) {
-          var canvas = (Module['canvas'] && Module['canvas'].id === name) ? Module['canvas'] : document.querySelector(name);
-          if (!canvas) {
-            err('pthread_create: could not find canvas with ID "' + name + '" to transfer to thread!');
-            error = {{{ cDefine('EINVAL') }}};
-            break;
-          }
-          if (canvas.controlTransferredOffscreen) {
-            err('pthread_create: cannot transfer canvas with ID "' + name + '" to thread, since the current thread does not have control over it!');
-            error = {{{ cDefine('EPERM') }}}; // Operation not permitted, some other thread is accessing the canvas.
-            break;
-          }
-          if (canvas.transferControlToOffscreen) {
+		    if (GL.offscreenCanvases[name]) {
+			offscreenCanvasInfo = GL.offscreenCanvases[name];
+			GL.offscreenCanvases[name] = null; // This thread no longer owns this canvas.
+			if (Module['canvas'] instanceof OffscreenCanvas && name === Module['canvas'].id) Module['canvas'] = null;
+		    } else if (!ENVIRONMENT_IS_PTHREAD) {
+			var canvas = (Module['canvas'] && Module['canvas'].id === name) ? Module['canvas'] : document.querySelector(name);
+			if (!canvas) {
+			    err('pthread_create: could not find canvas with ID "' + name + '" to transfer to thread!');
+			    error = {{{ cDefine('EINVAL') }}};
+			    break;
+			}
+			if (canvas.controlTransferredOffscreen) {
+			    err('pthread_create: cannot transfer canvas with ID "' + name + '" to thread, since the current thread does not have control over it!');
+			    error = {{{ cDefine('EPERM') }}}; // Operation not permitted, some other thread is accessing the canvas.
+			    break;
+			}
+			if (canvas.transferControlToOffscreen) {
 #if GL_DEBUG
-            dbg('pthread_create: canvas.transferControlToOffscreen(), transferring canvas by name "' + name + '" (DOM id="' + canvas.id + '") from main thread to pthread');
+			    dbg('pthread_create: canvas.transferControlToOffscreen(), transferring canvas by name "' + name + '" (DOM id="' + canvas.id + '") from main thread to pthread');
 #endif
-            // Create a shared information block in heap so that we can control
-            // the canvas size from any thread.
-            if (!canvas.canvasSharedPtr) {
-              canvas.canvasSharedPtr = _malloc(12);
-              {{{ makeSetValue('canvas.canvasSharedPtr', 0, 'canvas.width', 'i32') }}};
-              {{{ makeSetValue('canvas.canvasSharedPtr', 4, 'canvas.height', 'i32') }}};
-              {{{ makeSetValue('canvas.canvasSharedPtr', 8, 0, 'i32') }}}; // pthread ptr to the thread that owns this canvas, filled in below.
-            }
-            offscreenCanvasInfo = {
-              offscreenCanvas: canvas.transferControlToOffscreen(),
-              canvasSharedPtr: canvas.canvasSharedPtr,
-              id: canvas.id
-            }
-            // After calling canvas.transferControlToOffscreen(), it is no
-            // longer possible to access certain operations on the canvas, such
-            // as resizing it or obtaining GL contexts via it.
-            // Use this field to remember that we have permanently converted
-            // this Canvas to be controlled via an OffscreenCanvas (there is no
-            // way to undo this in the spec)
-            canvas.controlTransferredOffscreen = true;
-          } else {
-            err('pthread_create: cannot transfer control of canvas "' + name + '" to pthread, because current browser does not support OffscreenCanvas!');
-            // If building with OFFSCREEN_FRAMEBUFFER=1 mode, we don't need to
-            // be able to transfer control to offscreen, but WebGL can be
-            // proxied from worker to main thread.
+			    // Create a shared information block in heap so that we can control
+			    // the canvas size from any thread.
+			    if (!canvas.canvasSharedPtr) {
+				canvas.canvasSharedPtr = _malloc(12);
+				{{{ makeSetValue('canvas.canvasSharedPtr', 0, 'canvas.width', 'i32') }}};
+				{{{ makeSetValue('canvas.canvasSharedPtr', 4, 'canvas.height', 'i32') }}};
+				{{{ makeSetValue('canvas.canvasSharedPtr', 8, 0, 'i32') }}}; // pthread ptr to the thread that owns this canvas, filled in below.
+			    }
+			    offscreenCanvasInfo = {
+				offscreenCanvas: canvas.transferControlToOffscreen(),
+				canvasSharedPtr: canvas.canvasSharedPtr,
+				id: canvas.id
+			    }
+			    // After calling canvas.transferControlToOffscreen(), it is no
+			    // longer possible to access certain operations on the canvas, such
+			    // as resizing it or obtaining GL contexts via it.
+			    // Use this field to remember that we have permanently converted
+			    // this Canvas to be controlled via an OffscreenCanvas (there is no
+			    // way to undo this in the spec)
+			    canvas.controlTransferredOffscreen = true;
+			} else {
+			    err('pthread_create: cannot transfer control of canvas "' + name + '" to pthread, because current browser does not support OffscreenCanvas!');
+			    // If building with OFFSCREEN_FRAMEBUFFER=1 mode, we don't need to
+			    // be able to transfer control to offscreen, but WebGL can be
+			    // proxied from worker to main thread.
 #if !OFFSCREEN_FRAMEBUFFER
-            err('pthread_create: Build with -sOFFSCREEN_FRAMEBUFFER to enable fallback proxying of GL commands from pthread to main thread.');
-            return {{{ cDefine('ENOSYS') }}}; // Function not implemented, browser doesn't have support for this.
+			    err('pthread_create: Build with -sOFFSCREEN_FRAMEBUFFER to enable fallback proxying of GL commands from pthread to main thread.');
+			    return {{{ cDefine('ENOSYS') }}}; // Function not implemented, browser doesn't have support for this.
 #endif
-          }
-        }
-        if (offscreenCanvasInfo) {
-          transferList.push(offscreenCanvasInfo.offscreenCanvas);
-          offscreenCanvases[offscreenCanvasInfo.id] = offscreenCanvasInfo;
-        }
-      } catch(e) {
-        err('pthread_create: failed to transfer control of canvas "' + name + '" to OffscreenCanvas! Error: ' + e);
-        return {{{ cDefine('EINVAL') }}}; // Hitting this might indicate an implementation bug or some other internal error
-      }
-    }
+			}
+		    }
+		    if (offscreenCanvasInfo) {
+			transferList.push(offscreenCanvasInfo.offscreenCanvas);
+			offscreenCanvases[offscreenCanvasInfo.id] = offscreenCanvasInfo;
+		    }
+		} catch(e) {
+		    err('pthread_create: failed to transfer control of canvas "' + name + '" to OffscreenCanvas! Error: ' + e);
+		    return {{{ cDefine('EINVAL') }}}; // Hitting this might indicate an implementation bug or some other internal error
+		}
+	    }
 #endif
 
-    // Synchronously proxy the thread creation to main thread if possible. If we
-    // need to transfer ownership of objects, then proxy asynchronously via
-    // postMessage.
-    if (ENVIRONMENT_IS_PTHREAD && (transferList.length === 0 || error)) {
-      return pthreadCreateProxied(pthread_ptr, attr, startRoutine, arg);
-    }
+	    // Synchronously proxy the thread creation to main thread if possible. If we
+	    // need to transfer ownership of objects, then proxy asynchronously via
+	    // postMessage.
+	    if (ENVIRONMENT_IS_PTHREAD && (transferList.length === 0 || error)) {
+		 return pthreadCreateProxied(pthread_ptr, attr, startRoutine, arg, tid, 1);
+	    }
 
-    // If on the main thread, and accessing Canvas/OffscreenCanvas failed, abort
-    // with the detected error.
-    if (error) return error;
+	    // If on the main thread, and accessing Canvas/OffscreenCanvas failed, abort
+	    // with the detected error.
+	    if (error) return error;
 
 #if OFFSCREENCANVAS_SUPPORT
-    // Register for each of the transferred canvases that the new thread now
-    // owns the OffscreenCanvas.
-    for (var canvas of Object.values(offscreenCanvases)) {
-      // pthread ptr to the thread that owns this canvas.
-      {{{ makeSetValue('canvas.canvasSharedPtr', 8, 'pthread_ptr', 'i32') }}};
-    }
+	    // Register for each of the transferred canvases that the new thread now
+	    // owns the OffscreenCanvas.
+	    for (var canvas of Object.values(offscreenCanvases)) {
+		// pthread ptr to the thread that owns this canvas.
+		{{{ makeSetValue('canvas.canvasSharedPtr', 8, 'pthread_ptr', 'i32') }}};
+	    }
 #endif
 
-	const fd_table = Module['fd_table'];
+	    const fd_table = Module['fd_table'];
 
-	// full tid = tid + pid
-	const full_tid = (tid << 16) | (Module['PThread'].tid & 0xffff);
-	
-    var threadParams = {
-      startRoutine,
-      pthread_ptr,
-      arg,
+	    // full tid = tid + pid
+	    const full_tid = (tid << 16) | (Module['PThread'].tid & 0xffff);
+	    
+	    var threadParams = {
+		startRoutine,
+		pthread_ptr,
+		arg,
 #if OFFSCREENCANVAS_SUPPORT
-      moduleCanvasId,
-      offscreenCanvases,
+		moduleCanvasId,
+		offscreenCanvases,
 #endif
-	transferList,
-	/* Added by Benoit Baudaux 21/07/2023 */
-	full_tid,
-	fd_table
-    };
+		transferList,
+		/* Added by Benoit Baudaux 21/07/2023 */
+		full_tid,
+		fd_table
+	    };
 
-    if (ENVIRONMENT_IS_PTHREAD) {
-      // The prepopulated pool of web workers that can host pthreads is stored
-      // in the main JS thread. Therefore if a pthread is attempting to spawn a
-      // new thread, the thread creation must be deferred to the main JS thread.
-      threadParams.cmd = 'spawnThread';
-      postMessage(threadParams, transferList);
-      // When we defer thread creation this way, we have no way to detect thread
-      // creation synchronously today, so we have to assume success and return 0.
-      return 0;
-    }
+	    if (ENVIRONMENT_IS_PTHREAD) {
+		// The prepopulated pool of web workers that can host pthreads is stored
+		// in the main JS thread. Therefore if a pthread is attempting to spawn a
+		// new thread, the thread creation must be deferred to the main JS thread.
+		threadParams.cmd = 'spawnThread';
+		postMessage(threadParams, transferList);
+		// When we defer thread creation this way, we have no way to detect thread
+		// creation synchronously today, so we have to assume success and return 0.
+		return 0;
+	    }
+	    
+	    // We are the main thread, so we have the pthread warmup pool in this
+	    // thread and can fire off JS thread creation directly ourselves.
+		return spawnThread(threadParams);
+
+	};
+
+	if (proxied) {
+	    
+	    return do_pthread_create();
+	}
+	else {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	    
+	    console.log("--> __pthread_create_js: tid="+tid);
+
+	    let buf_size = 16;
 	
-    // We are the main thread, so we have the pthread warmup pool in this
-    // thread and can fire off JS thread creation directly ourselves.
-    return spawnThread(threadParams);
-  },
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 60; // PTHREAD_CREATE
+
+	    let pid = Module.getpid();
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+
+	    const full_tid = (tid << 16) | (Module['PThread'].tid & 0xffff);
+	    
+	    buf2[12] = full_tid & 0xff;
+	    buf2[13] = (full_tid >> 8) & 0xff;
+	    buf2[14] = (full_tid >> 16) & 0xff;
+	    buf2[15] = (full_tid >> 24) & 0xff;
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (60|0x80)) {
+
+		    //console.log(messageEvent);
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    if (!_errno) {
+
+			let status = do_pthread_create();
+
+			wakeUp(status);
+		    }
+		    else {
+
+			wakeUp(-_errno);
+		    }
+
+		    return hid;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+
+	    console.log("__pthread_create_js: send msg to resmgr -> full_tid="+full_tid+", pid="+pid);
+	});
+
+	    return ret;
+	}
+    },
+
+    __pthread_exit_js__sig: 'ii',
+    __pthread_exit_js: function(status) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+	    
+	    console.log("--> __pthread_exit_js");
+	    
+	    let buf_size = 16;
+	
+	    let buf2 = new Uint8Array(buf_size);
+
+	    buf2[0] = 61; // PTHREAD_EXIT
+
+	    let pid = Module.getpid();
+
+	    // pid
+	    buf2[4] = pid & 0xff;
+	    buf2[5] = (pid >> 8) & 0xff;
+	    buf2[6] = (pid >> 16) & 0xff;
+	    buf2[7] = (pid >> 24) & 0xff;
+	    
+	    buf2[12] = status & 0xff;
+	    buf2[13] = (status >> 8) & 0xff;
+	    buf2[14] = (status >> 16) & 0xff;
+	    buf2[15] = (status >> 24) & 0xff;
+
+	    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		let msg2 = messageEvent.data;
+
+		if (msg2.buf[0] == (61|0x80)) {
+
+		    //console.log(messageEvent);
+
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		    wakeUp(-_errno);
+
+		    return hid;
+		}
+
+		return -1;
+	    });
+
+	    let msg = {
+
+		from: Module['rcv_bc_channel'].name,
+		buf: buf2,
+		len: buf_size
+	    };
+
+	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
+	});
+
+	return ret;
+    },
 
   emscripten_check_blocking_allowed__deps: ['$warnOnce'],
   emscripten_check_blocking_allowed: function() {
@@ -1005,12 +1138,17 @@ var LibraryPThread = {
     // following line to crash, either change the signature to "proper" void
     // *ThreadMain(void *arg) form, or try linking with the Emscripten linker
     // flag -sEMULATE_FUNCTION_POINTER_CASTS to add in emulation for this x86
-    // ABI extension.
-    var result = {{{ makeDynCall('ii', 'ptr') }}}(arg);
+      // ABI extension.
+      /* Modified by Benoit Baudaux 22/07/2023 */
+      //var result = {{{ makeDynCall('ii', 'ptr') }}}(arg);
+      __emscripten_thread_start(ptr, arg);
 #if STACK_OVERFLOW_CHECK
     checkStackCookie();
 #endif
-#if MINIMAL_RUNTIME
+      /* Modified by Benoit Baudaux 22/07/2023 */
+      /* __emscripten_thread_exit is called inside emscripten_thread_start */
+      /*
+	#if MINIMAL_RUNTIME
     // In MINIMAL_RUNTIME the noExitRuntime concept does not apply to
     // pthreads. To exit a pthread with live runtime, use the function
     // emscripten_unwind_to_js_event_loop() in the pthread body.
@@ -1021,7 +1159,8 @@ var LibraryPThread = {
     } else {
       __emscripten_thread_exit(result);
     }
-#endif
+    #endif
+      */
   },
 
   $executeNotifiedProxyingQueue: function(queue) {
