@@ -176,7 +176,7 @@ mergeInto(LibraryManager.library, {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		  let pid = parseInt(window.frameElement.getAttribute('pid'));
+		  let pid = Module.getpid();
 
 		  // pid
 		  Module.HEAPU8[buf+4] = pid & 0xff;

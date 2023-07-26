@@ -178,7 +178,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -276,8 +276,8 @@ var SyscallsLibrary = {
 
 		buf2[0] = 19; // DUP
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
-
+		let pid = Module.getpid();
+		
 		// pid
 		buf2[4] = pid & 0xff;
 		buf2[5] = (pid >> 8) & 0xff;
@@ -348,7 +348,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -444,7 +444,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 19; // DUP
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -519,7 +519,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -624,7 +624,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 47; // PIPE
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -838,7 +838,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 14; // IOCTL
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1029,7 +1029,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1179,7 +1179,7 @@ var SyscallsLibrary = {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf[4] = pid & 0xff;
@@ -1357,7 +1357,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 56; // GETSOCKNAME
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1452,7 +1452,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 57; // GETPEERNAME
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1538,7 +1538,7 @@ var SyscallsLibrary = {
 
 	      buf2[0] = 55; // CONNECT
 
-	      let pid = parseInt(window.frameElement.getAttribute('pid'));
+	      let pid = Module.getpid();
 
 	      // pid
 	      buf2[4] = pid & 0xff;
@@ -1639,7 +1639,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 10; // BIND
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1730,7 +1730,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 54; // RECVFROM
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 		
 		// pid
 		buf2[4] = pid & 0xff;
@@ -1841,7 +1841,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 52; // SENDTO
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -2172,7 +2172,7 @@ var SyscallsLibrary = {
 
 	      buf2[0] = 31; // SELECT
 
-	      let pid = parseInt(window.frameElement.getAttribute('pid'));
+	      let pid = Module.getpid();
 
 	      // pid
 	      buf2[4] = pid & 0xff;
@@ -2312,7 +2312,7 @@ var SyscallsLibrary = {
 
 		  buf2[0] = 26; // IS_OPEN
 
-		  let pid = parseInt(window.frameElement.getAttribute('pid'));
+		  let pid = Module.getpid();
 
 		  // pid
 		  buf2[4] = pid & 0xff;
@@ -2473,7 +2473,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -2583,7 +2583,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -2681,7 +2681,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -2778,7 +2778,7 @@ var SyscallsLibrary = {
 		
 		buf2[0] = 29; // FSTAT
 		
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 		
 		// pid
 		buf2[4] = pid & 0xff;
@@ -2848,7 +2848,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -2950,7 +2950,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -3096,7 +3096,7 @@ var SyscallsLibrary = {
 
 	  buf2[0] = 17; // FCNTL
 
-	  let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  let pid = Module.getpid();
 
 	  // pid
 	  buf2[4] = pid & 0xff;
@@ -3304,7 +3304,7 @@ var SyscallsLibrary = {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -3592,7 +3592,7 @@ var SyscallsLibrary = {
 	  
 	  buf2[0] = 50; // UNLINKAT
 	  
-	  let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  let pid = Module.getpid();
 	  
 	  // pid
 	  buf2[4] = pid & 0xff;
@@ -3685,7 +3685,7 @@ var SyscallsLibrary = {
 	  
 	  buf2[0] = 51; // RENAMEAT
 	  
-	  let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  let pid = Module.getpid();
 	  
 	  // pid
 	  buf2[4] = pid & 0xff;
@@ -3810,7 +3810,7 @@ var SyscallsLibrary = {
 	  
 	  buf2[0] = 46; // FACCESSAT
 	  
-	  let pid = parseInt(window.frameElement.getAttribute('pid'));
+	  let pid = Module.getpid();
 	  
 	  // pid
 	  buf2[4] = pid & 0xff;
@@ -3965,7 +3965,7 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    //console.log("fork: pid="+pid);
 
@@ -4115,7 +4115,7 @@ var SyscallsLibrary = {
 
 		buf[0] = 8; // EXECVE
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf[4] = pid & 0xff;
@@ -4246,7 +4246,7 @@ var SyscallsLibrary = {
 	      buf[2] = 0;
 	      buf[3] = 0;*/
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -4324,8 +4324,8 @@ var SyscallsLibrary = {
 
 		buf2[0] = 13; // WRITE
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
-
+		let pid = Module.getpid();
+		
 		// pid
 		buf2[4] = pid & 0xff;
 		buf2[5] = (pid >> 8) & 0xff;
@@ -4399,7 +4399,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -4697,7 +4697,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 15; // CLOSE
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -4765,7 +4765,7 @@ var SyscallsLibrary = {
 		    clearTimeout(Module['fd_table'][fd].timeout_id);
 		}
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		if (pid > 1) {
 		    do_close();
@@ -4782,7 +4782,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -4872,7 +4872,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 16; // SETSID
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -4942,7 +4942,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 18; // GETSID
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -5037,7 +5037,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 12; // READ
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5123,7 +5123,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5225,7 +5225,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 12; // READ
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5342,7 +5342,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5442,7 +5442,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 21; // GETPGID
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -5505,7 +5505,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 22; // SETPGID
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -5566,7 +5566,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 20; // GETPPID
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -5623,7 +5623,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 27; // READLINK
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -5748,7 +5748,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 31; // SELECT
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5903,7 +5903,7 @@ var SyscallsLibrary = {
 
 		    buf2[0] = 26; // IS_OPEN
 
-		    let pid = parseInt(window.frameElement.getAttribute('pid'));
+		    let pid = Module.getpid();
 
 		    // pid
 		    buf2[4] = pid & 0xff;
@@ -6091,7 +6091,7 @@ var SyscallsLibrary = {
 		Module['fd_table'][fd] = desc;
 	    };
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    if (pid == 1) {  // Called by resmgr
 
@@ -6218,7 +6218,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 37; // WAIT
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6283,7 +6283,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 38; // EXIT
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6323,7 +6323,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 38; // EXIT
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6366,7 +6366,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 39; // SEEK
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -6446,7 +6446,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -6535,7 +6535,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 40; // SIGACTION
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6607,7 +6607,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 41; // SIGPROGMASK
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6750,7 +6750,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 43; // SETITIMER
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6818,7 +6818,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 45; // EXA_RELEASE_SIGNAL
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -6940,7 +6940,7 @@ var SyscallsLibrary = {
 
 	    msg.buf[0] = 42;
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    msg.buf[4] = pid & 0xff;
@@ -7038,7 +7038,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 48; // UNAME
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
@@ -7133,29 +7133,9 @@ var SyscallsLibrary = {
 		int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
 	    }
 
-	    /*if (int_msec == 10000) {
-
-		console.log(Module);
-		//debugger;
-	    }
-	    else if (int_msec == 1000) {
-
-		console.log(Module);
-	    }*/
-
 	    setTimeout(() => {
 
 		//console.log("__syscall_nanosleep: "+int_msec);
-
-		/*if (int_msec == 10000) {
-
-		    console.log(Module);
-		    debugger;
-		}
-		else if (int_msec == 1000) {
-
-		    console.log(Module);
-		}*/
 
 		wakeUp(0);
 		
@@ -7183,7 +7163,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 49; // FSYNC
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -7242,7 +7222,7 @@ var SyscallsLibrary = {
 
 		buf2[0] = 26; // IS_OPEN
 
-		let pid = parseInt(window.frameElement.getAttribute('pid'));
+		let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -7331,7 +7311,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 59; // SETSOCKOPT
 
-	    let pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = pid & 0xff;
