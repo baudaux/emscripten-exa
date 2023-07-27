@@ -1166,7 +1166,9 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    if (window.frameElement.getAttribute('pid') != "1") {
+	    let pid = Module.getpid();
+	    
+	    if (pid != 1) {
 
 		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
@@ -1179,7 +1181,7 @@ var SyscallsLibrary = {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		let pid = Module.getpid();
+		//let pid = Module.getpid();
 
 		// pid
 		buf[4] = pid & 0xff;
@@ -3284,8 +3286,10 @@ var SyscallsLibrary = {
 	/* Modified by Benoit Baudaux 4/1/2023 */
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let pid = Module.getpid();
 	    
-	    if (window.frameElement.getAttribute('pid') != "1") {
+	    if (pid != 1) {
 
 		var mode = varargs ? SYSCALLS.get() : 0;
 
@@ -3304,7 +3308,7 @@ var SyscallsLibrary = {
 		  buf[2] = 0;
 		  buf[3] = 0;*/
 
-		let pid = Module.getpid();
+		//let pid = Module.getpid();
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -4201,7 +4205,7 @@ var SyscallsLibrary = {
 
 		// rcv_bc_channel is not registered if it is a fork of resmgr
 
-		let rcv_bc = Module['rcv_bc_channel'] || new BroadcastChannel("channel.process."+window.frameElement.getAttribute('pid'));
+		let rcv_bc = Module['rcv_bc_channel'] || new BroadcastChannel("channel.process."+Module.getpid());
 
 		let msg = {
 
@@ -6684,7 +6688,7 @@ var SyscallsLibrary = {
 
 	    buf2[0] = 42; // KILL
 
-	    let my_pid = parseInt(window.frameElement.getAttribute('pid'));
+	    let my_pid = Module.getpid();
 
 	    // pid
 	    buf2[4] = my_pid & 0xff;
