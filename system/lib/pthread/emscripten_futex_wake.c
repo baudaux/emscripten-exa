@@ -45,7 +45,7 @@ int emscripten_futex_wake(volatile void *addr, int count) {
     }
   }
 
-  emscripten_log(EM_LOG_CONSOLE, "--> emscripten_futex_wake");
+  //emscripten_log(EM_LOG_CONSOLE, "--> emscripten_futex_wake");
 
   // Wake any workers waiting on this address.
   int ret = __builtin_wasm_memory_atomic_notify((int*)addr, count);

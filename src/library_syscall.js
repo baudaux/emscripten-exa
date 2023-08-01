@@ -4509,7 +4509,7 @@ var SyscallsLibrary = {
 		
 		let pid = Module.getpid();
 
-		console.log("writev: tid="+pid);
+		//console.log("writev: tid="+pid);
 
 		// pid
 		buf2[4] = pid & 0xff;
@@ -5814,6 +5814,8 @@ var SyscallsLibrary = {
 			buf: buf2,
 			len: buf_size
 		    };
+
+		    //console.log("__syscall_pselect6: peer="+Module['fd_table'][fd].peer);
 
 		    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
 		    

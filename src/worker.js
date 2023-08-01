@@ -223,7 +223,7 @@ self.onmessage = (e) => {
 	/* Modified by Benoit Baudaux 21/07/2023 */
 	Module['PThread'].tid = e.data.tid;
 
-	console.log("worker.js: Module['PThread'].tid = "+Module['PThread'].tid);
+	//console.log("worker.js: Module['PThread'].tid = "+Module['PThread'].tid);
 	
 	Module['fd_table'] = e.data.fd_table;
 

@@ -538,7 +538,7 @@ var LibraryPThread = {
 #endif
 
       //BB
-      console.log("--> spawnThread");
+      //console.log("--> spawnThread");
 
     var worker = PThread.getNewWorker();
     if (!worker) {
@@ -809,7 +809,7 @@ var LibraryPThread = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 	    
-	    console.log("--> __pthread_create_js: tid="+tid);
+	    //console.log("--> __pthread_create_js: tid="+tid);
 
 	    let buf_size = 16;
 	
@@ -870,7 +870,7 @@ var LibraryPThread = {
 
 	    bc.postMessage(msg);
 
-	    console.log("__pthread_create_js: send msg to resmgr -> full_tid="+full_tid+", pid="+pid);
+	    //console.log("__pthread_create_js: send msg to resmgr -> full_tid="+full_tid+", pid="+pid);
 	});
 
 	    return ret;
@@ -882,7 +882,7 @@ var LibraryPThread = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 	    
-	    console.log("--> __pthread_exit_js");
+	    //console.log("--> __pthread_exit_js");
 	    
 	    let buf_size = 16;
 	

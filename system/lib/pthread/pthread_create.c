@@ -88,7 +88,7 @@ int __pthread_create(pthread_t* restrict res,
     return EINVAL;
   }
 
-  emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_create");
+  //emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_create");
 
   // Create threads with monotonically increasing TID starting with the main
   // thread which has TID == PID.
@@ -98,7 +98,7 @@ int __pthread_create(pthread_t* restrict res,
     next_tid = 2/*getpid() + 1*/;
     }
 
-  emscripten_log(EM_LOG_CONSOLE, "next_tid = %d", next_tid);
+  //emscripten_log(EM_LOG_CONSOLE, "next_tid = %d", next_tid);
 
   if (!libc.threaded) {
     for (FILE *f=*__ofl_lock(); f; f=f->next)
@@ -259,7 +259,7 @@ void _emscripten_thread_exit(void* result) {
   struct pthread *self = __pthread_self();
   assert(self);
 
-  emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_thread_exit: %d (%d %d)", (int)result, self, emscripten_main_browser_thread_id());
+  //emscripten_log(EM_LOG_CONSOLE, "--> _emscripten_thread_exit: %d (%d %d)", (int)result, self, emscripten_main_browser_thread_id());
 
   self->canceldisable = PTHREAD_CANCEL_DISABLE;
   self->cancelasync = PTHREAD_CANCEL_DEFERRED;
@@ -300,7 +300,7 @@ void _emscripten_thread_exit(void* result) {
     __emscripten_thread_cleanup(self);
   } else {
 
-    emscripten_log(EM_LOG_CONSOLE, "_emscripten_thread_exit: wake joiner");
+    //emscripten_log(EM_LOG_CONSOLE, "_emscripten_thread_exit: wake joiner");
     
     // Mark the thread as no longer running, so it can be joined.
     // Once we publish this, any threads that are waiting to join with us can
@@ -332,7 +332,7 @@ void EMSCRIPTEN_KEEPALIVE _emscripten_thread_start(int (*func)(int), int arg) {
 /*__attribute__((no_sanitize("address")))*/
 _Noreturn void __pthread_exit(void* retval) {
 
-  emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_exit");
+  //emscripten_log(EM_LOG_CONSOLE, "--> pthread::__pthread_exit");
   
   _emscripten_thread_exit(retval);
 
