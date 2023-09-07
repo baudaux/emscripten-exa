@@ -9,8 +9,14 @@
 //
 
 mergeInto(LibraryManager.library, {
-  // error handling
 
+    emscripten_can_asyncify: function() {
+
+	return (!Asyncify.currData && (Asyncify.state == Asyncify.State.Normal));
+    },
+    
+    // error handling
+    
   $runAndAbortIfError: function(func) {
     try {
       return func();

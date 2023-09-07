@@ -5823,7 +5823,14 @@ var SyscallsLibrary = {
 		}
 	    };
 
+	    let already_notified = 0;
+
 	    let notif_select = (fd, rw) => {
+
+		if (already_notified)
+		    return;
+
+		already_notified = 1;
 
 		//console.log("__syscall_pselect6: notify_select: fd="+fd);
 
