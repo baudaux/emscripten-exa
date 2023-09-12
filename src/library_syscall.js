@@ -2202,6 +2202,12 @@ var SyscallsLibrary = {
 	      buf2[22] = (start >> 16) & 0xff;
 	      buf2[23] = (start >> 24) & 0xff;
 
+	      // once
+	      buf2[28] = (timeout == 0);
+	      buf2[29] = 0;
+	      buf2[30] = 0;
+	      buf2[31] = 0;
+
 	      if (Module['fd_table'][fd].timerfd) { // timerfd
 
 		  Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
@@ -2250,23 +2256,26 @@ var SyscallsLibrary = {
 	      if (Module['select_timer'])
 		  clearTimeout(Module['select_timer']);
 	      
-	      // Stop select for readfds
+	      // Stop select for readfds if not once
+
+	      if (timeout != 0) {
 	      
-	      for (let readfd of readfds_array) {
+		  for (let readfd of readfds_array) {
 
-		  if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+		      if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
 
-		      do_select(readfd, 0, 0);
+			  do_select(readfd, 0, 0);
+		      }
 		  }
-	      }
 
-	      // Stop select for writefds
+		  // Stop select for writefds
 
-	      for (let writefd of writefds_array) {
+		  for (let writefd of writefds_array) {
 
-		  if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+		      if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
 
-		      do_select(writefd, 1, 0);
+			  do_select(writefd, 1, 0);
+		      }
 		  }
 	      }
 	      
@@ -2439,16 +2448,13 @@ var SyscallsLibrary = {
 	      }
 	      else if (timeout >= 0) {
 
-		  if (timeout == 0)
-		      timeout = 5000;
-
 		  Module['select_timer'] = setTimeout(() => {
 
 		      Module['rcv_bc_channel'].unset_handler(hid);
 		      
 		      notif_select(-1, -1);
 		      
-		  }, timeout);
+		  }, (timeout == 0)?5:timeout);
 	      }
 	  });
 	  
@@ -5780,6 +5786,12 @@ var SyscallsLibrary = {
 		buf2[22] = (start >> 16) & 0xff;
 		buf2[23] = (start >> 24) & 0xff;
 
+		// once
+		buf2[28] = (s == 0) && (ns == 0);
+		buf2[29] = 0;
+		buf2[30] = 0;
+		buf2[31] = 0;
+
 		if (Module['fd_table'][fd].timerfd) { // timerfd
 
 		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
@@ -5823,37 +5835,37 @@ var SyscallsLibrary = {
 		}
 	    };
 
-	    let already_notified = 0;
-
 	    let notif_select = (fd, rw) => {
 
-		if (already_notified)
+		//console.log("__syscall_pselect6: notify_select: fd="+fd+", nfds="+nfds);
+
+		/* Workaround before implement id in syscall */
+		if ( (fd != -1) && ((rw && !writefds_array.includes(fd)) || (!rw && !readfds_array.includes(fd)) ) )
 		    return;
-
-		already_notified = 1;
-
-		//console.log("__syscall_pselect6: notify_select: fd="+fd);
 
 		if (Module['select_timer'])
 		    clearTimeout(Module['select_timer']);
 		
-		// Stop select for readfds
+		// Stop select for readfds if not once
+
+		if (!((s == 0) && (ns == 0))) {
 		
-		for (let readfd of readfds_array) {
+		    for (let readfd of readfds_array) {
 
-		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+			if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
 
-			do_select(readfd, 0, 0);
+			    do_select(readfd, 0, 0);
+			}
 		    }
-		}
 
-		// Stop select for writefds
+		    // Stop select for writefds
 
-		for (let writefd of writefds_array) {
+		    for (let writefd of writefds_array) {
 
-		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+			if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
 
-			do_select(writefd, 1, 0);
+			    do_select(writefd, 1, 0);
+			}
 		    }
 		}
 		
@@ -6043,16 +6055,13 @@ var SyscallsLibrary = {
 		}
 		else if (s >= 0) {
 
-		    if ((s == 0) && (ns == 0) )
-			ns = 5000000;
-
 		    Module['select_timer'] = setTimeout(() => {
 
 			Module['rcv_bc_channel'].unset_handler(hid);
 			
 			notif_select(-1, -1);
 			
-		    }, Math.floor(s*1000+ns/1000000));
+		    }, Math.floor(((s == 0) && (ns == 0))?5:s*1000+ns/1000000));
 		}
 	    });
 	    
