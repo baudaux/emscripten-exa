@@ -363,7 +363,10 @@ var LibraryEGL = {
     EGL.contextAttributes.majorVersion = glesContextVersion - 1; // WebGL 1 is GLES 2, WebGL2 is GLES3
     EGL.contextAttributes.minorVersion = 0;
 
-    EGL.context = GL.createContext(Module['canvas'], EGL.contextAttributes);
+	// Modified by Benoit Baudaux 20/10/2023
+	//EGL.context = GL.createContext(Module['canvas'], EGL.contextAttributes);
+	// Use surface 0 by default
+	EGL.context = GL.createContext(Module['surfaces'][0], EGL.contextAttributes);
 
     if (EGL.context != 0) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -661,7 +664,21 @@ var LibraryEGL = {
   // EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface);
   eglSwapBuffers__proxy: 'sync',
   eglSwapBuffers__sig: 'iii',
-  eglSwapBuffers: function() {
+      eglSwapBuffers: function() {
+
+	  // Modified by Benoit Baudaux 20/10/2023
+	  if (!Module.iframeShown) {
+
+	    Module.iframeShown = true;
+
+	    let m = new Object();
+	
+	    m.type = 7; // show iframe and hide body
+	    m.pid = Module.getpid() & 0x0000ffff;
+
+	    window.parent.postMessage(m);
+	  }
+	  
 #if PROXY_TO_WORKER
     if (Browser.doSwapBuffers) Browser.doSwapBuffers();
 #endif
