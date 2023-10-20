@@ -169,6 +169,11 @@ int __syscall_rt_sigaction(int signum, intptr_t act, intptr_t oldact, int sigset
 
   /* Modified by Benoit Baudaux 8/06/2023 */
   int __syscall_fsync(int fd);
+
+  /* Modified by Benoit Baudaux 16/10/2023 */
+  int __syscall_epoll_create1(int flags);
+  int __syscall_epoll_ctl(int fd, int op, int fd2, intptr_t ev);
+  int __syscall_epoll_wait(int fd, intptr_t ev, int cnt, int to);
   
 #ifdef __cplusplus
 }

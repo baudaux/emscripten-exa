@@ -160,6 +160,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   'emscripten_receive_on_main_thread_js',
   '__pthread_create_js',
   '__pthread_exit_js',
+  '__syscall_epoll_wait'
 ]
 
 # Target options

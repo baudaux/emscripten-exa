@@ -47,7 +47,8 @@ exclude_files = (
   'kd.h',
   'io.h',
   'fsuid.h',
-  'epoll.h',
+  # Modified by Benoit Baudaux 15/09/2023
+  #'epoll.h',
   'inotify.h',
   'timerfd.h',
   'timex.h',

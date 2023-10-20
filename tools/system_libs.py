@@ -1076,7 +1076,7 @@ class libc(MuslInternalLibrary,
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/linux',
-        filenames=['getdents.c', 'gettid.c', 'utimes.c', 'timerfd.c'])
+        filenames=['getdents.c', 'gettid.c', 'utimes.c', 'timerfd.c', 'epoll.c'])
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/env',
         filenames=['__environ.c', 'getenv.c', 'putenv.c', 'setenv.c', 'unsetenv.c'])

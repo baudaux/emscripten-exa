@@ -294,8 +294,9 @@ mergeInto(LibraryManager.library, {
       dbg('ASYNCIFY: start:', start);
 #endif
       // Once we have rewound and the stack we no longer need to artificially
-      // keep the runtime alive.
-      {{{ runtimeKeepalivePop(); }}}
+	// keep the runtime alive.
+	//BB: TODO
+      //{{{ runtimeKeepalivePop(); }}}
       return start();
     },
 

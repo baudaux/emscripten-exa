@@ -944,6 +944,7 @@ var SyscallsLibrary = {
 			    break;
 
 			case {{{ cDefine('TIOCGPGRP') }}}:
+			case {{{ cDefine('TIOCGPTN') }}}:
 
 			    if (!_errno) {
 
@@ -2568,10 +2569,24 @@ var SyscallsLibrary = {
   },
   __syscall_ftruncate64__sig: 'iij',
   __syscall_ftruncate64__deps: i53ConversionDeps,
-  __syscall_ftruncate64: function(fd, {{{ defineI64Param('length') }}}) {
-    {{{ receiveI64ParamAsI53('length', -cDefine('EOVERFLOW')) }}}
+    __syscall_ftruncate64: function(fd, {{{ defineI64Param('length') }}}) {
+
+	/* Modified by Benoit Baudaux 2/10/2023 */	
+	{{{ receiveI64ParamAsI53('length', -cDefine('EOVERFLOW')) }}}
+
+	if (fd >= 0x7f000000) { // Shm
+
+	    //console.log("__syscall_ftruncate64: shm length="+length);
+
+	    Module['shm'].fds[fd-0x7f000000].size = length;
+	}
+
+	return 0;
+
+#if 0
     FS.ftruncate(fd, length);
-    return 0;
+	return 0;
+#endif
   },
   __syscall_stat64__sig: 'ipp',
     __syscall_stat64: function(path, buf) {
@@ -3289,6 +3304,46 @@ var SyscallsLibrary = {
     __syscall_openat__sig: 'iipip',
     __syscall_openat: function(dirfd, path, flags, varargs) {
 
+	if (UTF8ArrayToString(Module.HEAPU8, path, 9) == "/dev/shm/") {
+
+	    let path_len = 0;
+
+	    while (Module.HEAPU8[path+path_len]) {
+
+		path_len++;
+	    }
+
+	    path_str = UTF8ArrayToString(Module.HEAPU8, path, path_len);
+
+	    //console.log("library_syscall: openat /dev/shm "+path_str);
+	    
+	    if (!Module['shm']) {
+		Module['shm'] = {};
+		Module['shm'].names = {};
+		Module['shm'].fds = new Array(16);
+
+		for (let i = 0; i < 16; i += 1) {
+
+		    Module['shm'].fds[i] = {};
+		    Module['shm'].fds[i].name = "";
+		}
+	    }
+
+	    let i = 0;
+
+	    for (; i < 16; i += 1) {
+
+		if (Module['shm'].fds[i].name == "") {
+		    Module['shm'].fds[i].name = path_str;
+		    Module['shm'].names[path_str] = i;
+
+		    return 0x7f000000+i;
+		}
+	    }
+	    
+	    return -1;
+	}
+
 	/* Modified by Benoit Baudaux 4/1/2023 */
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
@@ -3412,7 +3467,7 @@ var SyscallsLibrary = {
 				    let m = {
 	    
 					type: 5,   // show iframe
-					pid: pid
+					pid: pid & 0x0000ffff
 				    };
 
 				    window.parent.postMessage(m);
@@ -5009,7 +5064,7 @@ var SyscallsLibrary = {
     __syscall_read__sig: 'iipi',
     __syscall_read: function(fd, buf, count) {
 
-	//console.log("__syscall_read: fd="+fd);
+	//console.log("__syscall_read: fd="+fd+", count="+count);
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
@@ -7122,7 +7177,18 @@ var SyscallsLibrary = {
     __syscall_mmap2__sig: 'ppiiiii',
     __syscall_mmap2: function(addr, len, prot, flags, fd, off) {
 
-	if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) && Module['fd_table'][fd].fb) {
+	//console.log("__syscall_mmap2: fd="+fd);
+
+	if (fd >= 0x7f000000) { // shm
+
+	    let ptr = Module._malloc(len);
+
+	    Module['shm'].fds[fd-0x7f000000].mem = ptr;
+	    Module['shm'].fds[fd-0x7f000000].len = len;
+
+	    return ptr;
+	}
+	else if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) && Module['fd_table'][fd].fb) {
 
 	    return Module['fd_table'][fd].fb+off;
 	    
@@ -7402,6 +7468,363 @@ var SyscallsLibrary = {
 
 	return ret;
     },
+    __syscall_epoll_create1__sig: 'ii',
+    __syscall_epoll_create1: function(flags) {
+
+	// TODO: multi thread
+
+	if (!Module.epoll_fds)
+	    Module.epoll_fds = new Array();
+
+	Module.epoll_fds.push({
+	    readfds_array: {},
+	    writefds_array: {}
+	});
+
+	return 0x7d000000+Module.epoll_fds.length-1;
+    },
+    __syscall_epoll_ctl__sig: 'iiiip',
+    __syscall_epoll_ctl: function(fd, op, fd2, ev) {
+
+	let epoll = Module.epoll_fds[fd-0x7d000000];
+
+	let events = Module.HEAPU8[ev] | (Module.HEAPU8[ev+1] << 8) | (Module.HEAPU8[ev+2] << 16) |  (Module.HEAPU8[ev+3] << 24);
+	let ptr = Module.HEAPU8[ev+8] | (Module.HEAPU8[ev+9] << 8) | (Module.HEAPU8[ev+10] << 16) |  (Module.HEAPU8[ev+11] << 24);
+
+	if (events & 0x01) { // EPOLLIN
+
+	    if (op == 1) { // EPOLL_CTL_ADD
+
+		epoll.readfds_array[fd2] = {
+
+		    fd: fd2,
+		    ptr: ptr
+		};
+	    }
+	    else {
+
+		// TODO
+	    }
+	}
+	else {
+
+	    // TODO
+	}
+	    
+	return 0;
+    },
+    __syscall_epoll_wait__sig: 'iipii',
+    __syscall_epoll_wait: function(epoll_fd, ev, cnt, to) {
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    let epoll = Module.epoll_fds[epoll_fd-0x7d000000];
+
+	    let do_select = (fd, rw, start) => {
+
+		let buf_size = 256;
+	
+		let buf2 = new Uint8Array(buf_size);
+
+		buf2[0] = 31; // SELECT
+
+		let pid = Module.getpid();
+
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+
+		// fd
+		buf2[12] = fd & 0xff;
+		buf2[13] = (fd >> 8) & 0xff;
+		buf2[14] = (fd >> 16) & 0xff;
+		buf2[15] = (fd >> 24) & 0xff;
+
+		// rw
+		buf2[16] = rw & 0xff;
+		buf2[17] = (rw >> 8) & 0xff;
+		buf2[18] = (rw >> 16) & 0xff;
+		buf2[19] = (rw >> 24) & 0xff;
+		
+		let start_stop = 1;
+		
+		// start_stop
+		buf2[20] = start & 0xff;
+		buf2[21] = (start >> 8) & 0xff;
+		buf2[22] = (start >> 16) & 0xff;
+		buf2[23] = (start >> 24) & 0xff;
+
+		// once
+		buf2[28] = 0;
+		buf2[29] = 0;
+		buf2[30] = 0;
+		buf2[31] = 0;
+
+		if (fd == 0x7e000000) { // wayland display
+
+		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
+
+			notif_select(_fd, rw);
+		    });
+		}
+		else if (Module['fd_table'][fd].timerfd) { // timerfd
+
+		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
+			//console.log("timerfd notif_select _fd="+_fd);
+			
+			notif_select(_fd, rw);
+		    });
+		}
+		else if (Module['fd_table'][fd].sock_ops) { // socket
+
+		    Module['fd_table'][fd].sock_ops.select(getSocketFromFD(fd), fd, rw, start, function(_fd, rw) {
+
+			//console.log("sock notif_select _fd="+_fd);
+
+			notif_select(_fd, rw);
+		    });
+		}
+		else { // any other type of fd (remote)
+
+		    let remote_fd = Module['fd_table'][fd].remote_fd;
+
+		    // remote fd
+		    buf2[24] = remote_fd & 0xff;
+		    buf2[25] = (remote_fd >> 8) & 0xff;
+		    buf2[26] = (remote_fd >> 16) & 0xff;
+		    buf2[27] = (remote_fd >> 24) & 0xff;
+
+		    let msg = {
+			
+			from: Module['rcv_bc_channel'].name,
+			buf: buf2,
+			len: buf_size
+		    };
+
+		    //console.log("__syscall_pselect6: peer="+Module['fd_table'][fd].peer);
+
+		    let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		    
+		    driver_bc.postMessage(msg);
+		}
+	    };
+
+	    let notif_select = (fd, rw) => {
+
+		// Workaround before implement id in syscall
+		if ( (fd != -1) && ((rw && !epoll.writefds_array[fd]) || (!rw && !epoll.readfds_array[fd]) ) )
+		    return;
+
+		if (Module['select_timer'])
+		    clearTimeout(Module['select_timer']);
+		
+		// Stop select for readfds
+		
+		for (let readfd of Object.keys(epoll.readfds_array).map(Number)) {
+
+		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+			do_select(readfd, 0, 0);
+		    }
+		}
+
+		// Stop select for writefds
+
+		for (let writefd of Object.keys(epoll.writefds_array).map(Number)) {
+
+		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+			do_select(writefd, 1, 0);
+		    }
+		}
+
+		if (fd >= 0) {
+
+		    //console.log("!!! notif_select: fd="+fd);
+
+		    const events = (rw == 0)?0x01:0x04;
+
+		    let ptr;
+
+		    if (rw == 0) {
+			ptr = epoll.readfds_array[fd].ptr;
+		    }
+		    else {
+			ptr = epoll.writefds_array[fd].ptr;
+		    }
+
+		    Module.HEAPU8[ev] = events & 0xff;
+		    Module.HEAPU8[ev+1] = (events >> 8) & 0xff;
+		    Module.HEAPU8[ev+2] = (events >> 16) & 0xff;
+		    Module.HEAPU8[ev+3] = (events >> 24) & 0xff;
+
+		    Module.HEAPU8[ev+8] = ptr & 0xff;
+		    Module.HEAPU8[ev+9] = (ptr >> 8) & 0xff;
+		    Module.HEAPU8[ev+10] = (ptr >> 16) & 0xff;
+		    Module.HEAPU8[ev+11] = (ptr >> 24) & 0xff;
+
+		    wakeUp(1);
+		}
+		else {
+
+		    wakeUp(0);
+		}
+	    };
+
+	    let selectfds_array = [].concat(Object.keys(epoll.readfds_array), Object.keys(epoll.writefds_array)).map(Number);
+
+	    let check_unknown_fds = (fds, callback) => {
+
+		if (fds.length == 0) {
+		    callback();
+		    return;
+		}
+
+		let fd = fds.pop();
+
+		if ( !(fd in Module['fd_table']) || !Module['fd_table'][fd] ) {
+
+		    let buf_size = 256;
+
+		    let buf2 = new Uint8Array(buf_size);
+
+		    buf2[0] = 26; // IS_OPEN
+
+		    let pid = Module.getpid();
+
+		    // pid
+		    buf2[4] = pid & 0xff;
+		    buf2[5] = (pid >> 8) & 0xff;
+		    buf2[6] = (pid >> 16) & 0xff;
+		    buf2[7] = (pid >> 24) & 0xff;
+
+		    // fd
+		    buf2[12] = fd & 0xff;
+		    buf2[13] = (fd >> 8) & 0xff;
+		    buf2[14] = (fd >> 16) & 0xff;
+		    buf2[15] = (fd >> 24) & 0xff;
+
+		    const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+			let msg2 = messageEvent.data;
+
+			if (msg2.buf[0] == (26|0x80)) {
+
+			    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			    if (!_errno) {
+
+				let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+				let type = msg2.buf[20];
+				let major = msg2.buf[22] | (msg2.buf[23] << 8);
+				let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+				var desc = {
+
+				    fd: fd,
+				    remote_fd: remote_fd,
+				    peer: peer,
+				    type: type,
+				    major: major,
+				    
+				    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				    peers: {},
+				    pending: [],
+				    recv_queue: [],
+				    name: null,
+				    bc: null,
+				};
+
+				Module['fd_table'][fd] = desc;
+			    }
+
+			    check_unknown_fds(fds, callback);
+			    
+			    return hid;
+			}
+			else {
+
+			    return -1;
+			}
+		    });
+
+		    let msg = {
+			
+			from: Module['rcv_bc_channel'].name,
+			buf: buf2,
+			len: buf_size
+		    };
+
+		    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		    bc.postMessage(msg);
+		}
+		else {
+		    check_unknown_fds(fds, callback);
+		}
+	    }
+
+	    check_unknown_fds(selectfds_array, () => {
+
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		    //console.log("__syscall_epoll_wait: message received");
+
+		    let msg2 = messageEvent.data;
+		    
+		    if (msg2.buf[0] == (31|0x80)) {
+
+			let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			//console.log("__syscall_pselect6: return of fd="+fd+", rw="+rw);
+			
+			notif_select(fd, rw);
+
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let i = 0;
+
+		// Start select for readfds
+		
+		for (let readfd of Object.keys(epoll.readfds_array).map(Number)) {
+
+		    if ( (readfd in Module['fd_table']) && (Module['fd_table'][readfd]) ) {
+
+			i++;
+			do_select(readfd, 0, 1);
+		    }
+		}
+		
+		// Start select for writefds
+
+		for (let writefd of Object.keys(epoll.writefds_array).map(Number)) {
+
+		    if ( (writefd in Module['fd_table']) && (Module['fd_table'][writefd]) ) {
+
+			i++;
+			do_select(writefd, 1, 1);
+		    }
+		}
+
+		if (i == 0) { // no fd for select
+
+		    wakeUp(0);
+		}
+	    });
+	    
+	    
+	});
+	
+	return ret;
+    }
 };
 
 function wrapSyscallFunction(x, library, isWasi) {

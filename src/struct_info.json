@@ -320,7 +320,8 @@
             "TIOCGWINSZ",
             "TIOCSWINSZ",
 	    "TIOCSCTTY",
-	    "TIOCNOTTY"
+	    "TIOCNOTTY",
+	    "TIOCGPTN"
         ]
     },
     {

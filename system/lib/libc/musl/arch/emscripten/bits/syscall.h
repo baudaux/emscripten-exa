@@ -149,4 +149,9 @@
 #define SYS_clock_nanosleep_time32    __syscall_clock_nanosleep_time32
 
 /* Modified by Benoit Baudaux 8/6/2023 */
-#define SYS_fsync                __syscall_fsync
+#define SYS_fsync               __syscall_fsync
+
+/* Modified by Benoit Baudaux 16/10/2023 */
+#define SYS_epoll_create1       __syscall_epoll_create1
+#define SYS_epoll_ctl           __syscall_epoll_ctl
+#define SYS_epoll_wait          __syscall_epoll_wait
