@@ -1229,6 +1229,7 @@ var LibraryGL = {
       GL.recordError(0x501 /* GL_INVALID_VALUE */);
       return;
     }
+      
     var ret = undefined;
     switch (name_) { // Handle a few trivial GLES values
       case 0x8DFA: // GL_SHADER_COMPILER
@@ -1284,16 +1285,26 @@ var LibraryGL = {
       case 0x821B: // GL_MAJOR_VERSION
       case 0x821C: // GL_MINOR_VERSION
 #if GL_TRACK_ERRORS
-        if (GL.currentContext.version < 2) {
+
+	//console.log(GL);
+	//console.log("GL.currentContext.version = "+GL.currentContext.version);
+
+	// Modified by Benoit Baudaux 25/10/2023
+	// version is 1 !!!
+        /*if (GL.currentContext.version < 2) {
+
+	    debugger;
+	    
           GL.recordError(0x500); // GL_INVALID_ENUM
           return;
-        }
+        }*/
 #endif
+	
         ret = name_ == 0x821B ? 3 : 0; // return version 3.0
         break;
 #endif // ~MAX_WEBGL_VERSION >= 2
     }
-
+      
     if (ret === undefined) {
       var result = GLctx.getParameter(name_);
       switch (typeof result) {
@@ -1397,7 +1408,7 @@ var LibraryGL = {
 
   glGetIntegerv__sig: 'vii',
   glGetIntegerv__deps: ['$emscriptenWebGLGet'],
-  glGetIntegerv: function(name_, p) {
+    glGetIntegerv: function(name_, p) {
     emscriptenWebGLGet(name_, p, {{{ cDefine('EM_FUNC_SIG_PARAM_I') }}});
   },
 

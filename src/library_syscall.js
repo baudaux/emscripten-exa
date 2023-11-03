@@ -4289,7 +4289,13 @@ var SyscallsLibrary = {
 		// name property of window for process to be loaded fully and args and env to be recovered
 		window.name = "exec";
 		
-		window.frameElement.src = "/netfs" + path+"/exa/exa.html";
+		if ( (path.indexOf("/bin") === 0) || ( (path.indexOf("/usr") === 0) && ((path.indexOf("/usr/share/bin") !== 0)) ) ) {
+		    window.frameElement.src = "/netfs" + path+"/exa/exa.html";
+		}
+		else {
+		    window.frameElement.setAttribute("path", path);
+		    window.frameElement.src = "/exa/process.html";
+		}
 	    };
 
 	    let path = SYSCALLS.getStr(pathname);
