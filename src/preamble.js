@@ -662,7 +662,7 @@ if (Module['locateFile']) {
 #endif
 
 
-if (!ENVIRONMENT_IS_WORKER) {
+if (ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_WORKER) {
     
     if (window.fetchFromFS) {
 	
