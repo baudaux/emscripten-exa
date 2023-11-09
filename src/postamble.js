@@ -141,9 +141,11 @@ dependenciesFulfilled = function runCaller() {
 
 	    if (msg.buf[0] == 42) {  // KILL
 
-		let signum = msg.buf[16] | (msg.buf[17] << 8) | (msg.buf[18] << 16) |  (msg.buf[18] << 24);
+		let signum = msg.buf[16] | (msg.buf[17] << 8) | (msg.buf[18] << 16) |  (msg.buf[19] << 24);
 
 		let sig_handler = msg.buf[20] | (msg.buf[21] << 8) | (msg.buf[22] << 16) |  (msg.buf[23] << 24);
+
+		//console.log("$$$$$$ KILL "+signum+", handler="+sig_handler);
 
 		if (sig_handler) {
 
@@ -741,7 +743,7 @@ function checkUnflushedContent() {
   // content to flush, that is, we check if there would have been
   // something a non-ASSERTIONS build would have not seen.
   // How we flush the streams depends on whether we are in SYSCALLS_REQUIRE_FILESYSTEM=0
-  // mode (which has its own special function for this; otherwise, all
+  // mode (which has its own special f<unction for this; otherwise, all
   // the code is inside libc)
   var oldOut = out;
   var oldErr = err;

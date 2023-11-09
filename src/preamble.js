@@ -661,6 +661,15 @@ if (Module['locateFile']) {
 }
 #endif
 
+
+if (!ENVIRONMENT_IS_WORKER) {
+    
+    if (window.fetchFromFS) {
+	
+	fetch = window.fetchFromFS;
+    }
+}
+
 function getBinary(file) {
   try {
     if (file == wasmBinaryFile && wasmBinary) {

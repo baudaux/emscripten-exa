@@ -871,6 +871,10 @@ var SyscallsLibrary = {
 
 		    len = 4;
 		}
+		else if (op == {{{ cDefine('TIOCSWINSZ') }}})  {
+
+		    len = 8;
+		}
 
 		buf2[20] = len & 0xff;
 		buf2[21] = (len >> 8) & 0xff;
@@ -2413,6 +2417,16 @@ var SyscallsLibrary = {
 
 		      return hid;
 		  }
+		  else if (msg2.buf[0] == 62) { // END_OF_SIGNAL Signal received and handled
+		      
+		      //console.log("Signal has interrupted poll  syscall");
+		      
+		      //TODO: check flags
+		      
+		      wakeUp(-4); //EINTR
+
+		      return hid;
+		    }
 		  else {
 
 		      return -1;
@@ -3524,7 +3538,7 @@ var SyscallsLibrary = {
 
 					    fps = 1000.0*nb_frames/(Date.now()-start);
 
-					    console.log(fps.toFixed(2).toString() + " fps");
+					    //console.log(fps.toFixed(2).toString() + " fps");
 
 					    nb_frames = 0;
 					    start = Date.now();
@@ -5157,12 +5171,12 @@ var SyscallsLibrary = {
 
 			return hid;
 		    }
-		    else if (msg2.buf[0] == 42) { // Signal received and handled
+		    else if (msg2.buf[0] == 62) { // END_OF_SIGNAL Signal received and handled
 
 			//TODO: check flags
 			
 			wakeUp(-4); //EINTR
-
+			
 			return hid;
 		    }
 		    else {
@@ -5376,7 +5390,7 @@ var SyscallsLibrary = {
 
 			return hid;
 		    }
-		    else if (msg2.buf[0] == 42) { // Signal received and handled
+		    else if (msg2.buf[0] == 62) { // END_OF_SIGNAL Signal received and handled
 
 			//TODO: check flags
 			
@@ -5763,27 +5777,27 @@ var SyscallsLibrary = {
 	},
     __syscall_pselect6__sig: 'iippppp',
     __syscall_pselect6: function(nfds, readfds, writefds, exceptfds, timeout, sigmaks) {
-
-	//console.log("__syscall_pselect6: nfds="+nfds);
-
-	let s = -1;
-	let ns = 0;
-
-	if (timeout) {
-
-	    s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
-
-	    ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
-
-	    //end = 1000*s + 1000000*ns;
-
-	    //console.log("__syscall_pselect6: timeout s="+s+", ns="+ns);
-	}
 	
 	//console.log("__syscall_pselect6: s="+s+", ns="+ns);
 	//console.log(Module['fd_table']);
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    //console.log("__syscall_pselect6: nfds="+nfds);
+
+	    let s = -1;
+	    let ns = 0;
+
+	    if (timeout) {
+
+		s = Module.HEAPU8[timeout] | (Module.HEAPU8[timeout+1] << 8) | (Module.HEAPU8[timeout+2] << 16) |  (Module.HEAPU8[timeout+3] << 24);
+
+		ns = Module.HEAPU8[timeout+4] | (Module.HEAPU8[timeout+5] << 8) | (Module.HEAPU8[timeout+6] << 16) |  (Module.HEAPU8[timeout+7] << 24);
+
+		//end = 1000*s + 1000000*ns;
+
+		//console.log("__syscall_pselect6: timeout s="+s+", ns="+ns);
+	    }
 
 	    let readfds_array = [];
 
@@ -6080,6 +6094,16 @@ var SyscallsLibrary = {
 
 			return hid;
 		    }
+		    else if (msg2.buf[0] == 62) { // END_OF_SIGNAL Signal received and handled
+
+			//console.log("Signal has interrupted select syscall");
+			
+			//TODO: check flags
+			
+			wakeUp(-4); //EINTR
+
+			return hid;
+		    }
 		    else {
 
 			return -1;
@@ -6327,11 +6351,20 @@ var SyscallsLibrary = {
 
 		if (msg2.buf[0] == (37|0x80)) {
 
-		    let pid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    Module.HEAPU8.set(msg2.buf.slice(20, 20+4), wstatus);
+		    if (!_errno) {
 
-		    wakeUp(pid);
+			let pid = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+
+			Module.HEAPU8.set(msg2.buf.slice(20, 20+4), wstatus);
+
+			wakeUp(pid);
+		    }
+		    else {
+
+			wakeUp(-_errno);
+		    }
 		    
 		    return hid;
 		}
@@ -6928,64 +6961,6 @@ var SyscallsLibrary = {
 		    //Module['rcv_bc_channel'].unset_handler(hid);
 
 		    return hid;
-
-		    let a = JSON.parse(savedAsyncify);
-	    
-		    Asyncify.callStackId = a.callStackId;
-		    Asyncify.callStackIdToName = a.callStackIdToName;
-		    Asyncify.callStackNameToId = a.callStackNameToId;
-		    Asyncify.currData = a.currData;
-		    Asyncify.handleSleepReturnValue = a.handleSleepReturnValue;
-		    Asyncify.state = a.state;
-		    Asyncify.exportCallStack = a.exportCallStack;
-		    
-		    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
-		    stackRestore(a.stackTop);
-
-		    /*Asyncify.state = Asyncify.State.Rewinding;
-			    
-		      asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);*/
-
-		    msg2.buf[0] = 42;
-
-		    //console.log("Nb handlers="+Module['rcv_bc_channel'].handlers.length);
-		    Module['rcv_bc_channel'].handlers.pop();
-
-		    
-		    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0)) {
-
-			let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
-
-			if (ret > 0) {
-				
-			    Module['rcv_bc_channel'].unset_handler(ret);
-
-			    if (Module['rcv_bc_channel'].handlers.length > 0) {
-
-				let e = Module['rcv_bc_channel'].events.pop();
-
-				if (e) {
-
-				    //console.log("Handle previous event !!");
-
-				    ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(e);
-
-				    //console.log("Previous event handled !! "+ret);
-
-				    if (ret > 0) {
-					
-					Module['rcv_bc_channel'].unset_handler(ret);
-				    }
-				}
-			    }
-			}
-		    }
-		    else {
-
-			//console.log("No handler");
-		    }
-
-		    return hid;
 		}
 
 		return -1;
@@ -7021,7 +6996,7 @@ var SyscallsLibrary = {
 
 	    msg.buf = new Uint8Array(20);
 
-	    msg.buf[0] = 42;
+	    msg.buf[0] = 62; // END_OF_SIGNAL
 
 	    let pid = Module.getpid();
 
@@ -7044,6 +7019,8 @@ var SyscallsLibrary = {
 	    msg.from = Module['rcv_bc_channel'].name;
 
 	    let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	    bc.postMessage(msg);
 
 	    let a = JSON.parse(savedAsyncify);
 	    
@@ -7617,7 +7594,7 @@ var SyscallsLibrary = {
 		}
 	    };
 
-	    let notif_select = (fd, rw) => {
+	    let notif_select = (fd, rw, pollhup) => {
 
 		// Workaround before implement id in syscall
 		if ( (fd != -1) && ((rw && !epoll.writefds_array[fd]) || (!rw && !epoll.readfds_array[fd]) ) )
@@ -7650,7 +7627,14 @@ var SyscallsLibrary = {
 
 		    //console.log("!!! notif_select: fd="+fd);
 
-		    const events = (rw == 0)?0x01:0x04;
+		    let events = 0;
+
+		    if (pollhup)
+			events = 0x10; // EPOLLHUP
+		    else if (rw == 0)
+			events = 0x01; // EPOLLIN
+		    else
+			events = 0x04; // EPOLLOUT
 
 		    let ptr;
 
@@ -7785,8 +7769,17 @@ var SyscallsLibrary = {
 			let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
 
 			//console.log("__syscall_pselect6: return of fd="+fd+", rw="+rw);
+			let pollhup = ((msg2.buf[28] | (msg2.buf[29] << 8) | (msg2.buf[30] << 16) |  (msg2.buf[31] << 24)) == 2);
 			
-			notif_select(fd, rw);
+			notif_select(fd, rw, pollhup);
+
+			return hid;
+		    }
+		    else if (msg2.buf[0] == 62) { // END_OF_SIGNAL Signal received and handled
+
+			//TODO: check flags
+			
+			wakeUp(-4); //EINTR
 
 			return hid;
 		    }
