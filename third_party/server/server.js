@@ -21,10 +21,13 @@ app.use(function(req, res, next) {
 });
 
 app.get('/query', function(req, res){
+
+    console.log(req);
+    console.log("." + req.query.stat);
     
     if (req.query.stat) {
 
-	fs.stat(__dirname + req.query.stat, (error, stats) => {
+	fs.stat("." + req.query.stat, (error, stats) => {
 	    
 	    if (error) {
 		/*console.log(error);*/
@@ -49,10 +52,10 @@ app.get('/query', function(req, res){
 
 		    try {
 
-			statsObj2 = fs.statSync(__dirname +req.query.stat+"/exa");
+			statsObj2 = fs.statSync("." + req.query.stat+"/exa");
 
 			//console.log(statsObj2);
-
+			
 			//console.log("exa dir exists");
 
 			mode |= 0100000;
@@ -74,7 +77,7 @@ app.get('/query', function(req, res){
     }
     else if (req.query.getdents) {
 
-	fs.readdir(__dirname + req.query.getdents, (err, files) => {
+	fs.readdir("." + req.query.getdents, (err, files) => {
 	    
 	    if (err)
 		res.send("errno=-1");
@@ -89,7 +92,7 @@ app.get('/query', function(req, res){
 		    if (req.query.getdents.slice(-1) == "/")
 			slash = "";
 
-		    statsObj = fs.statSync(__dirname + req.query.getdents+slash+file);
+		    statsObj = fs.statSync("." + req.query.getdents+slash+file);
 
 		    let mode = 00444;
 
@@ -101,7 +104,7 @@ app.get('/query', function(req, res){
 
 			try {
 
-			    statsObj2 = fs.statSync(__dirname + req.query.getdents+slash+file+"/exa");
+			    statsObj2 = fs.statSync("." + req.query.getdents+slash+file+"/exa");
 			    
 			    //console.log(statsObj2);
 			    
@@ -133,7 +136,7 @@ app.get('/query', function(req, res){
     }
 });
 
-app.use(express.static(__dirname));
+app.use(express.static("./"));
 
 var server = http.createServer(app);
 

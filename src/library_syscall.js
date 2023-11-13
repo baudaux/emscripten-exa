@@ -5145,10 +5145,7 @@ var SyscallsLibrary = {
 		buf2[19] = (len >> 24) & 0xff;
 
 		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
-
 		    let msg2 = messageEvent.data;
-
-		    //console.log("__syscall_read handler "+msg2.buf[0]);
 
 		    if (msg2.buf[0] == (12|0x80)) {
 
@@ -5160,7 +5157,8 @@ var SyscallsLibrary = {
 
 			    //console.log("__syscall_read: bytes_read="+bytes_read);
 
-			    Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
+			    if (bytes_read > 0)
+				Module.HEAPU8.set(msg2.buf.slice(20, 20+bytes_read), buf);
 			    
 			    wakeUp(bytes_read);
 			}
@@ -5870,7 +5868,6 @@ var SyscallsLibrary = {
 		if (Module['fd_table'][fd].timerfd) { // timerfd
 
 		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
-
 			//console.log("timerfd notif_select _fd="+_fd);
 			
 			notif_select(_fd, rw);
@@ -6161,6 +6158,8 @@ var SyscallsLibrary = {
 
 	    let add_timerfd = (fd) => {
 
+		//console.log("add_timerfd: fd="+fd);
+
 		var desc = {
 
 		    timerfd: fd,
@@ -6273,7 +6272,7 @@ var SyscallsLibrary = {
     __syscall_timerfd_settime__sig: 'iiipp',
     __syscall_timerfd_settime: function(fd, flags, new_value, curr_value) {
 
-	//console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value);
+	//console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value+', curr_value='+curr_value);
 
 	const int_sec = Module.HEAPU8[new_value] | (Module.HEAPU8[new_value+1] << 8) | (Module.HEAPU8[new_value+2] << 16) |  (Module.HEAPU8[new_value+3] << 24);
 	const int_nsec = Module.HEAPU8[new_value+8] | (Module.HEAPU8[new_value+9] << 8) | (Module.HEAPU8[new_value+10] << 16) |  (Module.HEAPU8[new_value+11] << 24);
@@ -6283,28 +6282,43 @@ var SyscallsLibrary = {
 	Module['fd_table'][fd].int_msec = int_sec * 1000 + int_nsec / 1000000;
 	Module['fd_table'][fd].val_msec = val_sec * 1000 + val_nsec / 1000000;
 	
-	//console.log('__syscall_timerfd_settime: int='+int_sec+' '+int_nsec+' '+Module['fd_table'][fd].int_msec+', val='+val_sec+' '+val_nsec+' '+Module['fd_table'][fd].val_msec);
+	//console.log('__syscall_timerfd_settime: int='+int_sec+'s '+int_nsec+'ns ('+Module['fd_table'][fd].int_msec+'ms), val='+val_sec+'s '+val_nsec+'ns ('+Module['fd_table'][fd].val_msec+'ms)');
+
+	if (Module['fd_table'][fd].timeout_id) {
+
+	    if (Module['fd_table'][fd].timeout_interval)
+		clearTimeout(Module['fd_table'][fd].timeout_id);
+	    else
+		clearInterval(Module['fd_table'][fd].timeout_id);
+	    
+	    Module['fd_table'][fd].timeout_id = 0;
+	}
 
 	if (Module['fd_table'][fd].val_msec) {
 
+	    Module['fd_table'][fd].timeout_interval = true;
+	    
 	    Module['fd_table'][fd].timeout_id = setTimeout(() => {
 
+		//console.log("Timeout !! "+fd);
+		
 		Module['fd_table'][fd].increase_counter();
-
+		Module['fd_table'][fd].timeout_id = 0;
+		
 		if (Module['fd_table'][fd].int_msec) {
 
+		    Module['fd_table'][fd].timeout_interval = false;
+		    
 		    Module['fd_table'][fd].timeout_id = setInterval(() => {
 
+			//console.log("Interval !! "+fd);
+			
 			Module['fd_table'][fd].increase_counter();
 			
 		    }, Module['fd_table'][fd].int_msec);
 		}
 		
 	    }, Module['fd_table'][fd].val_msec);
-	}
-	else {
-
-	    clearTimeout(Module['fd_table'][fd].timeout_id);
 	}
     },
     __syscall_timerfd_gettime__sig: 'iip',
@@ -7203,10 +7217,8 @@ var SyscallsLibrary = {
 
 		int_msec = Math.floor(int_sec * 1000 + int_nsec / 1000000);
 	    }
-
+	    
 	    setTimeout(() => {
-
-		//console.log("__syscall_nanosleep: "+int_msec);
 
 		wakeUp(0);
 		
