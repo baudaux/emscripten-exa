@@ -1100,8 +1100,13 @@ def run(args):
   # on, before we inject EMCC_CFLAGS.  This is because tools like cmake and
   # autoconf will run `emcc -v` to determine the compiler version and we don't
   # want that to break for users of EMCC_CFLAGS.
-  if len(args) == 2 and args[1] == '-v':
-    # autoconf likes to see 'GNU' in the output to enable shared object support
+
+  # Modified by Benoit Baudaux 14/11/2023
+  # not 2 arguments but 4 since -sASYNCIFY=1 and -sEXIT_RUNTIME=1 are added by default
+  # if len(args) == 2 and args[1] == '-v':
+  if len(args) == 4 and args[1] == '-v':
+    
+  # autoconf likes to see 'GNU' in the output to enable shared object support
     print(version_string(), file=sys.stderr)
     return shared.check_call([clang, '-v'] + get_target_flags(), check=False).returncode
 
