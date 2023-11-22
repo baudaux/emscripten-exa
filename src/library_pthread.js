@@ -393,14 +393,28 @@ var LibraryPThread = {
           PThread.unusedWorkers.push(new Worker(p.createScriptURL('ignored')));
         } else
 #endif
+	    
         PThread.unusedWorkers.push(new Worker(new URL('{{{ PTHREAD_WORKER_FILE }}}', import.meta.url)));
         return;
       }
 #endif
       // Allow HTML module to configure the location where the 'worker.js' file will be loaded from,
       // via Module.locateFile() function. If not specified, then the default URL 'worker.js' relative
-      // to the main html file is loaded.
-      var pthreadMainJs = locateFile('{{{ PTHREAD_WORKER_FILE }}}');
+	// to the main html file is loaded.
+
+	// Modified be Benoit Baudaux 17/11/2023
+	var pthreadMainJs;
+	  
+	  if (window.workerBlob) {
+
+	      pthreadMainJs = URL.createObjectURL(window.workerBlob);
+	  }
+	  else {
+	      
+              pthreadMainJs = locateFile('{{{ PTHREAD_WORKER_FILE }}}');
+	  }
+	
+      //var pthreadMainJs = locateFile('{{{ PTHREAD_WORKER_FILE }}}');
 #endif
 #if PTHREADS_DEBUG
       dbg('Allocating a new web worker from ' + pthreadMainJs);
