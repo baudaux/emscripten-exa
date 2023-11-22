@@ -111,7 +111,7 @@ global.LibraryManager = {
         'library_glut.js',
         'library_xlib.js',
         'library_egl.js',
-        'library_glfw.js',
+        //'library_glfw.js',
         'library_uuid.js',
         'library_glew.js',
         'library_idbstore.js',

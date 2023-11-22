@@ -1134,8 +1134,8 @@ def map_to_js_libs(library_name):
     'GLESv2': ['library_webgl.js'],
     # N.b. there is no GLESv3 to link to (note [f] in https://www.khronos.org/registry/implementers_guide.html)
     'GLEW': ['library_glew.js'],
-    'glfw': ['library_glfw.js'],
-    'glfw3': ['library_glfw.js'],
+    #'glfw': ['library_glfw.js'],
+    #'glfw3': ['library_glfw.js'],
     'GLU': [],
     'glut': ['library_glut.js'],
     'openal': ['library_openal.js'],
