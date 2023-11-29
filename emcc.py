@@ -950,6 +950,8 @@ def get_cflags(user_args, is_cxx):
     # The preprocessor define EMSCRIPTEN is deprecated. Don't pass it to code
     # in strict mode. Code should use the define __EMSCRIPTEN__ instead.
     cflags.append('-DEMSCRIPTEN')
+    # Added by Benoit Baudaux 29/11/2023
+    cflags.append('-DEXAEQUOS')
 
   # Changes to default clang behavior
 
