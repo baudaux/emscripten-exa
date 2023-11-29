@@ -283,6 +283,9 @@ var LibraryEGL = {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
       return 0;
     }
+	  //BB
+	  return win;
+
     if (config != 62002 /* Magic ID for the only EGLConfig supported by Emscripten */) {
       EGL.setErrorCode(0x3005 /* EGL_BAD_CONFIG */);
       return 0;
@@ -322,7 +325,11 @@ var LibraryEGL = {
   // EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
   eglCreateContext__proxy: 'sync',
   eglCreateContext__sig: 'iiiii',
-  eglCreateContext: function(display, config, hmm, contextAttribs) {
+    eglCreateContext: function(display, config, hmm, contextAttribs) {
+
+	console.log("library_egl.js: eglCreateContext -> contextAttribs");
+	console.log(JSON.stringify(contextAttribs));
+	
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
       return 0;
@@ -330,7 +337,7 @@ var LibraryEGL = {
 
     // EGL 1.4 spec says default EGL_CONTEXT_CLIENT_VERSION is GLES1, but this is not supported by Emscripten.
     // So user must pass EGL_CONTEXT_CLIENT_VERSION == 2 to initialize EGL.
-    var glesContextVersion = 1;
+    var glesContextVersion = /*1*/3; // Modified by Benoit Baudaux 29/11/2023
     for (;;) {
       var param = {{{ makeGetValue('contextAttribs', '0', 'i32') }}};
       if (param == 0x3098 /*EGL_CONTEXT_CLIENT_VERSION*/) {
@@ -361,23 +368,29 @@ var LibraryEGL = {
     }
 
     EGL.contextAttributes.majorVersion = glesContextVersion - 1; // WebGL 1 is GLES 2, WebGL2 is GLES3
-    EGL.contextAttributes.minorVersion = 0;
+	EGL.contextAttributes.minorVersion = 0;
+
+	console.log("library_egl.js: eglCreateContext");
+	console.log(JSON.stringify(EGL.contextAttributes));
+	
 
 	// Modified by Benoit Baudaux 20/10/2023
 	//EGL.context = GL.createContext(Module['canvas'], EGL.contextAttributes);
 	// Use surface 0 by default
 	EGL.context = GL.createContext(Module['surfaces'][0], EGL.contextAttributes);
 
+	console.log("EGL.context="+EGL.context);
+	
     if (EGL.context != 0) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
 
       // Run callbacks so that GL emulation works
-      GL.makeContextCurrent(EGL.context);
+      GL.makeContextCurrent(EGL.context, Module['surfaces'][0]);
       Module.useWebGL = true;
       Browser.moduleContextCreatedCallbacks.forEach(function(callback) { callback() });
 
       // Note: This function only creates a context, but it shall not make it active.
-      GL.makeContextCurrent(null);
+      GL.makeContextCurrent(null, null);
       return 62004; // Magic ID for Emscripten EGLContext
     } else {
       EGL.setErrorCode(0x3009 /* EGL_BAD_MATCH */); // By the EGL 1.4 spec, an implementation that does not support GLES2 (WebGL in this case), this error code is set.
@@ -598,6 +611,10 @@ var LibraryEGL = {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
       return 0;
     }
+
+      //TODO;
+      return 1;
+      
     if (interval == 0) _emscripten_set_main_loop_timing(0/*EM_TIMING_SETTIMEOUT*/, 0);
     else _emscripten_set_main_loop_timing(1/*EM_TIMING_RAF*/, interval);
 
@@ -614,17 +631,23 @@ var LibraryEGL = {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
       return 0 /* EGL_FALSE */;
     }
+
+	  console.log("eglMakeCurrent draw="+draw);
+
     //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy.
     if (context != 0 && context != 62004 /* Magic ID for Emscripten EGLContext */) {
       EGL.setErrorCode(0x3006 /* EGL_BAD_CONTEXT */);
       return 0;
     }
+	  //BB
+	  #if 0
     if ((read != 0 && read != 62006) || (draw != 0 && draw != 62006 /* Magic ID for Emscripten 'default surface' */)) {
       EGL.setErrorCode(0x300D /* EGL_BAD_SURFACE */);
       return 0;
     }
+	  #endif
 
-    GL.makeContextCurrent(context ? EGL.context : null);
+    GL.makeContextCurrent(context ? EGL.context : null, Module['surfaces'][draw-1]);
 
     EGL.currentContext = context;
     EGL.currentDrawSurface = draw;
@@ -666,18 +689,44 @@ var LibraryEGL = {
   eglSwapBuffers__sig: 'iii',
       eglSwapBuffers: function() {
 
-	  // Modified by Benoit Baudaux 20/10/2023
-	  if (!Module.iframeShown) {
+	      let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	    Module.iframeShown = true;
+	      // Modified by Benoit Baudaux 20/10/2023
+	      if (!Module.iframeShown) {
 
-	    let m = new Object();
-	
-	    m.type = 7; // show iframe and hide body
-	    m.pid = Module.getpid() & 0x0000ffff;
+		  Module.iframeShown = true;
 
-	    window.parent.postMessage(m);
-	  }
+		  let m = new Object();
+		  
+		  m.type = 7; // show iframe and hide body
+		  m.pid = Module.getpid() & 0x0000ffff;
+
+		  window.parent.postMessage(m);
+	      }
+
+	      if (!Module.swapInterval)
+		  Module.swapInterval = 1;
+
+	      if (!Module.swapCounter)
+		  Module.swapCounter = 0;
+
+	      if (!Module.swapCounter) {
+
+		  Module.swapCounter = Module.swapInterval;
+		  Module.swapBuffersWakeUp = null;
+		  
+		  wakeUp(1);
+	      }
+	      else {
+		  
+		  Module.swapBuffersWakeUp = wakeUp;
+	      }
+
+	  });
+
+	  return ret;
+
+	  #if 0
 	  
 #if PROXY_TO_WORKER
     if (Browser.doSwapBuffers) Browser.doSwapBuffers();
@@ -697,7 +746,9 @@ var LibraryEGL = {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       return 1 /* EGL_TRUE */;
     }
-    return 0 /* EGL_FALSE */;
+	  return 0 /* EGL_FALSE */;
+
+#endif
   },
 
   eglReleaseThread__proxy: 'sync',

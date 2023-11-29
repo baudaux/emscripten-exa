@@ -629,6 +629,7 @@ var LibraryGL = {
       } else {
 #endif
 
+	  #if 0
 #if MIN_SAFARI_VERSION != TARGET_NOT_SUPPORTED && GL_WORKAROUND_SAFARI_GETCONTEXT_BUG
       // BUG: Workaround Safari WebGL issue: After successfully acquiring WebGL context on a canvas,
       // calling .getContext() will always return that context independent of which 'webgl' or 'webgl2'
@@ -646,8 +647,19 @@ var LibraryGL = {
       }
 #endif
 
+	  #endif
+
 #if MIN_WEBGL_VERSION >= 2
-      var ctx = canvas.getContext("webgl2", webGLContextAttributes);
+
+	  console.log("library_webgl.js: createContext");
+	  console.log(JSON.stringify(webGLContextAttributes));
+	  
+	  var ctx = canvas.getContext("webgl2", webGLContextAttributes);
+
+	  console.log(ctx);
+
+	  if (!ctx)
+	      console.log("library_webgl.js: webgl2 context is null");
 #else
       var ctx = 
 #if MAX_WEBGL_VERSION >= 2
@@ -682,7 +694,11 @@ var LibraryGL = {
       if (!ctx) return 0;
 #endif
 
-      var handle = GL.registerContext(ctx, webGLContextAttributes);
+	console.log("library_webgl.js: registerContext");
+
+	var handle = GL.registerContext(ctx, webGLContextAttributes);
+
+	console.log(handle);
 
 #if TRACE_WEBGL_CALLS
       GL.hookWebGL(ctx);
@@ -1043,7 +1059,7 @@ var LibraryGL = {
       return handle;
     },
 
-    makeContextCurrent: function(contextHandle) {
+    makeContextCurrent: function(contextHandle, ctx) {
 #if GL_DEBUG
       if (contextHandle && !GL.contexts[contextHandle]) {
 #if USE_PTHREADS
@@ -1055,7 +1071,13 @@ var LibraryGL = {
 #endif
 
       GL.currentContext = GL.contexts[contextHandle]; // Active Emscripten GL layer context object.
-      Module.ctx = GLctx = GL.currentContext && GL.currentContext.GLctx; // Active WebGL context object.
+
+	    if (ctx)
+	    	GL.currentContext.GLctx = ctx.getContext("webgl2");
+	Module.ctx = GLctx = GL.currentContext && GL.currentContext.GLctx; // Active WebGL context object.
+
+	console.log(GL.contexts[contextHandle]);
+	
       return !(contextHandle && !GLctx);
     },
 
@@ -3775,11 +3797,13 @@ var LibraryGL = {
   glDisableVertexAttribArray__sig: 'vi',
   glDisableVertexAttribArray: function(index) {
 #if FULL_ES2
-    var cb = GL.currentContext.clientBuffers[index];
-#if GL_ASSERTIONS
+      var cb = GL.currentContext.clientBuffers[index];
+      /* Modified by Benoit Baudaux 29/11/2023 */
+#if 0 /*GL_ASSERTIONS*/
     assert(cb, index);
 #endif
-    cb.enabled = false;
+      if (cb)
+	  cb.enabled = false;
 #endif
     GLctx.disableVertexAttribArray(index);
   },
@@ -3857,7 +3881,8 @@ var LibraryGL = {
   // ANGLE_instanced_arrays WebGL extension related functions (in core in WebGL 2)
 
   glVertexAttribDivisor__sig: 'vii',
-  glVertexAttribDivisor: function(index, divisor) {
+    glVertexAttribDivisor: function(index, divisor) {
+	
 #if GL_ASSERTIONS
     assert(GLctx['vertexAttribDivisor'], 'Must have ANGLE_instanced_arrays extension or WebGL 2 to use WebGL instancing');
 #endif

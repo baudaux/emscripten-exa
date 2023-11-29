@@ -162,7 +162,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__pthread_exit_js',
   '__syscall_epoll_wait',
   '__syscall_truncate64',
-  '__syscall_ftruncate64'
+  '__syscall_ftruncate64',
+  'eglSwapBuffers'
 ]
 
 # Target options
