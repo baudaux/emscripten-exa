@@ -327,8 +327,8 @@ var LibraryEGL = {
   eglCreateContext__sig: 'iiiii',
     eglCreateContext: function(display, config, hmm, contextAttribs) {
 
-	console.log("library_egl.js: eglCreateContext -> contextAttribs");
-	console.log(JSON.stringify(contextAttribs));
+	//console.log("library_egl.js: eglCreateContext -> contextAttribs");
+	//console.log(JSON.stringify(contextAttribs));
 	
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -370,8 +370,8 @@ var LibraryEGL = {
     EGL.contextAttributes.majorVersion = glesContextVersion - 1; // WebGL 1 is GLES 2, WebGL2 is GLES3
 	EGL.contextAttributes.minorVersion = 0;
 
-	console.log("library_egl.js: eglCreateContext");
-	console.log(JSON.stringify(EGL.contextAttributes));
+	//console.log("library_egl.js: eglCreateContext");
+	//console.log(JSON.stringify(EGL.contextAttributes));
 	
 
 	// Modified by Benoit Baudaux 20/10/2023
@@ -379,7 +379,7 @@ var LibraryEGL = {
 	// Use surface 0 by default
 	EGL.context = GL.createContext(Module['surfaces'][0], EGL.contextAttributes);
 
-	console.log("EGL.context="+EGL.context);
+	//console.log("EGL.context="+EGL.context);
 	
     if (EGL.context != 0) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -632,7 +632,7 @@ var LibraryEGL = {
       return 0 /* EGL_FALSE */;
     }
 
-	  console.log("eglMakeCurrent draw="+draw);
+	  //console.log("eglMakeCurrent draw="+draw);
 
     //\todo An EGL_NOT_INITIALIZED error is generated if EGL is not initialized for dpy.
     if (context != 0 && context != 62004 /* Magic ID for Emscripten EGLContext */) {

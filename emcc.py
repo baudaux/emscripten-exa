@@ -163,7 +163,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_epoll_wait',
   '__syscall_truncate64',
   '__syscall_ftruncate64',
-  'eglSwapBuffers'
+  'eglSwapBuffers',
 ]
 
 # Target options

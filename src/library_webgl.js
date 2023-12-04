@@ -146,8 +146,8 @@ var LibraryGL = {
   },
 
   $GL__postset: 'var GLctx;',
-#if GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS
-  // If GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS is enabled, GL.initExtensions() will call to initialize these.
+#if 1/*GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS*/
+  // If 1/*GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS*/ is enabled, GL.initExtensions() will call to initialize these.
   $GL__deps: [
 #if MIN_WEBGL_VERSION == 1
     '_webgl_enable_ANGLE_instanced_arrays',
@@ -651,15 +651,15 @@ var LibraryGL = {
 
 #if MIN_WEBGL_VERSION >= 2
 
-	  console.log("library_webgl.js: createContext");
-	  console.log(JSON.stringify(webGLContextAttributes));
+	  //console.log("library_webgl.js: createContext");
+	  //console.log(JSON.stringify(webGLContextAttributes));
 	  
 	  var ctx = canvas.getContext("webgl2", webGLContextAttributes);
 
-	  console.log(ctx);
+	  //console.log(ctx);
 
-	  if (!ctx)
-	      console.log("library_webgl.js: webgl2 context is null");
+	  /*if (!ctx)
+	      console.log("library_webgl.js: webgl2 context is null");*/
 #else
       var ctx = 
 #if MAX_WEBGL_VERSION >= 2
@@ -694,11 +694,11 @@ var LibraryGL = {
       if (!ctx) return 0;
 #endif
 
-	console.log("library_webgl.js: registerContext");
+	//console.log("library_webgl.js: registerContext");
 
 	var handle = GL.registerContext(ctx, webGLContextAttributes);
 
-	console.log(handle);
+	//console.log(handle);
 
 #if TRACE_WEBGL_CALLS
       GL.hookWebGL(ctx);
@@ -1031,7 +1031,7 @@ var LibraryGL = {
       // Store the created context object so that we can access the context given a canvas without having to pass the parameters again.
       if (ctx.canvas) ctx.canvas.GLctxObject = context;
       GL.contexts[handle] = context;
-#if GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS
+#if 1/*GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS*/
       if (typeof webGLContextAttributes.enableExtensionsByDefault == 'undefined' || webGLContextAttributes.enableExtensionsByDefault) {
         GL.initExtensions(context);
       }
@@ -1076,7 +1076,7 @@ var LibraryGL = {
 	    	GL.currentContext.GLctx = ctx.getContext("webgl2");
 	Module.ctx = GLctx = GL.currentContext && GL.currentContext.GLctx; // Active WebGL context object.
 
-	console.log(GL.contexts[contextHandle]);
+	//console.log(GL.contexts[contextHandle]);
 	
       return !(contextHandle && !GLctx);
     },
@@ -1095,7 +1095,7 @@ var LibraryGL = {
       GL.contexts[contextHandle] = null;
     },
 
-#if GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS
+#if 1/*GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS*/
     // In WebGL, extensions must be explicitly enabled to be active, see http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     // In GLES2, all extensions are enabled by default without additional operations. Init all extensions we need to give to GLES2 user
     // code here, so that GLES2 code can operate without changing behavior.

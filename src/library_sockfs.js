@@ -127,6 +127,8 @@ mergeInto(LibraryManager.library, {
 
 	  bind: function(sock, addr, port) {
 
+	      //console.log("!!! bind "+addr);
+
 	      let wait_bind = true;
 
 	      sock.name = addr;
@@ -308,8 +310,8 @@ mergeInto(LibraryManager.library, {
 		  len: len
 	      };
 
-	      //console.log("Send:");
-	      //console.log(msg.buf);
+	      //console.log("??? sendto "+addr);
+	      //console.log(msg);
 	      
 	      bc.postMessage(msg);
 

@@ -3556,50 +3556,55 @@ var SyscallsLibrary = {
   },
     __syscall_openat__sig: 'iipip',
     __syscall_openat: function(dirfd, path, flags, varargs) {
-
-	if (UTF8ArrayToString(Module.HEAPU8, path, 9) == "/dev/shm/") {
-
-	    let path_len = 0;
-
-	    while (Module.HEAPU8[path+path_len]) {
-
-		path_len++;
-	    }
-
-	    path_str = UTF8ArrayToString(Module.HEAPU8, path, path_len);
-
-	    //console.log("library_syscall: openat /dev/shm "+path_str);
-	    
-	    if (!Module['shm']) {
-		Module['shm'] = {};
-		Module['shm'].names = {};
-		Module['shm'].fds = new Array(16);
-
-		for (let i = 0; i < 16; i += 1) {
-
-		    Module['shm'].fds[i] = {};
-		    Module['shm'].fds[i].name = "";
-		}
-	    }
-
-	    let i = 0;
-
-	    for (; i < 16; i += 1) {
-
-		if (Module['shm'].fds[i].name == "") {
-		    Module['shm'].fds[i].name = path_str;
-		    Module['shm'].names[path_str] = i;
-
-		    return 0x7f000000+i;
-		}
-	    }
-	    
-	    return -1;
-	}
-
+	
 	/* Modified by Benoit Baudaux 4/1/2023 */
 
+	//if (Module.getpid() == 12)
+	//    debugger;
+
 	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	    if (UTF8ArrayToString(Module.HEAPU8, path, 9) == "/dev/shm/") {
+
+		let path_len = 0;
+
+		while (Module.HEAPU8[path+path_len]) {
+
+		    path_len++;
+		}
+
+		path_str = UTF8ArrayToString(Module.HEAPU8, path, path_len);
+
+		//console.log("library_syscall: openat /dev/shm "+path_str);
+		
+		if (!Module['shm']) {
+		    Module['shm'] = {};
+		    Module['shm'].names = {};
+		    Module['shm'].fds = new Array(16);
+
+		    for (let i = 0; i < 16; i += 1) {
+
+			Module['shm'].fds[i] = {};
+			Module['shm'].fds[i].name = "";
+		    }
+		}
+
+		let i = 0;
+
+		for (; i < 16; i += 1) {
+
+		    if (Module['shm'].fds[i].name == "") {
+			Module['shm'].fds[i].name = path_str;
+			Module['shm'].names[path_str] = i;
+
+			wakeUp(0x7f000000+i);
+			return -1;
+		    }
+		}
+
+		wakeUp(-1);
+		return -1;
+	    }
 
 	    let pid = Module.getpid();
 	    
@@ -3607,7 +3612,10 @@ var SyscallsLibrary = {
 
 		var mode = varargs ? SYSCALLS.get() : 0;
 
-		//console.log("__syscall_openat: mode="+mode);
+		//console.log("__syscall_openat: pid="+pid+", mode="+mode);
+
+		//if (pid == 12)
+		//    debugger;
 
 		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
 
@@ -3681,6 +3689,8 @@ var SyscallsLibrary = {
 
 			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
+			//console.log("__syscall_openat: _errno=%d", _errno);
+			
 			    if (_errno == 0) {
 
 				let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
@@ -3692,7 +3702,7 @@ var SyscallsLibrary = {
 				let minor = msg2.buf[30] | (msg2.buf[31] << 8);
 				let peer = UTF8ArrayToString(msg2.buf, 32, 108);
 
-				//console.log("__syscall_openat: peer=%s", peer);
+				//console.log("__syscall_openat: peer=%s fd=%d", peer, fd);
 
 				var desc = {
 
@@ -6513,6 +6523,8 @@ var SyscallsLibrary = {
 
 	//console.log('__syscall_timerfd_settime: fd='+fd+' flags='+flags+' new_value='+new_value+', curr_value='+curr_value);
 
+	Module['fd_table'][fd].counter = 0;
+
 	const int_sec = Module.HEAPU8[new_value] | (Module.HEAPU8[new_value+1] << 8) | (Module.HEAPU8[new_value+2] << 16) |  (Module.HEAPU8[new_value+3] << 24);
 	const int_nsec = Module.HEAPU8[new_value+8] | (Module.HEAPU8[new_value+9] << 8) | (Module.HEAPU8[new_value+10] << 16) |  (Module.HEAPU8[new_value+11] << 24);
 	const val_sec = Module.HEAPU8[new_value+16] | (Module.HEAPU8[new_value+17] << 8) | (Module.HEAPU8[new_value+18] << 16) |  (Module.HEAPU8[new_value+19] << 24);
@@ -6540,6 +6552,9 @@ var SyscallsLibrary = {
 	    Module['fd_table'][fd].timeout_id = setTimeout(() => {
 
 		//console.log("Timeout !! "+fd);
+
+		if (!Module['fd_table'][fd].timeout_id)
+		    return;
 		
 		Module['fd_table'][fd].increase_counter();
 		Module['fd_table'][fd].timeout_id = 0;
@@ -6551,6 +6566,9 @@ var SyscallsLibrary = {
 		    Module['fd_table'][fd].timeout_id = setInterval(() => {
 
 			//console.log("Interval !! "+fd);
+
+			if (!Module['fd_table'][fd].timeout_id)
+			    return;
 			
 			Module['fd_table'][fd].increase_counter();
 			
