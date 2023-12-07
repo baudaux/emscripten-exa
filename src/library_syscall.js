@@ -3799,9 +3799,57 @@ var SyscallsLibrary = {
 				    }
 
 				    window.requestAnimationFrame(render);
-				}
 
-				wakeUp(fd);
+				    wakeUp(fd);
+				}
+				else if (UTF8ArrayToString(Module.HEAPU8, path, 11) == "/dev/video0") {
+				    var constraints = { audio: false, video: true };
+				    navigator.mediaDevices
+					.getUserMedia(constraints)
+					.then(function (mediaStream) {
+
+					    console.log("/dev/video0 opened");
+					    console.log(mediaStream);
+					    console.log(mediaStream.getVideoTracks()[0].getSettings());
+
+					    Module.mediaStream0 = mediaStream;
+					    Module.video0 = document.createElement("video");
+					    
+					    if ("srcObject" in Module.video0) {
+						Module.video0.srcObject = mediaStream;
+					    } else {
+						// Avoid using this in new browsers, as it is going away.
+						Module.video0.src = URL.createObjectURL(mediaStream);
+					    }
+
+					    const drawingLoop = (timestamp, frame) => {
+						
+						//console.log(timestamp);
+						
+						Module.video0.requestVideoFrameCallback( drawingLoop );  
+					    };
+					    
+					    Module.video0.requestVideoFrameCallback( drawingLoop );
+
+					    Module.video0.play();
+
+					    //document.body.appendChild(Module.video0);
+
+					    wakeUp(fd);
+					})
+					.catch(function (err) {
+					    console.log(err.name + ": " + err.message);
+					    //TODO: close fd
+
+					    wakeUp(-1);
+					    
+					}); // always check for errors at the end.
+				    
+				}
+				else {
+
+				    wakeUp(fd);
+				}
 			    }
 			    else {
 
@@ -7902,7 +7950,7 @@ var SyscallsLibrary = {
 			events = 0x10; // EPOLLHUP
 		    else if (rw == 0)
 			events = 0x01; // EPOLLIN
-		    else
+		    else if (rw == 1)
 			events = 0x04; // EPOLLOUT
 
 		    let ptr;
