@@ -875,6 +875,30 @@ var SyscallsLibrary = {
 
 		    len = 8;
 		}
+		else if (op == -1060350460) { // VIDIOC_G_FMT
+
+		    len = 204;
+		}
+		else if (op == -1072409080) { // VIDIOC_REQBUFS
+		    
+		    len = 20;
+		}
+		else if (op == -1068476919) { // VIDIOC_QUERYBUF
+
+		    len = 80;
+		}
+		else if (op == -1068476913) { // VIDIOC_QBUF
+
+		    len = 80;
+		}
+		else if (op == 1074026002) { // VIDIOC_STREAMON
+
+		    len = 4;
+		}
+		else if (op == -1068476911) { // VIDIOC_DQBUF
+
+		    len = 80;
+		}
 
 		buf2[20] = len & 0xff;
 		buf2[21] = (len >> 8) & 0xff;
@@ -911,96 +935,197 @@ var SyscallsLibrary = {
 
 			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-			//console.log("__syscall_ioctl: errno=" +errno);
+			//console.log("__syscall_ioctl: op2=" +op2);
+			//console.log("__syscall_ioctl: errno=" +_errno);
+
+			//TODO : get len from driver itself
+			let len = 0;
 
 			switch(op2) {
 
 			case {{{ cDefine('TIOCGWINSZ') }}}:
 
-			    if (!_errno) {
-
-				let len = 8;
-				
-				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);
-				wakeUp(0);
-			    }
-			    else {
-
-				wakeUp(-_errno);
-			    }
-			    
+			    len = 8;
 			    break;
 
 			case {{{ cDefine('TCGETS') }}}:
 
-			    if (!_errno) {
-
-				let len = 60; // 4*4+4+32+2*4;
-				
-				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);
-				wakeUp(0);
-			    }
-			    else {
-
-				wakeUp(-_errno);
-			    }
-			    
+			    len = 60; // 4*4+4+32+2*4;
 			    break;
 
 			case {{{ cDefine('TIOCGPGRP') }}}:
 			case {{{ cDefine('TIOCGPTN') }}}:
 
-			    if (!_errno) {
-
-				let len = 4;
-				
-				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
-				wakeUp(0);
-			    }
-			    else {
-
-				wakeUp(-_errno);
-			    }
-			    
+			    len = 4;
 			    break;
 
 			case 0x4600:   // FBIOGET_VSCREENINFO
 
-			    if (!_errno) {
-
-				let len = 88; // Todo
-				
-				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
-				wakeUp(0);
-			    }
-			    else {
-
-				wakeUp(-_errno);
-			    }
-			    
+			    len = 88; // TODO
 			    break;
 
 			case 0x4602:   // FBIOGET_FSCREENINFO
 
-			    if (!_errno) {
+			    len = 68; // TODO
+			    break;
 
-				let len = 68; // TODO
+			case -2140645888: // VIDIOC_QUERYCAP
+
+			    len = 104;
+			    break;
+
+			case -1060350460: // VIDIOC_G_FMT
+
+			    len = 204;
+
+			    //TODO
+			    break;
+
+			case -1072409080: // VIDIOC_REQBUFS
+			    {
+
+			    len = 20;
+
+			    let count = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+
+			    console.log("VIDIOC_REQBUFS: count="+count);
+
+			    Module.video0.buffers = new Array();
+
+			    let settings = Module.video0.mediaStream.getVideoTracks()[0].getSettings();
+
+			    for (let i=0; i < count; i+=1) {
+
+				let canvas = document.createElement("canvas");
+
+				canvas.width = settings.width;
+				canvas.height = settings.height;
+
+				let length = canvas.width * canvas.height * 4;
+
+				Module.video0.buffers.push({'canvas':canvas, 'length': length, 'state': 0}); // dequeued
+			    }
+			    
+				break;
+			    }
+			    
+			case -1068476919: // VIDIOC_QUERYBUF
+			    {
+
+			    len = 80;
+
+			    let index = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+
+			    console.log("VIDIOC_QUERYBUF: index="+index);
+			    
+			    let offset = index * 4096;
+			    
+			    msg2.buf[24+64] = offset & 0xff;
+			    msg2.buf[25+64] = (offset >> 8) & 0xff;
+			    msg2.buf[26+64] = (offset >> 16) & 0xff;
+			    msg2.buf[27+64] = (offset >> 24) & 0xff;
+			    
+			    let length = Module.video0.buffers[index].length;
+
+			    msg2.buf[24+68] = length & 0xff;
+			    msg2.buf[25+68] = (length >> 8) & 0xff;
+			    msg2.buf[26+68] = (length >> 16) & 0xff;
+			    msg2.buf[27+68] = (length >> 24) & 0xff;
+
+			    break;
+
+			    }
+			    
+			case -1068476913: // VIDIOC_QBUF
+
+			    {
 				
-				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);				
-				wakeUp(0);
-			    }
-			    else {
+			    len = 80;
 
-				wakeUp(-_errno);
+			    let index = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+			    
+			    Module.video0.buffers[index].state = 1; // Enqueued
+			    
+				break;
+			    }
+
+			case 1074026002: // VIDIOC_STREAMON
+			    {
+
+				Module.video0.running = 1;
+
+				if (Module.video0.requestVideoFrameCallback) {
+				    
+				    Module.video0.requestVideoFrameCallback( Module.video0.drawingLoop );
+				}
+				else {
+
+				    //TODO
+
+				    // Use getVideoPlaybackQuality() and requestAnimationFrame
+				    // Check polyfill https://github.com/ThaUnknown/rvfc-polyfill
+				}
+				
+				break;
+			    }
+			case -1068476911: // VIDIOC_DQBUF
+			    {
+				len = 80;
+
+				let index = -1;
+				
+				for (let i=0; i < Module.video0.buffers.length; i+=1) {
+				    
+				    if (Module.video0.buffers[i].state == 2) {
+
+					index = i;
+					Module.video0.buffers[i].state = 0;
+
+					if (Module.video0.buffers[i].ptr) {
+					
+					    const canvas = Module.video0.buffers[i].canvas;
+
+					    const ctx = canvas.getContext("2d");
+
+					    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+					    Module.HEAPU8.set(new Uint8Array(imageData.data.buffer), Module.video0.buffers[i].ptr);
+					}
+					
+					break;
+				    }
+				}
+
+				if (index >= 0) {
+
+				    msg2.buf[24] = index & 0xff;
+				    msg2.buf[25] = (index >> 8) & 0xff;
+				    msg2.buf[26] = (index >> 16) & 0xff;
+				    msg2.buf[27] = (index >> 24) & 0xff;
+				}
+				else {
+
+				    _errno = EAGAIN;
+				}
+				
+				break;
 			    }
 			    
-			    break;
-
 			default:
-
-			    wakeUp(0);
 			    
 			    break;
+			}
+			
+			if (!_errno) {
+			    
+			    if (len > 0)
+				Module.HEAPU8.set(msg2.buf.slice(24, 24+len), argp);
+			    
+			    wakeUp(0);
+			}
+			else {
+
+			    wakeUp(-_errno);
 			}
 
 			return hid;
@@ -3812,8 +3937,8 @@ var SyscallsLibrary = {
 					    console.log(mediaStream);
 					    console.log(mediaStream.getVideoTracks()[0].getSettings());
 
-					    Module.mediaStream0 = mediaStream;
 					    Module.video0 = document.createElement("video");
+					    Module.video0.mediaStream = mediaStream;
 					    
 					    if ("srcObject" in Module.video0) {
 						Module.video0.srcObject = mediaStream;
@@ -3822,16 +3947,70 @@ var SyscallsLibrary = {
 						Module.video0.src = URL.createObjectURL(mediaStream);
 					    }
 
-					    const drawingLoop = (timestamp, frame) => {
-						
-						//console.log(timestamp);
-						
-						Module.video0.requestVideoFrameCallback( drawingLoop );  
-					    };
-					    
-					    Module.video0.requestVideoFrameCallback( drawingLoop );
+					    //this.c1 = document.getElementById("my-canvas");
+					    //this.ctx1 = this.c1.getContext("2d");
 
-					    Module.video0.play();
+					    Module.video0.running = 0;
+					    
+					    Module.video0.drawingLoop = (timestamp, frame) => {
+
+						if (Module.video0.running) {
+
+						    for (let buffer of Module.video0.buffers) {
+
+							if (buffer.state == 1) {
+
+							    const ctx = buffer.canvas.getContext("2d");
+							    ctx.drawImage(Module.video0, 0, 0 );
+
+							    buffer.state = 2;
+							    buffer.presentationTime = frame.presentationTime;
+
+							    console.log("Frame captured "+timestamp);
+							    //console.log(frame);
+
+							    if (Module.video0.notif_select)
+								Module.video0.notif_select(Module.video0.select_fd, Module.video0.select_rw);
+							    
+							    break;
+							}
+						    }
+						
+						    //console.log(timestamp);
+						    //console.log(frame);
+
+						    //this.ctx1.drawImage(this.video, 0, 0, this.width, this.height);
+						    //const frame = this.ctx1.getImageData(0, 0, this.width, this.height);
+						    
+						    Module.video0.requestVideoFrameCallback( Module.video0.drawingLoop );
+						}
+					    };
+
+					    Module['fd_table'][fd].select = function (fd, rw, start_stop, notif_select) {
+
+						if (start_stop) {
+
+						    for (let buffer of Module.video0.buffers) {
+
+							if (buffer.state == 2) {
+
+							    Module.video0.notif_select = null;
+							    notif_select(fd, rw);
+							    
+							    return;
+							}
+						    }
+
+						    Module.video0.select_fd = fd;
+						    Module.video0.select_rw = rw;
+						    Module.video0.notif_select = notif_select;
+						}
+						else {
+
+						    Module.video0.notif_select = null;
+						}
+					    };
+						
 
 					    //document.body.appendChild(Module.video0);
 
@@ -6179,6 +6358,14 @@ var SyscallsLibrary = {
 			notif_select(_fd, rw);
 		    });
 		}
+		else if (Module['fd_table'][fd].select) { // TODO: to be generalize 
+
+		    Module['fd_table'][fd].select(fd, rw, start, function(_fd, rw) {
+			//console.log("timerfd notif_select _fd="+_fd);
+			
+			notif_select(_fd, rw);
+		    });
+		}
 		else { // any other type of fd (remote)
 
 		    let remote_fd = Module['fd_table'][fd].remote_fd;
@@ -7478,8 +7665,8 @@ var SyscallsLibrary = {
     },
     __syscall_mmap2__sig: 'ppiiiii',
     __syscall_mmap2: function(addr, len, prot, flags, fd, off) {
-
-	//console.log("__syscall_mmap2: fd="+fd);
+	
+	//console.log("__syscall_mmap2: fd="+fd+", off="+off);
 
 	if (fd >= 0x7f000000) { // shm
 
@@ -7492,7 +7679,22 @@ var SyscallsLibrary = {
 	}
 	else if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) && Module['fd_table'][fd].fb) {
 
+	    // Frame buffer
+
 	    return Module['fd_table'][fd].fb+off;
+	    
+	}
+	else if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) && (Module['fd_table'][fd].peer == "/var/av.peer") ) {
+
+	    // /dev/video0
+
+	    let ptr = Module._malloc(Module.video0.buffers[off].length);
+
+	    //console.log("mmap2: video0 off="+off+", ptr="+ptr);
+
+	    Module.video0.buffers[off].ptr = ptr;
+	    
+	    return ptr;
 	    
 	}
 	else {
