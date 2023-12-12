@@ -1054,6 +1054,8 @@ var SyscallsLibrary = {
 
 				Module.video0.running = 1;
 
+				Module.video0.play();
+
 				if (Module.video0.requestVideoFrameCallback) {
 				    
 				    Module.video0.requestVideoFrameCallback( Module.video0.drawingLoop );
@@ -3947,9 +3949,6 @@ var SyscallsLibrary = {
 						Module.video0.src = URL.createObjectURL(mediaStream);
 					    }
 
-					    //this.c1 = document.getElementById("my-canvas");
-					    //this.ctx1 = this.c1.getContext("2d");
-
 					    Module.video0.running = 0;
 					    
 					    Module.video0.drawingLoop = (timestamp, frame) => {
@@ -3967,6 +3966,8 @@ var SyscallsLibrary = {
 							    buffer.presentationTime = frame.presentationTime;
 
 							    console.log("Frame captured "+timestamp);
+
+							    
 							    //console.log(frame);
 
 							    if (Module.video0.notif_select)
