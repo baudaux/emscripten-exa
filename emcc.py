@@ -164,6 +164,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_truncate64',
   '__syscall_ftruncate64',
   'eglSwapBuffers',
+  '__syscall_mkdirat',
+  '__syscall_rmdir'
 ]
 
 # Target options

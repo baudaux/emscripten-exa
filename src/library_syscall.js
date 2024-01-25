@@ -255,10 +255,82 @@ var SyscallsLibrary = {
     return 0;
   },
   __syscall_rmdir__sig: 'ip',
-  __syscall_rmdir: function(path) {
-    path = SYSCALLS.getStr(path);
+    __syscall_rmdir: function(path) {
+
+	/* Modified by Benoit Baudaux 25/01/2024 */
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  let buf_size = 1256;
+	  
+	  let buf2 = new Uint8Array(buf_size);
+	  
+	  buf2[0] = 66; // RMDIR
+	  
+	  let pid = Module.getpid();
+	  
+	  // pid
+	  buf2[4] = pid & 0xff;
+	  buf2[5] = (pid >> 8) & 0xff;
+	  buf2[6] = (pid >> 16) & 0xff;
+	  buf2[7] = (pid >> 24) & 0xff;
+	  
+	  // errno
+	  buf2[8] = 0x0;
+	  buf2[9] = 0x0;
+	  buf2[10] = 0x0;
+	  buf2[11] = 0x0;
+
+	  let path_len = 0;
+
+	  while (Module.HEAPU8[path+path_len]) {
+
+	      path_len++;
+	  }
+
+	  path_len++;
+
+	  buf2[12] = path_len & 0xff;
+	  buf2[13] = (path_len >> 8) & 0xff;
+	  buf2[14] = (path_len >> 16) & 0xff;
+	  buf2[15] = (path_len >> 24) & 0xff;
+
+	  buf2.set(Module.HEAPU8.slice(path, path+path_len), 16);
+	  
+	  const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+	      let msg2 = messageEvent.data;
+
+	      if (msg2.buf[0] == (66|0x80)) {
+
+		  let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		  wakeUp(-_errno);
+
+		  return hid;
+	      }
+
+	      return -1;
+	  });
+
+	  let msg = {
+
+	      from: Module['rcv_bc_channel'].name,
+	      buf: buf2,
+	      len: buf_size
+	  };
+
+	  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	  
+	  bc.postMessage(msg);
+
+      });
+
+      return ret;
+	
+    /*path = SYSCALLS.getStr(path);
     FS.rmdir(path);
-    return 0;
+    return 0;*/
   },
   __syscall_dup__sig: 'ii',
     __syscall_dup: function(fd) {
@@ -978,7 +1050,24 @@ var SyscallsLibrary = {
 
 			    len = 204;
 
-			    //TODO
+			    let type = msg2.buf[24] | (msg2.buf[25] << 8) | (msg2.buf[26] << 16) |  (msg2.buf[27] << 24);
+
+			    if (type == 1) { // V4L2_BUF_TYPE_VIDEO_CAPTURE
+
+
+				let settings = Module.video0.mediaStream.getVideoTracks()[0].getSettings();
+
+				msg2.buf[28] = settings.width & 0xff;
+				msg2.buf[29] = (settings.width >> 8) & 0xff;
+				msg2.buf[30] = (settings.width >> 16) & 0xff;
+				msg2.buf[31] = (settings.width >> 24) & 0xff;
+
+				msg2.buf[32] = settings.height & 0xff;
+				msg2.buf[33] = (settings.height >> 8) & 0xff;
+				msg2.buf[34] = (settings.height >> 16) & 0xff;
+				msg2.buf[35] = (settings.height >> 24) & 0xff;
+			    }
+			    
 			    break;
 
 			case -1072409080: // VIDIOC_REQBUFS
@@ -1056,17 +1145,33 @@ var SyscallsLibrary = {
 
 				Module.video0.play();
 
-				if (Module.video0.requestVideoFrameCallback) {
+				if (!Module.video0.requestVideoFrameCallback) {
 				    
-				    Module.video0.requestVideoFrameCallback( Module.video0.drawingLoop );
-				}
-				else {
+				    let requestVideoFrameCallback = function (callback) {
 
-				    //TODO
+					if (!this._rvfcpolyfillmap)
+					    this._rvfcpolyfillmap = new Array();
+					
+					const handle = performance.now();
 
-				    // Use getVideoPlaybackQuality() and requestAnimationFrame
-				    // Check polyfill https://github.com/ThaUnknown/rvfc-polyfill
+					const frameDuration = 1000.0 / this.mediaStream.getVideoTracks()[0].getSettings().frameRate;
+					
+					this._rvfcpolyfillmap[handle] = setTimeout(() => {
+
+					    const now = performance.now();
+
+					    callback(now, { 'presentationTime': now});
+					    
+					}, frameDuration);
+					
+					return handle;
+				    };
+
+				    Module.video0.requestVideoFrameCallback = requestVideoFrameCallback.bind(Module.video0);
 				}
+
+				Module.video0.requestVideoFrameCallback( Module.video0.drawingLoop );
+
 				
 				break;
 			    }
@@ -3965,7 +4070,7 @@ var SyscallsLibrary = {
 							    buffer.state = 2;
 							    buffer.presentationTime = frame.presentationTime;
 
-							    console.log("Frame captured "+timestamp);
+							    //console.log("Frame captured "+timestamp);
 
 							    
 							    //console.log(frame);
@@ -4064,6 +4169,90 @@ var SyscallsLibrary = {
     },
   __syscall_mkdirat__sig: 'iipi',
   __syscall_mkdirat: function(dirfd, path, mode) {
+
+      /* Modified by Benoit Baudaux 24/01/2024*/
+
+      let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  let buf_size = 1256;
+	  
+	  let buf2 = new Uint8Array(buf_size);
+	  
+	  buf2[0] = 65; // MKDIRAT
+	  
+	  let pid = Module.getpid();
+	  
+	  // pid
+	  buf2[4] = pid & 0xff;
+	  buf2[5] = (pid >> 8) & 0xff;
+	  buf2[6] = (pid >> 16) & 0xff;
+	  buf2[7] = (pid >> 24) & 0xff;
+	  
+	  // errno
+	  buf2[8] = 0x0;
+	  buf2[9] = 0x0;
+	  buf2[10] = 0x0;
+	  buf2[11] = 0x0;
+
+	  buf2[12] = dirfd & 0xff;
+	  buf2[13] = (dirfd >> 8) & 0xff;
+	  buf2[14] = (dirfd >> 16) & 0xff;
+	  buf2[15] = (dirfd >> 24) & 0xff;
+
+	  buf2[16] = mode & 0xff;
+	  buf2[17] = (mode >> 8) & 0xff;
+	  buf2[18] = (mode >> 16) & 0xff;
+	  buf2[19] = (mode >> 24) & 0xff;
+
+	  let path_len = 0;
+
+	  while (Module.HEAPU8[path+path_len]) {
+
+	      path_len++;
+	  }
+
+	  path_len++;
+
+	  buf2[20] = path_len & 0xff;
+	  buf2[21] = (path_len >> 8) & 0xff;
+	  buf2[22] = (path_len >> 16) & 0xff;
+	  buf2[23] = (path_len >> 24) & 0xff;
+
+	  buf2.set(Module.HEAPU8.slice(path, path+path_len), 24);
+	  
+	  const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+	      let msg2 = messageEvent.data;
+
+	      if (msg2.buf[0] == (65|0x80)) {
+
+		  let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		  wakeUp(-_errno);
+
+		  return hid;
+	      }
+
+	      return -1;
+	  });
+
+	  let msg = {
+
+	      from: Module['rcv_bc_channel'].name,
+	      buf: buf2,
+	      len: buf_size
+	  };
+
+	  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	  
+	  bc.postMessage(msg);
+
+      });
+
+      return ret;
+      
+
+#if 0
 #if SYSCALL_DEBUG
     dbg('warning: untested syscall');
 #endif
@@ -4074,7 +4263,8 @@ var SyscallsLibrary = {
     path = PATH.normalize(path);
     if (path[path.length-1] === '/') path = path.substr(0, path.length-1);
     FS.mkdir(path, mode, 0);
-    return 0;
+      return 0;
+#endif
   },
   __syscall_mknodat__sig: 'iipii',
   __syscall_mknodat: function(dirfd, path, mode, dev) {
