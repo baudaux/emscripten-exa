@@ -4305,6 +4305,92 @@ var SyscallsLibrary = {
     __syscall_newfstatat: function(dirfd, path, buf, flags) {
 
 	//console.log("__syscall_newfstatat");
+
+	let ret = Asyncify.handleSleep(function (wakeUp) {
+
+	  let buf_size = 1256;
+	  
+	  let buf2 = new Uint8Array(buf_size);
+	  
+	  buf2[0] = 67; // FSTATAT
+	  
+	  let pid = Module.getpid();
+	  
+	  // pid
+	  buf2[4] = pid & 0xff;
+	  buf2[5] = (pid >> 8) & 0xff;
+	  buf2[6] = (pid >> 16) & 0xff;
+	  buf2[7] = (pid >> 24) & 0xff;
+	  
+	  // errno
+	  buf2[8] = 0x0;
+	  buf2[9] = 0x0;
+	  buf2[10] = 0x0;
+	  buf2[11] = 0x0;
+
+	  buf2[12] = dirfd & 0xff;
+	  buf2[13] = (dirfd >> 8) & 0xff;
+	  buf2[14] = (dirfd >> 16) & 0xff;
+	  buf2[15] = (dirfd >> 24) & 0xff;
+
+	  buf2[16] = flags & 0xff;
+	  buf2[17] = (flags >> 8) & 0xff;
+	  buf2[18] = (flags >> 16) & 0xff;
+	  buf2[19] = (flags >> 24) & 0xff;
+
+	  let path_len = 0;
+
+	  while (Module.HEAPU8[path+path_len]) {
+
+	      path_len++;
+	  }
+
+	  path_len++;
+
+	  buf2[20] = path_len & 0xff;
+	  buf2[21] = (path_len >> 8) & 0xff;
+	  buf2[22] = (path_len >> 16) & 0xff;
+	  buf2[23] = (path_len >> 24) & 0xff;
+
+	  buf2.set(Module.HEAPU8.slice(path, path+path_len), 24);
+	  
+	  const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+	      let msg2 = messageEvent.data;
+
+	      if (msg2.buf[0] == (67|0x80)) {
+
+		  let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		  if (!_errno) {
+
+		      // To check size of struct stat
+		      
+		      Module.HEAPU8.set(msg2.buf.slice(1048, 1048+13*4), buf);
+		  }
+
+		  wakeUp(-_errno);
+
+		  return hid;
+	      }
+
+	      return -1;
+	  });
+
+	  let msg = {
+
+	      from: Module['rcv_bc_channel'].name,
+	      buf: buf2,
+	      len: buf_size
+	  };
+
+	  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+	  
+	  bc.postMessage(msg);
+
+      });
+
+      return ret;
 	
 	/* Modified by Benoit Baudaux 8/2/2023 */
     /*path = SYSCALLS.getStr(path);
