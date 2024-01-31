@@ -3876,11 +3876,11 @@ var SyscallsLibrary = {
 		buf2[10] = 0x0;
 		buf2[11] = 0x0;
 
-		// fd
-		buf2[12] = 0x0;
-		buf2[13] = 0x0;
-		buf2[14] = 0x0;
-		buf2[15] = 0x0;
+		// dirfd (fd for return)
+		buf2[12] = dirfd & 0xff;
+		buf2[13] = (dirfd >> 8) & 0xff;
+		buf2[14] = (dirfd >> 16) & 0xff;
+		buf2[15] = (dirfd >> 24) & 0xff;
 
 		// remote fd
 
@@ -4308,85 +4308,178 @@ var SyscallsLibrary = {
 
 	let ret = Asyncify.handleSleep(function (wakeUp) {
 
-	  let buf_size = 1256;
+	    let do_fstatat = () => {
+
+		let buf_size = 1256;
+		
+		let buf2 = new Uint8Array(buf_size);
+		
+		buf2[0] = 67; // FSTATAT
+		
+		let pid = Module.getpid();
+		
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
+		
+		// errno
+		buf2[8] = 0x0;
+		buf2[9] = 0x0;
+		buf2[10] = 0x0;
+		buf2[11] = 0x0;
+
+		let remote_fd = (dirfd == -100)?-100: Module['fd_table'][dirfd].remote_fd;
+
+		buf2[12] = remote_fd & 0xff;
+		buf2[13] = (remote_fd >> 8) & 0xff;
+		buf2[14] = (remote_fd >> 16) & 0xff;
+		buf2[15] = (remote_fd >> 24) & 0xff;
+
+		buf2[16] = flags & 0xff;
+		buf2[17] = (flags >> 8) & 0xff;
+		buf2[18] = (flags >> 16) & 0xff;
+		buf2[19] = (flags >> 24) & 0xff;
+
+		let path_len = 0;
+
+		while (Module.HEAPU8[path+path_len]) {
+
+		    path_len++;
+		}
+
+		path_len++;
+
+		buf2[20] = path_len & 0xff;
+		buf2[21] = (path_len >> 8) & 0xff;
+		buf2[22] = (path_len >> 16) & 0xff;
+		buf2[23] = (path_len >> 24) & 0xff;
+
+		buf2.set(Module.HEAPU8.slice(path, path+path_len), 24);
+		
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		    let msg2 = messageEvent.data;
+
+		    if (msg2.buf[0] == (67|0x80)) {
+
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+			if (!_errno) {
+
+			    let len = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
+			    
+			    Module.HEAPU8.set(msg2.buf.slice(24, 24+len), buf);
+			}
+
+			wakeUp(-_errno);
+
+			return hid;
+		    }
+
+		    return -1;
+		});
+
+		let msg = {
+
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let ch = (dirfd == -100)?"/var/resmgr.peer": Module['fd_table'][dirfd].peer;
+
+		let bc = Module.get_broadcast_channel(ch);
 	  
-	  let buf2 = new Uint8Array(buf_size);
-	  
-	  buf2[0] = 67; // FSTATAT
-	  
-	  let pid = Module.getpid();
-	  
-	  // pid
-	  buf2[4] = pid & 0xff;
-	  buf2[5] = (pid >> 8) & 0xff;
-	  buf2[6] = (pid >> 16) & 0xff;
-	  buf2[7] = (pid >> 24) & 0xff;
-	  
-	  // errno
-	  buf2[8] = 0x0;
-	  buf2[9] = 0x0;
-	  buf2[10] = 0x0;
-	  buf2[11] = 0x0;
+		bc.postMessage(msg);
+	    };
 
-	  buf2[12] = dirfd & 0xff;
-	  buf2[13] = (dirfd >> 8) & 0xff;
-	  buf2[14] = (dirfd >> 16) & 0xff;
-	  buf2[15] = (dirfd >> 24) & 0xff;
+	    if ( (dirfd == -100 /* AT_FDCWD */) || ( (dirfd in Module['fd_table']) && (Module['fd_table'][dirfd]) ) ) {
 
-	  buf2[16] = flags & 0xff;
-	  buf2[17] = (flags >> 8) & 0xff;
-	  buf2[18] = (flags >> 16) & 0xff;
-	  buf2[19] = (flags >> 24) & 0xff;
+		do_fstatat();
+	    }
+	    else {
+		let buf_size = 20;
 
-	  let path_len = 0;
+		let buf2 = new Uint8Array(buf_size);
 
-	  while (Module.HEAPU8[path+path_len]) {
+		buf2[0] = 26; // IS_OPEN
 
-	      path_len++;
-	  }
+		let pid = Module.getpid();
 
-	  path_len++;
+		// pid
+		buf2[4] = pid & 0xff;
+		buf2[5] = (pid >> 8) & 0xff;
+		buf2[6] = (pid >> 16) & 0xff;
+		buf2[7] = (pid >> 24) & 0xff;
 
-	  buf2[20] = path_len & 0xff;
-	  buf2[21] = (path_len >> 8) & 0xff;
-	  buf2[22] = (path_len >> 16) & 0xff;
-	  buf2[23] = (path_len >> 24) & 0xff;
+		// fd
+		buf2[12] = dirfd & 0xff;
+		buf2[13] = (dirfd >> 8) & 0xff;
+		buf2[14] = (dirfd >> 16) & 0xff;
+		buf2[15] = (dirfd >> 24) & 0xff;
 
-	  buf2.set(Module.HEAPU8.slice(path, path+path_len), 24);
-	  
-	  const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+		const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
 
-	      let msg2 = messageEvent.data;
+		    let msg2 = messageEvent.data;
 
-	      if (msg2.buf[0] == (67|0x80)) {
+		    if (msg2.buf[0] == (26|0x80)) {
 
-		  let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+			let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		  if (!_errno) {
+			if (!_errno) {
 
-		      // To check size of struct stat
-		      
-		      Module.HEAPU8.set(msg2.buf.slice(1048, 1048+13*4), buf);
-		  }
+			    let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			    let type = msg2.buf[20];
+			    let major = msg2.buf[22] | (msg2.buf[23] << 8);
+			    let peer = UTF8ArrayToString(msg2.buf, 24, 108);			    
+			    var desc = {
 
-		  wakeUp(-_errno);
+				fd: dirfdfd,
+				remote_fd: remote_fd,
+				peer: peer,
+				type: type,
+				major: major,
+				
+				error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				peers: {},
+				pending: [],
+				recv_queue: [],
+				name: null,
+				bc: null,
+			    };
 
-		  return hid;
-	      }
+			    Module['fd_table'][dirfd] = desc;
 
-	      return -1;
-	  });
+			    do_fstatat();
 
-	  let msg = {
+			    return hid;
+			}
+			else {
 
-	      from: Module['rcv_bc_channel'].name,
-	      buf: buf2,
-	      len: buf_size
-	  };
+			    wakeUp(-_errno);
+			}
 
-	  let bc = Module.get_broadcast_channel("/var/resmgr.peer");
-	  
-	  bc.postMessage(msg);
+			return hid;
+		    }
+		    else {
+
+			return -1;
+		    }
+		});
+
+		let msg = {
+		    
+		    from: Module['rcv_bc_channel'].name,
+		    buf: buf2,
+		    len: buf_size
+		};
+
+		let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+		bc.postMessage(msg);
+	    }
 
       });
 

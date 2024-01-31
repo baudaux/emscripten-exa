@@ -165,7 +165,8 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_ftruncate64',
   'eglSwapBuffers',
   '__syscall_mkdirat',
-  '__syscall_rmdir'
+  '__syscall_rmdir',
+  '__syscall_newfstatat'
 ]
 
 # Target options
