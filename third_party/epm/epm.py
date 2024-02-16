@@ -6,6 +6,7 @@ import tarfile
 import requests
 import base64
 import os
+import os.path
 import tempfile
 import time
 
@@ -28,6 +29,29 @@ def search_fun(packages):
 
     for pkg in packages:
         search_package(pkg)
+
+def update_pkg_list(pkg):
+
+    pkg_list = "pkg_list.json"
+
+    if os.path.isfile(pkg_list):
+        f = open(pkg_list, "r+")
+        content = f.read()
+        obj = json.loads(content)
+        f.seek(0)
+
+    else:
+        f = open(pkg_list, "w")
+        
+        obj = {}
+        obj["packages"] = {}
+
+    obj["packages"][pkg["name"]] = pkg["version"]
+
+    json.dump(obj, f)
+    f.close()
+    
+    print("Package "+pkg["name"]+" ("+pkg["version"]+") installed");
 
 def install_package(package):
 
@@ -67,6 +91,8 @@ def install_package(package):
         pass
     
     os.rename(tmpdir, "exapkgs/"+name)
+    
+    update_pkg_list({"name": name, "version": obj["pkg"]["version"]})
 
 def install_fun(packages):
 
@@ -75,6 +101,16 @@ def install_fun(packages):
         os.mkdir("exapkgs/pkgconfigs")
     except:
         pass
+
+    if len(packages) == 0:
+
+        pkg_list = "pkg_list.json"
+
+        with open(pkg_list, "r") as infile:
+            content = infile.read()
+            obj = json.loads(content)
+
+            packages = list(obj["packages"].keys())
     
     for pkg in packages:
         install_package(pkg)
@@ -85,7 +121,15 @@ def uninstall_fun(packages):
 
 def list_fun(packages):
 
-    print(packages)
+    pkg_list = "pkg_list.json"
+
+    with open(pkg_list, "r") as infile:
+        content = infile.read()
+        obj = json.loads(content)
+
+        for k, v in obj["packages"].items():
+
+            print(k + " (" + v+")")
 
 def read_pkginfo():
     
@@ -174,7 +218,7 @@ def main():
 
     cmds = { "search": search_fun, "install": install_fun, "uninstall": uninstall_fun, "list": list_fun, "create": create_fun}
 
-    if args.command in ["search", "install", "uninstall"] and len(args.package) == 0:
+    if args.command in ["search", "uninstall"] and len(args.package) == 0:
         parser.error("Package name is missing");
 
     cmds[args.command](args.package)
