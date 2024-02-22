@@ -9,6 +9,7 @@ import os
 import os.path
 import tempfile
 import time
+from getpass import getpass
 
 def search_package(package):
 
@@ -132,11 +133,15 @@ def list_fun(packages):
             print(k + " (" + v+")")
 
 def read_pkginfo():
-    
-    with open("pkginfo.exa", "r") as infile:
-        content = infile.read()
-        return json.loads(content)
 
+    pkginfo = "pkginfo.exa"
+
+    if os.path.isfile(pkginfo):
+        
+        with open(pkginfo, "r") as infile:
+            content = infile.read()
+            return json.loads(content)
+    
     return None
 
 def write_pkginfo(info_obj):
@@ -190,9 +195,44 @@ def create_fun(packages):
     tar.add(".")
     tar.close()
 
-    print("\n"+dict["pkg"]["name"]+" package has been created. You can now publish it in exaequoOS using exapkg command line tool")
+    print("\n"+dict["pkg"]["name"]+" package has been created. You can publish it right now or in exaequoOS using exapkg command line tool")
     
+    pub = input("Do you want to publish the package now ? (yes|no)")
 
+    if pub.lower() == "yes":
+
+        cred = {}
+        
+        cred["username"] = input("Username: ")
+        cred["password"] = getpass()
+
+        with open(dict["pkg"]["name"]+".tar", "rb") as infile:
+            
+            content = infile.read()
+            res = requests.post('https://exaequOS.com/publish_pkg.php?cred='+base64.b64encode(str(cred).replace("'", '"').encode('ascii')).decode('ascii'), data=content)
+            
+            if res.status_code == 200:
+                print("\nPackage successfully published\n")
+            else:
+                print("\nA problem occured while publishing the package\n")
+
+def delete_fun(packages):
+    
+    cred = {}
+        
+    cred["username"] = input("Username: ")
+    cred["password"] = getpass()
+    
+    res = requests.get('https://exaequOS.com/delete_pkg.php?cred='+base64.b64encode(str(cred).replace("'", '"').encode('ascii')).decode('ascii')+'&pkg='+packages[0])
+
+    print(res.status_code)
+    print(res.text)
+
+    if res.status_code == 200:
+        print("\nPackage successfully deleted\n")
+    else:
+        print("\nA problem occured while deleting the package\n")
+        
 def cmdDescriptions():
    return """
 Commands are: 
@@ -201,10 +241,11 @@ Commands are:
    uninstall      - uninstall a package
    list           - list installed packages
    create         - create a package
+   delete         - delete a package
 """
 
 def getCmds():
-   return ["search", "install", "uninstall", "list", "create"]
+   return ["search", "install", "uninstall", "list", "create", "delete"]
  
 def main():
  
@@ -216,9 +257,9 @@ def main():
         
     args = parser.parse_args()
 
-    cmds = { "search": search_fun, "install": install_fun, "uninstall": uninstall_fun, "list": list_fun, "create": create_fun}
+    cmds = { "search": search_fun, "install": install_fun, "uninstall": uninstall_fun, "list": list_fun, "create": create_fun, "delete": delete_fun}
 
-    if args.command in ["search", "uninstall"] and len(args.package) == 0:
+    if args.command in ["search", "uninstall", "delete"] and len(args.package) == 0:
         parser.error("Package name is missing");
 
     cmds[args.command](args.package)
