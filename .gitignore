@@ -28,3 +28,4 @@ coverage.xml
 .DS_Store
 
 third_party/server/node_modules/
+third_party/server/package-lock.json
