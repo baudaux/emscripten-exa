@@ -1154,20 +1154,20 @@ class libc(MuslInternalLibrary,
     libc_files += glob_in_path('system/lib/libc/compat', '*.c')
 
     #Modified by Benoit Baudaux 16/06/2023
-    libc_files += files_in_path(
-        path='system/lib/libc/musl/src/network',
-        filenames=[
-          'gethostbyname.c',
-          'gethostbyname2.c',
-          'gethostbyname2_r.c',
-          'gethostbyname_r.c',
-          'hstrerror.c',
-          'htonl.c',
-          'htons.c',
-          'ntohl.c',
-          'ntohs.c',
-          'setsockopt.c',
-        ])
+    #libc_files += files_in_path(
+    #    path='system/lib/libc/musl/src/network',
+    #    filenames=[
+    #      'gethostbyname.c',
+    #      'gethostbyname2.c',
+    #      'gethostbyname2_r.c',
+    #      'gethostbyname_r.c',
+    #      'hstrerror.c',
+    #      'htonl.c',
+    #      'htons.c',
+    #      'ntohl.c',
+    #      'ntohs.c',
+    #      'setsockopt.c'
+    #    ])
 
     # Check for missing file in non_lto_files list.  Do this here
     # rather than in the constructor so it only happens when the
@@ -1336,7 +1336,8 @@ class crt1(MuslInternalLibrary):
     return '.o'
 
   def can_use(self):
-    return super().can_use()
+    #BB: added not SIDE_MODULE
+    return super().can_use() and not settings.SIDE_MODULE
     #BB - and settings.STANDALONE_WASM
 
 
@@ -2050,6 +2051,8 @@ def get_libs_to_link(args, forced, only_forced):
       add_library('crtbegin')
 
     if not settings.SIDE_MODULE:
+      add_library('crt1')
+      '''
       if settings.STANDALONE_WASM:
         if settings.EXPECT_MAIN:
           add_library('crt1')
@@ -2057,8 +2060,10 @@ def get_libs_to_link(args, forced, only_forced):
           add_library('crt1_reactor')
       elif settings.PROXY_TO_PTHREAD:
         add_library('crt1_proxy_main')
+      '''
 
-  add_library('crt1')
+  #BB
+  #add_library('crt1')
 
   if settings.SIDE_MODULE:
     return libs_to_link

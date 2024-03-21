@@ -129,13 +129,19 @@ dependenciesFulfilled = function runCaller() {
 	//console.log("rcv_bc_channel created");
 
 	Module['rcv_bc_channel'].default_handler = (messageEvent) => {
-
+	    
 	    /*if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 1) ) {
 
 		debugger;
 	    }*/
 
 	    let msg = messageEvent.data;
+
+	    //console.log("postamble.js: Module['rcv_bc_channel'].default_handler "+msg.buf[0]);
+
+	    //console.log("Module['_asyncify_get_state']="+Module['_asyncify_get_state']());
+	    /*if (Module['_asyncify_get_state']() != 0)
+		return;*/
 
 	    //console.log(msg.buf);
 
@@ -163,9 +169,11 @@ dependenciesFulfilled = function runCaller() {
 	    
 	    if (Module['rcv_bc_channel'].handlers && (Module['rcv_bc_channel'].handlers.length > 0) ) {
 
-		
+		//console.log("postamble.js: Module['rcv_bc_channel'].default_handlers -> forward to handler");
 
 		let ret = Module['rcv_bc_channel'].handlers[Module['rcv_bc_channel'].handlers.length-1].handler(messageEvent);
+
+		//console.log("postamble.js: Module['rcv_bc_channel'].default_handler <- back from handler: ret="+ret);
 
 		if (ret > 0) {
 		    Module['rcv_bc_channel'].unset_handler(ret);
@@ -630,11 +638,27 @@ function run(args) {
   // Loading of dynamic libraries needs to happen on each thread, so we can't
   // use the normal __ATPRERUN__ mechanism.
 #if MAIN_MODULE
-    preloadDylibs();
+
+      // Modified by Benoit Baudaux 20/03/2024
+      preloadDylibs(function() {
+
+	  //console.log("postamble.js: preloadDylibs done !!");
+
+	  dylibsLoaded = true;
+
+	  run(args);
+      });
+
+      return;
+      
 #else
     reportUndefinedSymbols();
 #endif
-    dylibsLoaded = true;
+      //BB
+      //dylibsLoaded = true;
+
+      //BB
+      console.log("postamble.js: run -> runDependencies="+runDependencies);
 
     // Loading dylibs can add run dependencies.
     if (runDependencies > 0) {

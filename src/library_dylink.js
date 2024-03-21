@@ -184,7 +184,11 @@ var LibraryDylink = {
 #if DYLINK_DEBUG
     dbg('reportUndefinedSymbols');
 #endif
-    for (var symName in GOT) {
+      for (var symName in GOT) {
+
+	  // BB
+	  //console.log("library_dylink.js: reportUndefinedSymbols: symName="+symName);
+	  
       if (GOT[symName].value == 0) {
         var value = resolveGlobalSymbol(symName, true)
         if (!value && !GOT[symName].required) {
@@ -298,6 +302,10 @@ var LibraryDylink = {
 #if DYLINK_DEBUG
     dbg("getMemory: " + size + " runtimeInitialized=" + runtimeInitialized);
 #endif
+
+      //BB
+      //console.log("library_dylink.js: getMemory runtimeInitialized="+runtimeInitialized);
+      
     if (runtimeInitialized) {
       // Currently we don't support freeing of static data when modules are
       // unloaded via dlclose.  This function is tagged as `noleakcheck` to
@@ -514,9 +522,24 @@ var LibraryDylink = {
     '$CurrentModuleWeakSymbols', '$alignMemory', '$zeroMemory',
     '$updateTableMap',
   ],
-  $loadWebAssemblyModule: function(binary, flags, handle) {
-    var metadata = getDylinkMetadata(binary);
-    CurrentModuleWeakSymbols = metadata.weakImports;
+    $loadWebAssemblyModule: function(binary, flags, handle) {
+
+	//BB
+	//console.log("library_dylink.js: loadWebAssemblyModule ");
+	//console.log(binary);
+
+	//debugger;
+	
+	var metadata = getDylinkMetadata(binary);
+
+	//BB
+	//console.log(metadata);
+	
+	CurrentModuleWeakSymbols = metadata.weakImports;
+
+	//BB
+	//console.log(CurrentModuleWeakSymbols);
+	
 #if ASSERTIONS
     var originalTable = wasmTable;
 #endif
@@ -528,7 +551,11 @@ var LibraryDylink = {
       // table and memory regions.  Later threads re-use the same table region
       // and can ignore the memory region (since memory is shared between
       // threads already).
-      var needsAllocation = !handle || !{{{ makeGetValue('handle', C_STRUCTS.dso.mem_allocated, 'i8') }}};
+	var needsAllocation = !handle || !{{{ makeGetValue('handle', C_STRUCTS.dso.mem_allocated, 'i8') }}};
+
+	//BB
+	//console.log("library_dynlink.js: loadModule needsAllocation="+needsAllocation);
+	
       if (needsAllocation) {
         // alignments are powers of 2
         var memAlign = Math.pow(2, metadata.memoryAlign);
@@ -632,7 +659,12 @@ var LibraryDylink = {
         {{{ WASI_MODULE_NAME }}}: proxy,
       };
 
-      function postInstantiation(instance) {
+	function postInstantiation(instance) {
+
+	    //BB
+	    //console.log("library_dynlink.js: postInstantiation instance=");
+	    //console.log(instance);
+	    
 #if ASSERTIONS
         // the table should be unchanged
         assert(wasmTable === originalTable);
@@ -643,9 +675,11 @@ var LibraryDylink = {
 #if ASYNCIFY
         moduleExports = Asyncify.instrumentWasmExports(moduleExports);
 #endif
-        if (!flags.allowUndefined) {
+	    //BB: TOTEST
+        /*if (!flags.allowUndefined) {
           reportUndefinedSymbols();
-        }
+          }*/
+	    
 #if STACK_OVERFLOW_CHECK >= 2
         if (moduleExports['__set_stack_limits']) {
 #if USE_PTHREADS
@@ -675,7 +709,12 @@ var LibraryDylink = {
               __RELOC_FUNCS__.push(applyRelocs);
             }
           }
-          var init = moduleExports['__wasm_call_ctors'];
+            var init = moduleExports['__wasm_call_ctors'];
+
+	    //BB
+	    //console.log("library_dylink.js: runtimeInitialized="+runtimeInitialized);
+	    //console.log(init);
+	    
           if (init) {
             if (runtimeInitialized) {
               init();
@@ -810,7 +849,12 @@ var LibraryDylink = {
     }
 
     // libData <- libFile
-    function loadLibData(libFile) {
+      function loadLibData(libFile) {
+
+	  //BB
+	  //console.log("library_dylink.js: loadLibData libFile="+libFile);
+	  //console.log(flags);
+	  
       // for wasm, we can use fetch for async, but for fs mode we can only imitate it
       if (flags.fs && flags.fs.findObject(libFile)) {
         var libData = flags.fs.readFile(libFile, {encoding: 'binary'});
@@ -843,7 +887,12 @@ var LibraryDylink = {
 
       // module not preloaded - load lib data and create new module from it
       if (flags.loadAsync) {
-        return loadLibData(lib).then(function(libData) {
+          return loadLibData(lib).then(function(libData) {
+
+	      //BB
+	      //console.log("library_dylink.js: return from loadLibData libData=");
+	      //console.log(libData);
+	      
           return loadWebAssemblyModule(libData, flags, handle);
         });
       }
@@ -856,8 +905,15 @@ var LibraryDylink = {
       if (dso.global) {
         mergeLibSymbols(libModule, lib);
       }
-      dso.module = libModule;
+	dso.module = libModule;
+
+	//BB
+	//console.log("library_dylink.js: moduleLoaded !!");
     }
+
+    //BB
+    //console.log("library_dylink.js: loadDynamicLibrary flags=");
+    //console.log(flags);
 
     if (flags.loadAsync) {
 #if DYLINK_DEBUG
@@ -878,7 +934,7 @@ var LibraryDylink = {
 
   $preloadDylibs__internal: true,
   $preloadDylibs__deps: ['$loadDynamicLibrary', '$reportUndefinedSymbols'],
-  $preloadDylibs: function() {
+  $preloadDylibs: function(callback) {
 #if DYLINK_DEBUG
     dbg('preloadDylibs');
 #endif
@@ -886,9 +942,16 @@ var LibraryDylink = {
 #if DYLINK_DEBUG
       dbg('preloadDylibs: no libraries to preload');
 #endif
-      reportUndefinedSymbols();
+	//BB
+	//reportUndefinedSymbols();
+
+      callback();
+	
       return;
     }
+
+      //BB: TOTEST
+      //return;
 
     // Load binaries asynchronously
     addRunDependency('preloadDylibs');
@@ -897,12 +960,18 @@ var LibraryDylink = {
         return loadDynamicLibrary(lib, {loadAsync: true, global: true, nodelete: true, allowUndefined: true});
       });
     }, Promise.resolve()).then(function() {
-      // we got them all, wonderful
-      reportUndefinedSymbols();
+	// we got them all, wonderful
+	//BB
+      //reportUndefinedSymbols();
       removeRunDependency('preloadDylibs');
 #if DYLINK_DEBUG
     dbg('preloadDylibs done!');
 #endif
+	
+	//BB: TOTEST
+	//debugger;
+
+	callback();
     });
   },
 
@@ -945,6 +1014,10 @@ var LibraryDylink = {
       loadAsync: jsflags.loadAsync,
       fs:        jsflags.fs,
     }
+
+      //BB
+      //console.log("library_dylink.js: dlopenInternal filename="+filename);
+      //console.log(combinedFlags);
 
     if (jsflags.loadAsync) {
       return loadDynamicLibrary(filename, combinedFlags, handle);

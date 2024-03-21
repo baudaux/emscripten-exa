@@ -5148,14 +5148,31 @@ var SyscallsLibrary = {
 		
 		// name property of window for process to be loaded fully and args and env to be recovered
 		window.name = "exec";
+
+		let src = "";
 		
 		if ( (path.indexOf("/bin") === 0) || ( (path.indexOf("/usr") === 0) && ((path.indexOf("/usr/share/bin") !== 0)) ) ) {
-		    window.frameElement.src = "/netfs" + path+"/exa/exa.html";
+		    //window.frameElement.src = "/netfs" + path+"/exa/exa.html";
+
+		    src = "/netfs" + path+"/exa/exa.html";
 		}
 		else {
 		    window.frameElement.setAttribute("path", path);
-		    window.frameElement.src = "/exa/process.html";
+		    //window.frameElement.src = "/exa/process.html";
+		    src = "/exa/process.html";
 		}
+
+		window.frameElement.src = src;
+		//window.location.replace(src);
+
+		/*let msg_exec = {
+
+		    type: 15,   // exec
+		    src: src
+		};
+
+		window.parent.postMessage(msg_exec);*/
+		
 	    };
 
 	    let path = SYSCALLS.getStr(pathname);

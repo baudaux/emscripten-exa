@@ -166,7 +166,10 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   'eglSwapBuffers',
   '__syscall_mkdirat',
   '__syscall_rmdir',
-  '__syscall_newfstatat'
+  '__syscall_newfstatat',
+  # for dyn lib
+  'getppid',
+  'printf'
 ]
 
 # Target options

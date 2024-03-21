@@ -163,3 +163,8 @@ intptr_t __syscall_mmap2(intptr_t addr, size_t len, int prot, int flags, int fd,
 
   return (long)new_map->addr;
   }*/
+
+int __syscall_msync(intptr_t addr, size_t len, int flags) {
+
+  return -1;
+}
