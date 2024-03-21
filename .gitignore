@@ -26,3 +26,5 @@ htmlcov/
 coverage.xml
 
 .DS_Store
+
+third_party/server/node_modules/
