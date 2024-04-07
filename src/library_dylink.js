@@ -152,7 +152,11 @@ var LibraryDylink = {
   $relocateExports__internal: true,
   $relocateExports__deps: ['$updateGOT'],
   $relocateExports__docs: '/** @param {boolean=} replace */',
-  $relocateExports: function(exports, memoryBase, replace) {
+    $relocateExports: function(exports, memoryBase, replace) {
+
+	//BB
+	//console.log("relocateExports: memoryBase="+memoryBase);
+	
     var relocated = {};
 
     for (var e in exports) {
@@ -304,7 +308,7 @@ var LibraryDylink = {
 #endif
 
       //BB
-      //console.log("library_dylink.js: getMemory runtimeInitialized="+runtimeInitialized);
+      console.log("library_dylink.js: getMemory runtimeInitialized="+runtimeInitialized);
       
     if (runtimeInitialized) {
       // Currently we don't support freeing of static data when modules are
@@ -662,8 +666,8 @@ var LibraryDylink = {
 	function postInstantiation(instance) {
 
 	    //BB
-	    //console.log("library_dynlink.js: postInstantiation instance=");
-	    //console.log(instance);
+	    console.log("library_dynlink.js: postInstantiation instance=");
+	    console.log(instance);
 	    
 #if ASSERTIONS
         // the table should be unchanged
@@ -851,6 +855,230 @@ var LibraryDylink = {
     // libData <- libFile
       function loadLibData(libFile) {
 
+	  console.log("!!! loadLibData: "+libFile);
+
+	  function readFile(fd, res, rej) {
+
+	      console.log("!!! readFile: "+fd);
+
+	      let pid = Module.getpid();
+
+	      let buf_size = 256;
+	      
+	      let buf2 = new Uint8Array(buf_size);
+
+	      buf2[0] = 12; // READ
+
+	      
+	      //let pid = Module.getpid();
+
+	      // pid
+	      buf2[4] = pid & 0xff;
+	      buf2[5] = (pid >> 8) & 0xff;
+	      buf2[6] = (pid >> 16) & 0xff;
+	      buf2[7] = (pid >> 24) & 0xff;
+
+	      // errno
+	      buf2[8] = 0x0;
+	      buf2[9] = 0x0;
+	      buf2[10] = 0x0;
+	      buf2[11] = 0x0;
+
+	      let remote_fd = Module['fd_table'][fd].remote_fd;
+
+	      // remote_fd
+	      buf2[12] = remote_fd & 0xff;
+	      buf2[13] = (remote_fd >> 8) & 0xff;
+	      buf2[14] = (remote_fd >> 16) & 0xff;
+	      buf2[15] = (remote_fd >> 24) & 0xff;
+
+	      let len = 20*1024*1024; // 20 MB
+
+	      // len
+	      buf2[16] = len & 0xff;
+	      buf2[17] = (len >> 8) & 0xff;
+	      buf2[18] = (len >> 16) & 0xff;
+	      buf2[19] = (len >> 24) & 0xff;
+
+	      const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		  //console.log(messageEvent);
+
+		  let msg2 = messageEvent.data;
+
+		  if (msg2.buf[0] == (12|0x80)) {
+
+		      let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		      console.log("readFile: _errno=%d", _errno);
+		      
+		      if (_errno == 0) {
+
+			  let bytes_read = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			  console.log("readFile: bytes_read="+bytes_read);
+
+			  res(msg2.buf.slice(20, 20+bytes_read));
+		      }
+		      else {
+
+			  rej();
+		      }
+		  }
+	      });
+		      
+	      let msg = {
+
+		  from: Module['rcv_bc_channel'].name,
+		  buf: buf2,
+		  len: buf_size
+	      };
+	      
+	      let driver_bc = Module.get_broadcast_channel(Module['fd_table'][fd].peer);
+		
+	      driver_bc.postMessage(msg);
+	  }
+
+	  function loadFile(file, res, rej) {
+
+	      console.log("!!! loadFile: "+file);
+
+	      let pid = Module.getpid();
+
+	      let bc = Module.get_broadcast_channel("/var/resmgr.peer");
+
+	      let buf_size = 1256;
+	      
+	      let buf2 = new Uint8Array(buf_size);
+
+	      let dirfd = -100; // AT_FDCWD
+
+	      let flags = 0;
+	      let mode = 0;
+
+	      //TOTEST
+	      let path;
+
+	      if (file[0] == '/')
+		  path = file;
+	      else
+		  path = "/usr/lib/" + file;
+
+	      buf2[0] = 11; // OPEN
+	      
+	      /*//padding
+		buf[1] = 0;
+		buf[2] = 0;
+		buf[3] = 0;*/
+
+	      //let pid = Module.getpid();
+
+	      // pid
+	      buf2[4] = pid & 0xff;
+	      buf2[5] = (pid >> 8) & 0xff;
+	      buf2[6] = (pid >> 16) & 0xff;
+	      buf2[7] = (pid >> 24) & 0xff;
+
+	      // errno
+	      buf2[8] = 0x0;
+	      buf2[9] = 0x0;
+	      buf2[10] = 0x0;
+	      buf2[11] = 0x0;
+
+	      // dirfd (fd for return)
+	      buf2[12] = dirfd & 0xff;
+	      buf2[13] = (dirfd >> 8) & 0xff;
+	      buf2[14] = (dirfd >> 16) & 0xff;
+	      buf2[15] = (dirfd >> 24) & 0xff;
+
+	      // remote fd
+
+	      buf2[16] = 0x0;
+	      buf2[17] = 0x0;
+	      buf2[18] = 0x0;
+	      buf2[19] = 0x0;
+
+	      // flags
+	      buf2[20] = flags & 0xff;
+	      buf2[21] = (flags >> 8) & 0xff;
+	      buf2[22] = (flags >> 16) & 0xff;
+	      buf2[23] = (flags >> 24) & 0xff;
+	      
+	      // mode
+	      buf2[24] = mode & 0xff;
+	      buf2[25] = (mode >> 8) & 0xff;
+
+	      // pathname
+	      stringToUTF8Array(path, buf2, 140, 1024);
+
+
+	      const hid = Module['rcv_bc_channel'].set_handler( (messageEvent) => {
+
+		  //console.log(messageEvent);
+
+		  let msg2 = messageEvent.data;
+
+		  if (msg2.buf[0] == (11|0x80)) {
+
+		      let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
+
+		      console.log("loadFile: _errno=%d", _errno);
+		      
+		      if (_errno == 0) {
+
+			  let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
+			  let remote_fd = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+			  let flags = msg2.buf[20] | (msg2.buf[21] << 8) | (msg2.buf[22] << 16) |  (msg2.buf[23] << 24);
+			  let mode = msg2.buf[24] | (msg2.buf[25] << 8);
+			  let type = msg2.buf[26];
+			  let major = msg2.buf[28] | (msg2.buf[29] << 8);
+			  let minor = msg2.buf[30] | (msg2.buf[31] << 8);
+			  let peer = UTF8ArrayToString(msg2.buf, 32, 108);
+
+			  var desc = {
+
+				    fd: fd,
+				    remote_fd: remote_fd,
+				    flags: flags,
+				    mode: mode,
+				    peer: peer,
+				    type: type,
+				    major: major,
+				    minor: minor,
+				    
+				    error: null, // Used in getsockopt for SOL_SOCKET/SO_ERROR test
+				    peers: {},
+				    pending: [],
+				    recv_queue: [],
+				    name: null,
+				    bc: null,
+				};
+
+			  Module['fd_table'][fd] = desc;
+
+			  readFile(fd, res, rej);
+
+		      }
+		      else {
+
+			  rej();
+		      }
+		  }
+	      });
+		      
+	      let msg = {
+
+		  from: Module['rcv_bc_channel'].name,
+		  buf: buf2,
+		  len: buf_size
+	      };
+	      
+	      bc.postMessage(msg);
+	  }
+	      
+
+#if 0
+	  
 	  //BB
 	  //console.log("library_dylink.js: loadLibData libFile="+libFile);
 	  //console.log(flags);
@@ -874,8 +1102,15 @@ var LibraryDylink = {
       if (!readBinary) {
         throw new Error(libFile + ': file not found, and synchronous loading of external files is not available');
       }
-      return readBinary(libFile);
-    }
+	  return readBinary(libFile);
+
+#endif
+
+	  return new Promise(function(resolve, reject) {
+
+	      loadFile(libFile, resolve, reject);
+	  });
+      }
 
     // libModule <- lib
     function getLibModule() {
@@ -988,7 +1223,8 @@ var LibraryDylink = {
     filename = PATH.normalize(filename);
     var searchpaths = [];
 
-    var isValidFile = (filename) => {
+      /* Modified By Benoit Baudaux 4/04/2024 */
+    /*var isValidFile = (filename) => {
       var target = FS.findObject(filename);
       return target && !target.isFolder && !target.isDevice;
     };
@@ -1005,14 +1241,15 @@ var LibraryDylink = {
           break;
         }
       }
-    }
+    }*/
 
     // We don't care about RTLD_NOW and RTLD_LAZY.
     var combinedFlags = {
       global:    Boolean(flags & {{{ cDefine('RTLD_GLOBAL') }}}),
       nodelete:  Boolean(flags & {{{ cDefine('RTLD_NODELETE') }}}),
-      loadAsync: jsflags.loadAsync,
-      fs:        jsflags.fs,
+	loadAsync: jsflags.loadAsync,
+	//BB
+      //fs:        jsflags.fs,
     }
 
       //BB
@@ -1040,8 +1277,9 @@ var LibraryDylink = {
 #if ASYNCIFY
     return Asyncify.handleSleep(function(wakeUp) {
       var jsflags = {
-        loadAsync: true,
-        fs: FS, // load libraries from provided filesystem
+          loadAsync: true,
+	  /* Modified by Benoit Baudaux 4/04/2024 */
+        //fs: FS, // load libraries from provided filesystem
       }
       var promise = dlopenInternal(handle, jsflags);
       promise.then(wakeUp).catch(function() { wakeUp(0) });

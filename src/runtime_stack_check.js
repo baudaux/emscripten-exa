@@ -7,6 +7,10 @@
 #if STACK_OVERFLOW_CHECK
 // Initializes the stack cookie. Called at the startup of main and at the startup of each thread in pthreads mode.
 function writeStackCookie() {
+
+    //BB
+    //debugger;
+    
   var max = _emscripten_stack_get_end();
 #if RUNTIME_DEBUG
   dbg('writeStackCookie: ' + max.toString(16));

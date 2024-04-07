@@ -169,7 +169,21 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   '__syscall_newfstatat',
   # for dyn lib
   'getppid',
-  'printf'
+  'printf',
+  'vprintf',
+  'fflush',
+  'exit',
+  'open',
+  'timerfd_create',
+  'fopen',
+  'fseek',
+  'ftell',
+  'fread',
+  'fwrite',
+  'fclose',
+  'getcwd',
+  'ppoll',
+  'poll'
 ]
 
 # Target options

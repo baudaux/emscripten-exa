@@ -850,3 +850,19 @@ void *emscripten_webgl1_get_proc_address(const char *name)
 
   return 0;
 }
+
+void exa_glGetIntegerv (GLenum pname, GLint *data) {
+
+	glGetIntegerv(pname, data);
+}
+
+const GLubyte * exa_glGetString( GLenum name ) {
+
+	return glGetString(name);
+}
+
+const GLubyte * exa_glGetStringi (GLenum name, GLuint index) {
+
+	return glGetStringi(name, index);
+}
+

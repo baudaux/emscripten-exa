@@ -244,7 +244,7 @@ function initRuntime() {
 #if ASSERTIONS
   assert(!runtimeInitialized);
 #endif
-  runtimeInitialized = true;
+    runtimeInitialized = true;
 
 #if WASM_WORKERS
   if (ENVIRONMENT_IS_WASM_WORKER) return __wasm_worker_initializeRuntime();
@@ -265,10 +265,39 @@ function initRuntime() {
   ___set_stack_limits(_emscripten_stack_get_base(), _emscripten_stack_get_end());
 #endif
 #if RELOCATABLE
-  callRuntimeCallbacks(__RELOC_FUNCS__);
+    //BB: TOTEST
+    //console.log(__RELOC_FUNCS__);
+    //debugger;
+    callRuntimeCallbacks(__RELOC_FUNCS__);
+
+    //_emscripten_stack_set_limits(_emscripten_stack_get_base(), _emscripten_stack_get_end());
+    //_emscripten_stack_init();
+
+    //___heap_base = _emscripten_stack_get_end()+500000;
+    
 #endif
-  <<< ATINITS >>>
-  callRuntimeCallbacks(__ATINIT__);
+
+    //debugger;
+    
+    //BB
+    //console.log("stack base = "+_emscripten_stack_get_base());
+    //console.log("stack end = "+_emscripten_stack_get_end());
+
+    //console.log(__heap_base);
+    //console.log(___heap_base);
+    
+	<<< ATINITS >>>
+
+    //BB
+    //console.log("1 - stack base = "+_emscripten_stack_get_base());
+    //console.log("1 - stack end = "+_emscripten_stack_get_end());
+    
+	callRuntimeCallbacks(__ATINIT__);
+
+    //BB
+    //console.log("2 - stack base = "+_emscripten_stack_get_base());
+    //console.log("2 - stack end = "+_emscripten_stack_get_end());
+
 }
 
 #if HAS_MAIN
@@ -868,7 +897,10 @@ function createWasm() {
   // performing other necessary setup
   /** @param {WebAssembly.Module=} module*/
   function receiveInstance(instance, module) {
-    var exports = instance.exports;
+      var exports = instance.exports;
+
+      //BB
+      //console.log(JSON.stringify(exports));
 
 #if RELOCATABLE
     exports = relocateExports(exports, {{{ GLOBAL_BASE }}});
@@ -929,10 +961,14 @@ function createWasm() {
 #endif
 
 #if hasExportedSymbol('__wasm_call_ctors')
+      //BB
+      //console.log("Module['asm']['__wasm_call_ctors']");
     addOnInit(Module['asm']['__wasm_call_ctors']);
 #endif
 
 #if hasExportedSymbol('__wasm_apply_data_relocs')
+      //BB
+      //console.log("Module['asm']['__wasm_apply_data_relocs']");
     __RELOC_FUNCS__.push(Module['asm']['__wasm_apply_data_relocs']);
 #endif
 

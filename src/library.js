@@ -2374,6 +2374,66 @@ mergeInto(LibraryManager.library, {
     return me.buffer;
   },
 
+    // Added by Benoit Baudaux 27/03/2024
+    emscripten_load_fun__sig: 'vpp',
+    emscripten_load_fun: function(fun, sig) {
+	
+	const f = UTF8ToString(fun);
+	const s = UTF8ToString(sig);
+
+	console.log(f);
+
+	let args = new Array();
+
+	for (let i=0; i < (s.length-1); i+=1)
+	    args.push('$'+i);
+
+	console.log(...args);
+
+	let func = new Function(...args, f);
+
+	if (func) {
+
+	    console.log("Function loaded");
+
+	    if (!('loaded_functions' in Module)) {
+		Module['loaded_functions'] = new Array();
+	    }
+
+	    Module['loaded_functions'].push([func,s]);
+
+		//console.log(Module['loaded_functions'].length);
+		//func();
+
+	    return (Module['loaded_functions'].length)-1;
+	}
+
+	console.log("Error while loading function");
+
+	return -1;
+    },
+
+    emscripten_run_fun__sig: 'ii',
+    emscripten_run_fun: function(fun, varargs) {
+
+	    //console.log("run_fun: "+fun);
+	    //console.log(varargs);
+	    //console.log(Module['loaded_functions']);
+	    
+	    let args = new Array();
+
+            for (i=1; i < Module['loaded_functions'][fun][1].length; i+=1) {
+
+                let n = Module.HEAPU8[varargs+4*(i-1)] | (Module.HEAPU8[varargs+4*(i-1)+1] << 8) | (Module.HEAPU8[varargs+4*(i-1)+2] << 16) |  (Module.HEAPU8[varargs+4*(i-1)+3] << 24);
+
+		args.push(n);
+	    }
+
+	    //console.log(args);
+
+	return (Module['loaded_functions'][fun][0])(...args);
+    },
+
   emscripten_random: function() {
     return Math.random();
   },

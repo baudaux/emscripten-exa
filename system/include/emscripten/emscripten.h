@@ -37,6 +37,10 @@ char *emscripten_run_script_string(const char *script);
 void emscripten_async_run_script(const char *script, int millis);
 void emscripten_async_load_script(const char *script, em_callback_func onload, em_callback_func onerror);
 
+  /* Added by Benoit Baudaux 27/03/2024 */
+  int emscripten_load_fun(const char * fun, const char * sig);
+  int emscripten_run_fun(int handle, ...);
+
 void emscripten_set_main_loop(em_callback_func func, int fps, int simulate_infinite_loop);
 
 #define EM_TIMING_SETTIMEOUT 0

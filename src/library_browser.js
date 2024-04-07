@@ -872,6 +872,7 @@ var LibraryBrowser = {
     script.src = UTF8ToString(url);
     document.body.appendChild(script);
   },
+    
 
   // Runs natively in pthread, no __proxy needed.
   emscripten_get_main_loop_timing__sig: 'vii',

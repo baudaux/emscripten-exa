@@ -39,6 +39,7 @@ emscripten_stack_init:
   # emscripten_stack_get_base, or emscripten_stack_get_free are called
   .functype emscripten_stack_init () -> ()
 
+#ifndef __PIC__
   # The heap base is where the stack grown down from.
 #ifdef __PIC__
   global.get __heap_base@GOT
@@ -59,7 +60,11 @@ emscripten_stack_init:
   PTR.const -0x10
   PTR.and
   global.set __stack_end
-
+#else
+# BB: for a reason I ignore heap_base is null when PIC, so set heap_base from stack_base
+  global.get __stack_base
+  global.set __heap_base@GOT
+#endif
   end_function
 
 emscripten_stack_set_limits:
@@ -131,7 +136,9 @@ emscripten_wasm_worker_initialize:
   end_function
 #endif
 
+
 # Add emscripten_stack_init to static ctors
 .section .init_array.1,"",@
 .p2align ALIGN
 PTRSTORE emscripten_stack_init
+

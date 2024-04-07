@@ -1096,7 +1096,11 @@ var LibraryPThread = {
   $establishStackSpace__deps: ['$setDylinkStackLimits'],
 #endif
   $establishStackSpace__internal: true,
-  $establishStackSpace: function() {
+    $establishStackSpace: function() {
+
+	//BB
+	//debugger;
+	
     var pthread_ptr = _pthread_self();
     var stackTop = {{{ makeGetValue('pthread_ptr', C_STRUCTS.pthread.stack, 'i32') }}};
     var stackSize = {{{ makeGetValue('pthread_ptr', C_STRUCTS.pthread.stack_size, 'i32') }}};

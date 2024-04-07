@@ -297,6 +297,7 @@ dependenciesFulfilled = function runCaller() {
 			    
 			    _emscripten_stack_set_limits(a.stackBase,a.stackEnd);
 			    stackRestore(a.stackTop);
+			    
 
 			    Module[_ch].postMessage("end_fork");
 
@@ -594,6 +595,10 @@ function callMain(args) {
 
 #if STACK_OVERFLOW_CHECK
 function stackCheckInit() {
+
+    //BB
+    //debugger;
+    
   // This is normally called automatically during __wasm_call_ctors but need to
   // get these values before even running any of the ctors so we call it redundantly
   // here.
@@ -634,7 +639,9 @@ function run(args) {
 #endif
 
 #if RELOCATABLE
-  if (!dylibsLoaded) {
+    
+    if (!dylibsLoaded) {
+	
   // Loading of dynamic libraries needs to happen on each thread, so we can't
   // use the normal __ATPRERUN__ mechanism.
 #if MAIN_MODULE

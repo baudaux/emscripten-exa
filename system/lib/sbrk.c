@@ -33,7 +33,19 @@ extern size_t __heap_base;
 
 static uintptr_t sbrk_val = (uintptr_t)&__heap_base;
 
+//BB
+/*static int first_call_sbrk = 1;
+  static int first_call_get_sbrk = 1;*/
+
 uintptr_t* emscripten_get_sbrk_ptr() {
+
+  //BB
+  /*if (first_call_get_sbrk) {
+    first_call_get_sbrk = 0;
+    emscripten_log(EM_LOG_CONSOLE, "!! emscripten_get_sbrk_ptr");
+    }*/
+    
+  
 #ifdef __PIC__
   // In relocatable code we may call emscripten_get_sbrk_ptr() during startup,
   // potentially *before* the setup of the dynamically-linked __heap_base, when
@@ -51,6 +63,17 @@ uintptr_t* emscripten_get_sbrk_ptr() {
 #define SBRK_ALIGNMENT (__alignof__(max_align_t))
 
 void *sbrk(intptr_t increment_) {
+
+  //BB
+  /*if (first_call_sbrk) {
+    first_call_sbrk = 0;
+    emscripten_log(EM_LOG_CONSOLE, "!! sbrk: %d", increment_);
+  }
+  else {
+
+    return NULL;
+    }*/
+  
   uintptr_t old_size;
   uintptr_t increment = (uintptr_t)increment_;
   increment = (increment + (SBRK_ALIGNMENT-1)) & ~(SBRK_ALIGNMENT-1);
