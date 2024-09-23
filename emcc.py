@@ -183,7 +183,10 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   'fclose',
   'getcwd',
   'ppoll',
-  'poll'
+  'poll',
+  'sleep',
+  'usleep',
+  'nanosleep'
 ]
 
 # Target options

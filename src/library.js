@@ -2381,20 +2381,20 @@ mergeInto(LibraryManager.library, {
 	const f = UTF8ToString(fun);
 	const s = UTF8ToString(sig);
 
-	console.log(f);
+	//console.log(f);
 
 	let args = new Array();
 
 	for (let i=0; i < (s.length-1); i+=1)
 	    args.push('$'+i);
 
-	console.log(...args);
+	//console.log(...args);
 
 	let func = new Function(...args, f);
 
 	if (func) {
 
-	    console.log("Function loaded");
+	    //console.log("Function loaded");
 
 	    if (!('loaded_functions' in Module)) {
 		Module['loaded_functions'] = new Array();
@@ -2408,7 +2408,7 @@ mergeInto(LibraryManager.library, {
 	    return (Module['loaded_functions'].length)-1;
 	}
 
-	console.log("Error while loading function");
+	//console.log("Error while loading function");
 
 	return -1;
     },

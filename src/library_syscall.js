@@ -8390,9 +8390,9 @@ var SyscallsLibrary = {
 		    ptr: ptr
 		};
 	    }
-	    else {
+	    else if (op == 2) { // EPOLL_CTL_DEL
 
-		// TODO
+		delete epoll.readfds_array[fd2];
 	    }
 	}
 	else {
@@ -8416,6 +8416,18 @@ var SyscallsLibrary = {
 		let buf2 = new Uint8Array(buf_size);
 
 		buf2[0] = 31; // SELECT
+
+		/*if (!Module.seq_id)
+		    Module.seq_id = 0;
+		else
+		    Module.seq_id = (Module.seq_id+1)%256;
+
+		if (Module.seq_id == 0)
+		    Module.seq_id = 1;
+
+		buf2[2] = Module.seq_id;
+
+		console.log("seq id sent = "+buf2[2]);*/
 
 		let pid = Module.getpid();
 
@@ -8446,7 +8458,7 @@ var SyscallsLibrary = {
 		buf2[23] = (start >> 24) & 0xff;
 
 		// once
-		buf2[28] = 0;
+		buf2[28] = (to == 0);
 		buf2[29] = 0;
 		buf2[30] = 0;
 		buf2[31] = 0;
@@ -8531,7 +8543,7 @@ var SyscallsLibrary = {
 
 		if (fd >= 0) {
 
-		    //console.log("!!! notif_select: fd="+fd);
+		    //console.log("!!! notif_select: fd="+fd+", pollhup="+pollhup+", rw="+rw+", remote_fd="+Module['fd_table'][fd].remote_fd);
 
 		    let events = 0;
 
@@ -8670,9 +8682,17 @@ var SyscallsLibrary = {
 		    
 		    if (msg2.buf[0] == (31|0x80)) {
 
+			/*console.log("seq id rcv = "+msg2.buf[2]);
+
+			if (msg2.buf[2] == 0)
+			    return -1;*/
+
 			let fd = msg2.buf[12] | (msg2.buf[13] << 8) | (msg2.buf[14] << 16) |  (msg2.buf[15] << 24);
 
 			let rw = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			/*if ( (Module['fd_table'][fd].major == 1) && (msg2.buf[2] != Module.seq_id) )
+			    return -1;*/
 
 			//console.log("__syscall_pselect6: return of fd="+fd+", rw="+rw);
 			let pollhup = ((msg2.buf[28] | (msg2.buf[29] << 8) | (msg2.buf[30] << 16) |  (msg2.buf[31] << 24)) == 2);
