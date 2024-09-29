@@ -5336,7 +5336,21 @@ var SyscallsLibrary = {
 		driver_bc.postMessage(msg);
 	    };
 
-	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+	    if (fd == 0x7e000001) { // Wayland virtual pipe
+
+		console.log("!!! write to Wayland virtual pipe");
+
+		let data = UTF8ArrayToString(Module.HEAPU8, buf, count);
+
+		console.log(data);
+
+		navigator.clipboard.writeText(data).then(function() {
+
+		    console.log("Clipboard write done ");
+		    wakeUp(0);
+		});
+	    }
+	    else if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		do_write();
 	    }
@@ -5706,7 +5720,11 @@ var SyscallsLibrary = {
 		bc.postMessage(msg);
 	    };
 
-	    if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
+	    if (fd == 0x7e000001) { // Wayland virtual pipe
+
+		wakeUp(0);
+	    }
+	    else if ( (fd in Module['fd_table']) && (Module['fd_table'][fd]) ) {
 
 		if (Module['fd_table'][fd].timerfd && Module['fd_table'][fd].timeout_id) {
 
