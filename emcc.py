@@ -174,6 +174,7 @@ DEFAULT_ASYNCIFY_IMPORTS = [
   'fflush',
   'exit',
   'open',
+  'close',
   'timerfd_create',
   'fopen',
   'fseek',
