@@ -5163,12 +5163,17 @@ var SyscallsLibrary = {
 		}
 
 		window.frameElement.src = src;
+
+
 		//window.location.replace(src);
+		//window.frameElement.replace(src);
 
 		/*let msg_exec = {
 
 		    type: 15,   // exec
-		    src: src
+		    src: src,
+		    pid: pid & 0xffff,
+		    
 		};
 
 		window.parent.postMessage(msg_exec);*/
