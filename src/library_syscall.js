@@ -5215,7 +5215,14 @@ var SyscallsLibrary = {
 
 				if (Module[_ch]) {
 
-				    Module[_ch].postMessage(Module.HEAPU8);
+				    if (Module.HEAPU8.buffer instanceof SharedArrayBuffer) { // Cannot directly send SharedArrayBuffer
+					let ab = new ArrayBuffer(Module.HEAPU8.buffer.byteLength);
+					const uint8 = new Uint8Array(ab);
+					uint8.set(Module.HEAPU8);
+					Module[_ch].postMessage(uint8);
+				    }
+				    else
+					Module[_ch].postMessage(Module.HEAPU8);
 
 				    Asyncify.stackTop = stackSave();
 				    Asyncify.stackBase = _emscripten_stack_get_base();
@@ -7517,11 +7524,20 @@ var SyscallsLibrary = {
 		    
 		    // TODO: check bufsize
 
-		    let len = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+		    let _errno = msg2.buf[8] | (msg2.buf[9] << 8) | (msg2.buf[10] << 16) |  (msg2.buf[11] << 24);
 
-		    Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
+		    if (!_errno) {
 
-		    wakeUp(len-1); // Remove last zero frol len
+			let len = msg2.buf[16] | (msg2.buf[17] << 8) | (msg2.buf[18] << 16) |  (msg2.buf[19] << 24);
+
+			Module.HEAPU8.set(msg2.buf.slice(20, 20+len), buf);
+
+			wakeUp(len-1); // Remove last zero frol len
+		    }
+		    else {
+
+			wakeUp(-_errno);
+		    }
 
 		    return hid;
 		}

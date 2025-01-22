@@ -281,6 +281,9 @@ dependenciesFulfilled = function runCaller() {
 			    
 			    preMain();
 
+			    if (messageEvent.data.length > Module.HEAPU8.length)
+				_emscripten_resize_heap(messageEvent.data.length);
+
 			    Module.HEAPU8.set(messageEvent.data);
 			}
 			else {
